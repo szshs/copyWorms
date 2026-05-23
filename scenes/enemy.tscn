@@ -1,0 +1,40 @@
+[gd_scene load_steps=6 format=3 uid="uid://eez2s7g3j0l1m"]
+
+[ext_resource type="Script" path="res://scripts/enemy.gd" id="1_enemy_script"]
+
+[sub_resource type="RectangleShape2D" id="enemy_body_shape"]
+size = Vector2(28, 36)
+
+[sub_resource type="CircleShape2D" id="detection_shape"]
+radius = 250.0
+
+[sub_resource type="RectangleShape2D" id="enemy_hurt_shape"]
+size = Vector2(34, 40)
+
+[node name="Enemy" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 3
+script = ExtResource("1_enemy_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -2)
+shape = SubResource("enemy_body_shape")
+
+[node name="DetectionArea" type="Area2D" parent="."]
+collision_layer = 16
+collision_mask = 1
+position = Vector2(0, -2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionArea"]
+shape = SubResource("detection_shape")
+
+[node name="HurtArea" type="Area2D" parent="."]
+collision_layer = 32
+collision_mask = 4
+position = Vector2(0, -2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtArea"]
+shape = SubResource("enemy_hurt_shape")

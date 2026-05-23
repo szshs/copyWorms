@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="16" fill="#1a1a2e"/>
+  <circle cx="64" cy="50" r="18" fill="#4a90d9"/>
+  <rect x="48" y="64" width="28" height="36" rx="6" fill="#3a70b9"/>
+  <rect x="20" y="78" width="14" height="4" rx="2" fill="#a0a0b0"/>
+  <rect x="94" y="78" width="14" height="4" rx="2" fill="#a0a0b0"/>
+  <circle cx="56" cy="44" r="4" fill="#ffffff"/>
+  <circle cx="72" cy="44" r="4" fill="#ffffff"/>
+  <circle cx="108" cy="40" r="8" fill="#d94a4a" opacity="0.8"/>
+  <circle cx="111" cy="37" r="3" fill="#ffdd44"/>
+  <circle cx="106" cy="43" r="3" fill="#ffdd44"/>
+  <rect x="90" y="100" width="40" height="8" rx="3" fill="#2a2a3e"/>
+  <text x="64" y="118" text-anchor="middle" font-size="10" fill="#888">HOLLOW DEMO</text>
+</svg>

@@ -1,0 +1,13 @@
+63f7b34db8d8cdea90c76aacccf841ec
+::res://::1779525386
+icon.svg::CompressedTexture2D::6719992844094883104::1779524877::1779525074::1::::<><><>0<>0<>6b4172b143c3579e270376f5cc5ca5d7<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
+README.md::TextFile::-1::1779524888::0::1::::<><><>0<>0<><>::
+::res://scenes/::1779524608
+enemy.tscn::PackedScene::656348710717481220::1779524606::0::1::::<><><>0<>0<><>::res://scripts/enemy.gd
+level.tscn::PackedScene::7996880325109901877::1779524608::0::1::::<><><>0<>0<><>::res://scripts/level.gd
+player.tscn::PackedScene::8263371951457280803::1779524600::0::1::::<><><>0<>0<><>::res://scripts/player.gd
+::res://scripts/::1779525074
+enemy.gd::GDScript::1396105293069572366::1779524939::0::1::::Enemy<>CharacterBody2D<><>0<>0<><>::
+level.gd::GDScript::5833437721539492000::1779525216::0::1::::Level<>Node2D<><>0<>0<><>::
+player.gd::GDScript::4095997425209812418::1779524794::0::1::::Player<>CharacterBody2D<><>0<>0<><>::
+win_zone.gd::GDScript::1208241152147329689::1779524528::0::1::::WinZone<>Area2D<><>0<>0<><>::
