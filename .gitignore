@@ -1,71 +1,12 @@
-# Compiled source #
-*.com
-*.class
-*.dll
-*.exe
-*.o
-*.so
+# Godot 编辑器缓存和自动生成文件
+.godot/
 
-# Packages #
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
+# 导入文件（自动生成）
+*.import
 
-# Logs and databases #
-*.log
-*.sql
-*.sqlite
+# 脚本 UID 文件（自动生成）
+*.uid
 
-# OS generated files #
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-Desktop.ini
-
-# IDE #
+# IDE 配置
 .idea/
 .vscode/
-*.swp
-*.swo
-*~
-
-# Node #
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Python #
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-.venv/
-*.egg-info/
-dist/
-build/
-
-# Java #
-*.class
-*.jar
-*.war
-target/
-
-# .NET #
-bin/
-obj/
-*.user
-*.suo
-*.cachefile
