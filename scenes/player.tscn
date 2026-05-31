@@ -39,6 +39,10 @@ position = Vector2(0, -4)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HurtArea"]
 shape = SubResource("hurtbox_shape")
 
+[node name="SlashSprite" type="Sprite2D" parent="."]
+visible = false
+z_index = 5
+
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(0, -20)
 zoom = Vector2(1, 1)
