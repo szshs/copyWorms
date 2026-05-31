@@ -17,7 +17,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="Hollow Knight Demo"
 config/description="A small Hollow Knight-inspired game demo"
 config/version="0.1"
-run/main_scene="res://scenes/level.tscn"
+run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 
 [display]

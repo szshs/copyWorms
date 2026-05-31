@@ -20,11 +20,13 @@ var facing_right: bool = true
 var is_attacking: bool = false
 var invincible_timer: float = 0.0
 var invincible_duration: float = 0.8
+var is_dead: bool = false
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var attack_area: Area2D = $AttackArea
 @onready var attack_collision: CollisionShape2D = $AttackArea/CollisionShape2D
 @onready var hurt_area: Area2D = $HurtArea
+@onready var slash_sprite: Sprite2D = $SlashSprite
 
 
 func _ready() -> void:
@@ -33,6 +35,8 @@ func _ready() -> void:
 	attack_area.monitoring = false
 	hurt_area.body_entered.connect(_on_enemy_contact)
 	_generate_sprite_texture()
+	_generate_slash_texture()
+	slash_sprite.visible = false
 
 
 func _generate_sprite_texture() -> void:
@@ -56,6 +60,25 @@ func _generate_sprite_texture() -> void:
 			img.set_pixel(x, y, Color(0.8, 0.8, 0.9, 1.0))
 	var tex := ImageTexture.create_from_image(img)
 	sprite.texture = tex
+
+
+func _generate_slash_texture() -> void:
+	var img := Image.create(60, 36, false, Image.FORMAT_RGBA8)
+	var cx := 30.0
+	var cy := 18.0
+	for x in range(60):
+		for y in range(36):
+			var dx := (x - cx) / cx
+			var dy := (y - cy) / cy
+			var arc: float = 1.0 - abs(dy) * 1.5
+			var fade_in: float = smoothstep(-1.0, -0.3, dx)
+			var fade_out: float = 1.0 - smoothstep(0.3, 1.0, dx)
+			var alpha: float = arc * fade_in * fade_out * 0.8
+			if alpha > 0.05:
+				img.set_pixel(x, y, Color(1.0, 0.95, 0.7, alpha))
+	var tex := ImageTexture.create_from_image(img)
+	slash_sprite.texture = tex
+	slash_sprite.centered = true
 
 
 func _physics_process(delta: float) -> void:
@@ -104,10 +127,22 @@ func _perform_attack() -> void:
 	attack_area.position.y = -4
 	attack_area.monitoring = true
 
+	# 刀光特效
+	slash_sprite.position.x = offset_x
+	slash_sprite.position.y = -4
+	slash_sprite.flip_h = not facing_right
+	slash_sprite.modulate.a = 1.0
+	slash_sprite.visible = true
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(slash_sprite, "modulate:a", 0.0, attack_duration)
+	tween.tween_property(slash_sprite, "scale", Vector2(1.2, 1.0), attack_duration)
+
 	# 短暂激活后关闭
 	await get_tree().create_timer(attack_duration).timeout
 	attack_area.monitoring = false
 	is_attacking = false
+	slash_sprite.visible = false
+	slash_sprite.scale = Vector2.ONE
 
 
 func _on_enemy_contact(body: Node2D) -> void:
@@ -136,12 +171,16 @@ func take_damage(amount: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 
 
 func _die() -> void:
-	print("玩家死亡! 重新加载场景...")
+	if is_dead:
+		return
+	is_dead = true
+	print("玩家死亡! 返回主菜单...")
 	player_died.emit()
 	set_physics_process(false)
-	# 延迟重载
-	await get_tree().create_timer(1.0).timeout
-	get_tree().reload_current_scene()
+	# 延迟返回主菜单
+	await get_tree().create_timer(1.5).timeout
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/main_menu.tscn")
 
 
 func heal(amount: int) -> void:
