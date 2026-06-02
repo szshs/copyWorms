@@ -136,7 +136,7 @@ func _spawn_player() -> void:
 
 
 func _spawn_enemies() -> void:
-	var enemy_scene := load("res://scenes/enemy.tscn") as PackedScene
+	var enemy_scene := load("res://份C_敌人系统/Scenes/Enemies/Enemy_Melee.tscn") as PackedScene
 	if not enemy_scene:
 		push_error("无法加载敌人场景!")
 		return

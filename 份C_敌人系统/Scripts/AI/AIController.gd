@@ -14,7 +14,7 @@ var chase: ChaseBehavior
 @onready var detection_collision: CollisionShape2D = $"../DetectionArea/CollisionShape2D"
 
 
-func _init(owner_enemy: EnemyBase, sm: EnemyStateMachine, p: PatrolBehavior, c: ChaseBehavior) -> void:
+func init_refs(owner_enemy: EnemyBase, sm: EnemyStateMachine, p: PatrolBehavior, c: ChaseBehavior) -> void:
 	enemy = owner_enemy
 	state_machine = sm
 	patrol = p
@@ -25,8 +25,10 @@ func setup() -> void:
 	if detection_collision and detection_collision.shape is CircleShape2D:
 		detection_collision.shape.radius = detection_range
 
-	detection_area.body_entered.connect(_on_detection_body_entered)
-	detection_area.body_exited.connect(_on_detection_body_exited)
+	if not detection_area.body_entered.is_connected(_on_detection_body_entered):
+		detection_area.body_entered.connect(_on_detection_body_entered)
+	if not detection_area.body_exited.is_connected(_on_detection_body_exited):
+		detection_area.body_exited.connect(_on_detection_body_exited)
 
 
 func _on_detection_body_entered(body: Node2D) -> void:

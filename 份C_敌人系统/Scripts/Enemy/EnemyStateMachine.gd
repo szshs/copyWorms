@@ -15,7 +15,7 @@ var patrol_behavior: PatrolBehavior
 var chase_behavior: ChaseBehavior
 
 
-func _init(owner_enemy: EnemyBase) -> void:
+func init_refs(owner_enemy: EnemyBase) -> void:
 	enemy = owner_enemy
 
 

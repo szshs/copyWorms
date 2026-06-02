@@ -16,7 +16,7 @@ var chase_timer: float = 0.0
 var charge_timer: float = 0.0
 
 
-func _init(owner_enemy: EnemyBase) -> void:
+func init_refs(owner_enemy: EnemyBase) -> void:
 	enemy = owner_enemy
 
 
@@ -42,7 +42,7 @@ func update(delta: float) -> void:
 
 	# 超时或玩家不在范围内
 	if chase_timer <= 0 and not player_in_range:
-		enemy.get_node("StateMachine").transition_to(EnemyStateMachine.State.PATROL)
+		_enemy_sm().transition_to(EnemyStateMachine.State.PATROL)
 		return
 
 	# 重置计时
@@ -55,7 +55,7 @@ func update(delta: float) -> void:
 
 		# 边缘检测 —— 前方是悬崖则停止追逐，回巡逻
 		if not enemy.is_ground_ahead(dir, edge_check_distance):
-			enemy.get_node("StateMachine").transition_to(EnemyStateMachine.State.PATROL)
+			_enemy_sm().transition_to(EnemyStateMachine.State.PATROL)
 			return
 
 		var speed := charge_speed if charge_timer > 0 else chase_speed
@@ -72,4 +72,8 @@ func update(delta: float) -> void:
 			enemy.sprite.modulate = Color(1.15, 0.85, 0.85, 1.0)
 	else:
 		player_in_range = false
-		enemy.get_node("StateMachine").transition_to(EnemyStateMachine.State.PATROL)
+		_enemy_sm().transition_to(EnemyStateMachine.State.PATROL)
+
+
+func _enemy_sm() -> EnemyStateMachine:
+	return enemy.get_node("StateMachine") as EnemyStateMachine

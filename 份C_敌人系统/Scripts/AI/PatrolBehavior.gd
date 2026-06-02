@@ -10,7 +10,7 @@ var enemy: EnemyBase
 var direction: int = -1  ## 初始向左巡逻
 
 
-func _init(owner_enemy: EnemyBase) -> void:
+func init_refs(owner_enemy: EnemyBase) -> void:
 	enemy = owner_enemy
 
 
