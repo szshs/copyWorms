@@ -1,0 +1,12 @@
+# Godot 编辑器缓存和自动生成文件
+.godot/
+
+# 导入文件（自动生成）
+*.import
+
+# 脚本 UID 文件（自动生成）
+*.uid
+
+# IDE 配置
+.idea/
+.vscode/

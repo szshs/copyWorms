@@ -1,0 +1,77 @@
+[gd_scene load_steps=10 format=3 uid="uid://enemy_melee_001"]
+
+[ext_resource type="Script" path="res://份C_敌人系统/Scripts/Enemy/EnemyMelee.gd" id="1_enemy_script"]
+
+[sub_resource type="RectangleShape2D" id="body_shape"]
+size = Vector2(28, 36)
+
+[sub_resource type="CircleShape2D" id="detect_shape"]
+radius = 250.0
+
+[sub_resource type="CircleShape2D" id="attack_shape"]
+radius = 45.0
+
+[sub_resource type="RectangleShape2D" id="hurt_shape"]
+size = Vector2(34, 40)
+
+[sub_resource type="CircleShape2D" id="aoe_indicator_shape"]
+radius = 1.0
+
+[node name="EnemyMelee" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 3
+script = ExtResource("1_enemy_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -2)
+scale = Vector2(1, 1)
+modulate = Color(1, 1, 1, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -2)
+shape = SubResource("body_shape")
+
+[node name="DetectionArea" type="Area2D" parent="."]
+collision_layer = 16
+collision_mask = 1
+position = Vector2(0, -2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionArea"]
+position = Vector2(0, 0)
+shape = SubResource("detect_shape")
+
+[node name="AttackArea" type="Area2D" parent="."]
+collision_layer = 4
+collision_mask = 1
+monitoring = false
+position = Vector2(0, -2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackArea"]
+position = Vector2(0, 0)
+shape = SubResource("attack_shape")
+
+[node name="HurtArea" type="Area2D" parent="."]
+collision_layer = 32
+collision_mask = 4
+position = Vector2(0, -2)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtArea"]
+position = Vector2(0, 0)
+shape = SubResource("hurt_shape")
+
+[node name="GroundCheck" type="RayCast2D" parent="."]
+target_position = Vector2(0, 30)
+collision_mask = 1
+
+[node name="WallCheck" type="RayCast2D" parent="."]
+target_position = Vector2(20, 0)
+collision_mask = 1
+
+[node name="AoeIndicator" type="Sprite2D" parent="."]
+position = Vector2(0, -2)
+visible = false
+z_index = 5
+
+[connection signal="body_entered" from="DetectionArea" to="." method="_on_detection_body_entered"]
+[connection signal="body_exited" from="DetectionArea" to="." method="_on_detection_body_exited"]
+[connection signal="area_entered" from="HurtArea" to="." method="_on_hurt_area_entered"]
