@@ -436,6 +436,9 @@ func _disable_attack_hitbox() -> void:
 
 func _on_attack_hit(body: Node2D) -> void:
 	if body.is_in_group("player") and body.has_method("take_damage"):
+		# 冲撞攻击需要视线检测，防止穿墙伤害
+		if next_attack_type == AttackType.CHARGE and not _has_line_of_sight():
+			return
 		var dmg := charge_damage if next_attack_type == AttackType.CHARGE else aoe_damage
 		var kb_dir := (body.global_position - global_position).normalized()
 		body.take_damage(dmg, kb_dir)
@@ -546,7 +549,8 @@ func _has_line_of_sight() -> bool:
 		return false
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.create(global_position, player_ref.global_position)
-	query.exclude = [self]
+	query.collision_mask = 1  # 只检测世界碰撞层（平台/地面），排除敌人自身区域和玩家攻击区域
+	query.exclude = [self, player_ref]
 	var result := space_state.intersect_ray(query)
 	if result.is_empty():
 		return true
