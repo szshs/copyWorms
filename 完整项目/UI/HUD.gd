@@ -13,6 +13,8 @@ var pause_panel: Panel
 var game_over_panel: Panel
 
 func _ready() -> void:
+	# 关键：暂停时 HUD 必须继续运行，否则按钮无法响应
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_ui()
 	_connect_events()
 	_update_mode_label()
