@@ -5,6 +5,10 @@
 extends PlayerBase
 class_name Player_Warrior
 
+# AnimatedSprite2D 引用（在编辑器中手动创建和配置动画）
+var _anim_sprite: AnimatedSprite2D = null
+var _last_anim: String = ""
+
 func _on_ready() -> void:
 	super._on_ready()
 	if not config:
@@ -12,31 +16,54 @@ func _on_ready() -> void:
 		_apply_config()
 	can_double_jump = true
 
+	# 获取编辑器中的 AnimatedSprite2D（需要在 .tscn 中手动添加并命名为 "Sprite"）
+	_anim_sprite = get_node_or_null("Sprite")
+	if _anim_sprite:
+		_sprite_node = _anim_sprite  # 闪烁效果通过 _sprite_node.visible 控制
+		_anim_sprite.play("idle")
+
+func _on_physics_process(delta: float) -> void:
+	super._on_physics_process(delta)
+	_update_animation()
+
+func _update_animation() -> void:
+	if not _anim_sprite:
+		return
+
+	var target_anim = "idle"
+
+	match current_state:
+		GlobalDefine.PlayerState.RUN:
+			target_anim = "run"
+		GlobalDefine.PlayerState.JUMP, GlobalDefine.PlayerState.FALL:
+			target_anim = "jump"
+		GlobalDefine.PlayerState.DASH:
+			target_anim = "dash"
+
+	# 只在动画名变化时才切换，避免每帧重复调用 play()
+	if target_anim != _last_anim:
+		_last_anim = target_anim
+		_anim_sprite.play(target_anim)
+
 func _on_attack() -> void:
 	super._on_attack()
 	if has_hit_this_attack:
 		return
 	has_hit_this_attack = true
 
-	# 攻击范围：玩家前方扇形区域
 	var facing_dir = 1.0 if is_facing_right else -1.0
 	var attack_center = global_position + Vector2(facing_dir * 40, -10)
 	var attack_range = config.attack_range if config else 80.0
 
-	print("[Warrior] 攻击！范围=%d 中心=%s" % [attack_range, attack_center])
-
 	for enemy in GameManager.get_enemies():
 		if not is_instance_valid(enemy):
 			continue
-		var dist = attack_center.distance_to(enemy.global_position)
-		print("  检测敌人 %s 距离=%f" % [enemy.name, dist])
-		if dist <= attack_range:
+		if attack_center.distance_to(enemy.global_position) <= attack_range:
 			var result = DamageCalculator.calculate(
 				config.attack_damage if config else 25,
 				0,
 				GlobalDefine.DamageType.PHYSICAL
 			)
-			# 击退方向：水平为主，略带向上
 			var kb_dir = Vector2(facing_dir, -0.3).normalized()
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(result["damage"], kb_dir)
@@ -46,12 +73,10 @@ func _on_attack() -> void:
 				"damage": result["damage"],
 				"is_crit": result["is_crit"]
 			})
-			print("  命中！伤害=%d" % result["damage"])
 			break
 
 func _on_skill() -> void:
 	super._on_skill()
-	print("[Warrior] 释放技能：横斩")
 	var skill_config = load("res://DataConfig/Skill/SlashConfig.tres") as SkillConfig
 	if not skill_config:
 		return
@@ -85,7 +110,7 @@ func _on_skill() -> void:
 			})
 
 func _get_placeholder_color() -> Color:
-	return Color(0.2, 0.6, 0.9)
+	return Color.TRANSPARENT
 
 func _on_die() -> void:
 	super._on_die()
