@@ -24,12 +24,13 @@ func _on_ready() -> void:
 	_anim_sprite = get_node_or_null("Sprite")
 	if _anim_sprite:
 		_sprite_node = _anim_sprite
-		# 精灵 64×64 × 1.8 = 115×115，向下偏移让脚踩到碰撞体底部
+		# 向下偏移让脚踩到碰撞体底部
+		# scale 在编辑器中控制，代码不覆盖
 		_anim_sprite.offset = Vector2(0, -1.5)
-		_anim_sprite.scale = Vector2(1.8, 1.8)
 
-		if _anim_sprite.sprite_frames and _anim_sprite.sprite_frames.has_animation("walk"):
-			_anim_sprite.play("walk")
+		# 默认播放 idle
+		if _anim_sprite.sprite_frames and _anim_sprite.sprite_frames.has_animation("idle"):
+			_anim_sprite.play("idle")
 
 # 重写碰撞体尺寸，匹配放大后的精灵
 func _get_collision_size() -> Vector2:
@@ -43,11 +44,26 @@ func _on_physics_process(delta: float) -> void:
 func _update_animation() -> void:
 	if not _anim_sprite or not _anim_sprite.sprite_frames:
 		return
-	var target_anim = "walk"
+
+	var target_anim = "idle"
+
+	match current_state:
+		GlobalDefine.PlayerState.RUN:
+			target_anim = "walk" if _anim_sprite.sprite_frames.has_animation("walk") else "idle"
+		_:
+			target_anim = "idle"
+
 	if target_anim != _last_anim:
 		_last_anim = target_anim
 		if _anim_sprite.sprite_frames.has_animation(target_anim):
 			_anim_sprite.play(target_anim)
+
+	# idle 原始帧 128×128，walk 原始帧 64×64
+	# 用代码缩放补偿，让两个动画视觉大小一致
+	if target_anim == "walk":
+		_anim_sprite.scale = Vector2(2, 2)       # 128px 帧不放大
+	else:
+		_anim_sprite.scale = Vector2(1, 1)       # 64px 帧放大到 128px
 
 ## 覆盖基类的 scale.x 翻转，统一用 flip_h 控制朝向
 ## 避免 scale.x 和 flip_h 双重翻转导致的频闪
