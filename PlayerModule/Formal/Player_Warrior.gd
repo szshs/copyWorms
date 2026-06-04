@@ -50,6 +50,8 @@ func _update_animation() -> void:
 	match current_state:
 		GlobalDefine.PlayerState.RUN:
 			target_anim = "walk" if _anim_sprite.sprite_frames.has_animation("walk") else "idle"
+		GlobalDefine.PlayerState.JUMP, GlobalDefine.PlayerState.FALL:
+			target_anim = "jump" if _anim_sprite.sprite_frames.has_animation("jump") else "idle"
 		_:
 			target_anim = "idle"
 
@@ -58,12 +60,11 @@ func _update_animation() -> void:
 		if _anim_sprite.sprite_frames.has_animation(target_anim):
 			_anim_sprite.play(target_anim)
 
-	# idle 原始帧 128×128，walk 原始帧 64×64
-	# 用代码缩放补偿，让两个动画视觉大小一致
+	# walk 原始帧 64×64，其他动画 128×128
 	if target_anim == "walk":
-		_anim_sprite.scale = Vector2(2, 2)       # 128px 帧不放大
+		_anim_sprite.scale = Vector2(2, 2)
 	else:
-		_anim_sprite.scale = Vector2(1, 1)       # 64px 帧放大到 128px
+		_anim_sprite.scale = Vector2(1, 1)
 
 ## 覆盖基类的 scale.x 翻转，统一用 flip_h 控制朝向
 ## 避免 scale.x 和 flip_h 双重翻转导致的频闪
