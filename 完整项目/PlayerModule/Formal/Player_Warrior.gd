@@ -5,7 +5,6 @@
 extends PlayerBase
 class_name Player_Warrior
 
-# AnimatedSprite2D 引用（在编辑器中手动创建和配置动画）
 var _anim_sprite: AnimatedSprite2D = null
 var _last_anim: String = ""
 
@@ -16,34 +15,59 @@ func _on_ready() -> void:
 		_apply_config()
 	can_double_jump = true
 
-	# 获取编辑器中的 AnimatedSprite2D（需要在 .tscn 中手动添加并命名为 "Sprite"）
+	# 删除基类创建的占位 ColorRect
+	var old = get_node_or_null("PlaceholderSprite")
+	if old:
+		old.queue_free()
+
+	# 获取编辑器中的 AnimatedSprite2D
 	_anim_sprite = get_node_or_null("Sprite")
 	if _anim_sprite:
-		_sprite_node = _anim_sprite  # 闪烁效果通过 _sprite_node.visible 控制
-		_anim_sprite.play("idle")
+		_sprite_node = _anim_sprite
+		# 精灵 64×64 × 1.8 = 115×115，向下偏移让脚踩到碰撞体底部
+		_anim_sprite.offset = Vector2(0, -1.5)
+		_anim_sprite.scale = Vector2(1.8, 1.8)
+
+		if _anim_sprite.sprite_frames and _anim_sprite.sprite_frames.has_animation("walk"):
+			_anim_sprite.play("walk")
+
+# 重写碰撞体尺寸，匹配放大后的精灵
+func _get_collision_size() -> Vector2:
+	return Vector2(50, 55)
 
 func _on_physics_process(delta: float) -> void:
 	super._on_physics_process(delta)
 	_update_animation()
+	_update_facing_override()
 
 func _update_animation() -> void:
-	if not _anim_sprite:
+	if not _anim_sprite or not _anim_sprite.sprite_frames:
 		return
-
-	var target_anim = "idle"
-
-	match current_state:
-		GlobalDefine.PlayerState.RUN:
-			target_anim = "run"
-		GlobalDefine.PlayerState.JUMP, GlobalDefine.PlayerState.FALL:
-			target_anim = "jump"
-		GlobalDefine.PlayerState.DASH:
-			target_anim = "dash"
-
-	# 只在动画名变化时才切换，避免每帧重复调用 play()
+	var target_anim = "walk"
 	if target_anim != _last_anim:
 		_last_anim = target_anim
-		_anim_sprite.play(target_anim)
+		if _anim_sprite.sprite_frames.has_animation(target_anim):
+			_anim_sprite.play(target_anim)
+
+## 覆盖基类的 scale.x 翻转，统一用 flip_h 控制朝向
+## 避免 scale.x 和 flip_h 双重翻转导致的频闪
+func _update_facing_override() -> void:
+	if is_dashing:
+		return
+
+	if velocity.x > 10:
+		# 向右走
+		scale.x = 1
+		is_facing_right = true
+		if _anim_sprite:
+			_anim_sprite.flip_h = false
+	elif velocity.x < -10:
+		# 向左走
+		scale.x = 1  # 不用 scale 翻转！
+		is_facing_right = false
+		if _anim_sprite:
+			_anim_sprite.flip_h = true
+	# velocity.x ≈ 0 时保持朝向不变
 
 func _on_attack() -> void:
 	super._on_attack()

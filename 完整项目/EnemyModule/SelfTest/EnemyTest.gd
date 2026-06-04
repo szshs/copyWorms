@@ -36,7 +36,12 @@ func _create_platform(pos: Vector2, size: Vector2, color: Color) -> void:
 	add_child(body)
 
 func _spawn_player() -> void:
-	var player = Player_Warrior.new()
+	var player_path = "res://PlayerModule/Formal/Player_Warrior.tscn"
+	var player: Player_Warrior = null
+	if ResourceLoader.exists(player_path):
+		player = load(player_path).instantiate() as Player_Warrior
+	else:
+		player = Player_Warrior.new()
 	player.config = load("res://DataConfig/Player/WarriorConfig.tres") as PlayerConfig
 	player.position = Vector2(100, 550)
 	add_child(player)

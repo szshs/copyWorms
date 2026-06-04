@@ -1,80 +1,74 @@
-[gd_scene format=3 uid="uid://1cdf4ku01wce"]
+[gd_scene format=3 uid="uid://b06lawqhg7cto"]
 
 [ext_resource type="Script" uid="uid://bfy4rlef3jbmu" path="res://PlayerModule/Formal/Player_Warrior.gd" id="1_main"]
-[ext_resource type="Texture2D" uid="uid://cnlbjxad62d25" path="res://Assets/Sprites/player Ani/人物行走.png" id="2_a8yrj"]
+[ext_resource type="Texture2D" uid="uid://6nh2qnvrae02" path="res://Assets/Sprites/player Ani/人物行走.png" id="2_a8yrj"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_d642x"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(0, 0, 184, 307)
+region = Rect2(0, 0, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_0oupe"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(184, 0, 184, 307)
+region = Rect2(64, 0, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_lpwoq"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(368, 0, 184, 307)
+region = Rect2(128, 0, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_jav0e"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(552, 0, 184, 307)
+region = Rect2(192, 0, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_0nbrx"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(736, 0, 184, 307)
+region = Rect2(0, 64, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_mbesu"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(920, 0, 184, 307)
+region = Rect2(64, 64, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_i7yqb"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(1104, 0, 184, 307)
+region = Rect2(128, 64, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_akh1f"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(1288, 0, 184, 307)
+region = Rect2(192, 64, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_i7n4q"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(1472, 0, 184, 307)
+region = Rect2(0, 128, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_b0wod"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(1656, 0, 184, 307)
+region = Rect2(64, 128, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_g7c1b"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(1840, 0, 184, 307)
+region = Rect2(128, 128, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_njfsg"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(2024, 0, 184, 307)
+region = Rect2(192, 128, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_wxuyb"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(2208, 0, 184, 307)
+region = Rect2(0, 192, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_4x576"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(2392, 0, 184, 307)
+region = Rect2(64, 192, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_yxawi"]
 atlas = ExtResource("2_a8yrj")
-region = Rect2(2576, 0, 184, 307)
+region = Rect2(128, 192, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4ipcd"]
+atlas = ExtResource("2_a8yrj")
+region = Rect2(192, 192, 64, 64)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_e1m3d"]
 animations = [{
-"frames": [],
-"loop": true,
-"name": &"new_animation",
-"speed": 4.0
-}, {
-"frames": [],
-"loop": true,
-"name": &"待机",
-"speed": 15.0
-}, {
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_d642x")
@@ -120,21 +114,20 @@ animations = [{
 }, {
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_yxawi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4ipcd")
 }],
 "loop": true,
-"name": &"行走",
-"speed": 5.0
-}, {
-"frames": [],
-"loop": true,
-"name": &"跳跃",
-"speed": 5.0
+"name": &"walk",
+"speed": 6.0
 }]
 
 [node name="Player_Warrior" type="CharacterBody2D" unique_id=912953975]
 script = ExtResource("1_main")
 
 [node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1786684004]
+scale = Vector2(2, 2)
 sprite_frames = SubResource("SpriteFrames_e1m3d")
-animation = &"new_animation"
-frame_progress = 0.88134474
+animation = &"walk"
+frame_progress = 0.12230599

@@ -38,8 +38,13 @@ func _create_platform(pos: Vector2, size: Vector2, color: Color) -> void:
 	add_child(body)
 
 func _spawn_player() -> void:
-	# 使用代码直接创建玩家（不依赖.tscn文件，保证自测可独立运行）
-	var player = Player_Warrior.new()
+	# 从 .tscn 加载玩家（带上 AnimatedSprite2D 和 SpriteFrames）
+	var player_path = "res://PlayerModule/Formal/Player_Warrior.tscn"
+	var player: Player_Warrior = null
+	if ResourceLoader.exists(player_path):
+		player = load(player_path).instantiate() as Player_Warrior
+	else:
+		player = Player_Warrior.new()
 	player.config = load("res://DataConfig/Player/WarriorConfig.tres") as PlayerConfig
 	player.position = Vector2(200, 550)
 	add_child(player)
