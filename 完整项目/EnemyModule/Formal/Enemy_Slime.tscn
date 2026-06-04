@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://enemy_slime"]
+
+[ext_resource type="Script" path="res://EnemyModule/Formal/Enemy_Slime.gd" id="1_main"]
+
+[node name="Enemy_Slime" type="CharacterBody2D"]
+script = ExtResource("1_main")

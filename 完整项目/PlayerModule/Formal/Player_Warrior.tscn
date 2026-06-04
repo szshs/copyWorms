@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://player_warrior"]
+
+[ext_resource type="Script" path="res://PlayerModule/Formal/Player_Warrior.gd" id="1_main"]
+
+[node name="Player_Warrior" type="CharacterBody2D"]
+script = ExtResource("1_main")

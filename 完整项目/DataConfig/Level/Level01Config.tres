@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="LevelConfig" load_steps=2 format=3 uid="uid://level_01_config"]
+
+[ext_resource type="Script" path="res://DataConfig/Level/LevelConfig.gd" id="1_main"]
+
+[resource]
+script = ExtResource("1_main")
+level_name = "初始之地"
+level_id = "level_01"
+bgm_resource = null
+bg_color = Color(0.1, 0.1, 0.2, 1)
+camera_limit_left = -2000
+camera_limit_right = 2000
+camera_limit_top = -2000
+camera_limit_bottom = 2000
+spawn_point = Vector2(200, 550)
