@@ -1,0 +1,7 @@
+# res://LevelModule/SelfTest/MiniTestWorld.tscn
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://LevelModule/SelfTest/MiniTestWorld.gd" id="1_script"]
+
+[node name="MiniTestWorld" type="Node2D"]
+script = ExtResource("1_script")
