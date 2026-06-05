@@ -1,6 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://level_01"]
+[gd_scene load_steps=4 format=3 uid="uid://dkhxpg7r68vk5"]
 
-[ext_resource type="Script" path="res://LevelModule/Formal/Level_01.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://crqoxqn7qug1w" path="res://LevelModule/Formal/Level_01.gd" id="1_script"]
+[ext_resource type="Resource" path="res://DataConfig/Level/Level01Config.tres" id="2_config"]
+[ext_resource type="Resource" path="res://DataConfig/Level/Level01Data.tres" id="3_data"]
 
 [node name="Level_01" type="Node2D"]
-script = ExtResource("1_main")
+script = ExtResource("1_script")
+level_config = ExtResource("2_config")
+level_data = ExtResource("3_data")
