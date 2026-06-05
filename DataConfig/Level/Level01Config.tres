@@ -4,12 +4,12 @@
 
 [resource]
 script = ExtResource("1_main")
-level_name = "初始之地"
+level_name = "现实家中 - 颓废与苏醒"
 level_id = "level_01"
 bgm_resource = null
-bg_color = Color(0.1, 0.1, 0.2, 1)
-camera_limit_left = -2000
-camera_limit_right = 2000
-camera_limit_top = -2000
-camera_limit_bottom = 2000
-spawn_point = Vector2(200, 550)
+bg_color = Color(0.08, 0.07, 0.1, 1)
+camera_limit_left = 0
+camera_limit_right = 1500
+camera_limit_top = -500
+camera_limit_bottom = 800
+spawn_point = Vector2(100, 550)
