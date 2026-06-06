@@ -106,7 +106,7 @@ func spawn_enemy(enemy_scene_path: String, position: Vector2) -> Node2D:
 func create_ground(pos: Vector2, size: Vector2, color: Color = Color(0.4, 0.4, 0.4)) -> StaticBody2D:
 	var body = StaticBody2D.new()
 	body.position = pos
-	body.collision_layer = 1  # 地形在第1层（玩家和敌人都检测）
+	body.collision_layer = GlobalDefine.Collision.TERRAIN
 
 	var col = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()

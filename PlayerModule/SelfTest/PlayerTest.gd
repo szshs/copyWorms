@@ -25,6 +25,7 @@ func _build_terrain() -> void:
 func _create_platform(pos: Vector2, size: Vector2, color: Color) -> void:
 	var body = StaticBody2D.new()
 	body.position = pos
+	body.collision_layer = GlobalDefine.Collision.TERRAIN
 	var col = CollisionShape2D.new()
 	var shape = RectangleShape2D.new()
 	shape.size = size

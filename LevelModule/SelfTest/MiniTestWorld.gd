@@ -22,7 +22,7 @@ func _add_platform(name_str: String, pos: Vector2, size: Vector2, col: Color) ->
 	var body = StaticBody2D.new()
 	body.name = name_str
 	body.position = pos
-	body.collision_layer = 1
+	body.collision_layer = GlobalDefine.Collision.TERRAIN
 	
 	var col_shape = CollisionShape2D.new()
 	var rect = RectangleShape2D.new()

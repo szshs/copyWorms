@@ -74,15 +74,15 @@ func _process(_delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if not is_active:
 		return
-	# 检测玩家层 (collision_layer 4)
-	if body is CharacterBody2D and (body.collision_layer & 4):
+	# 检测玩家层
+	if body is CharacterBody2D and (body.collision_layer & GlobalDefine.Collision.PLAYER):
 		is_player_in_range = true
 		print("[InteractiveObject] 玩家进入 %s 范围%s" % [object_id, " [已完成]" if completed else ""])
 		player_entered.emit()
 
 
 func _on_body_exited(body: Node2D) -> void:
-	if body is CharacterBody2D and (body.collision_layer & 4):
+	if body is CharacterBody2D and (body.collision_layer & GlobalDefine.Collision.PLAYER):
 		is_player_in_range = false
 		print("[InteractiveObject] 玩家离开 %s 范围" % object_id)
 		player_exited.emit()

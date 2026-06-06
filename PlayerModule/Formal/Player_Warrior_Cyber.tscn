@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://dsb7odmae73n"]
+
+[ext_resource type="Script" uid="uid://rqbnjdhgv753" path="res://PlayerModule/Formal/Player_Warrior_Cyber.gd" id="1_main"]
+
+[node name="Player_Warrior_Cyber" type="CharacterBody2D" unique_id=1649343024]
+script = ExtResource("1_main")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1500210187]

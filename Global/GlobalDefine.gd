@@ -40,6 +40,13 @@ enum DamageType {
 	TRUE_DAMAGE
 }
 
+# ---- 碰撞层常量（统一管理，避免数字硬编码） ----	
+class Collision:
+	const TERRAIN  := 1
+	const ENEMY    := 2
+	const PLAYER   := 4
+	const INTERACT := 8
+
 # ---- 事件名称常量（统一管理，避免拼写错误） ----
 class EventName:
 	# 玩家事件

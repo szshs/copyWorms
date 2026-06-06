@@ -69,8 +69,8 @@ func _setup_visual() -> void:
 
 func _setup_collision() -> void:
 	# 碰撞层分离：敌人用第2层，只与第1层（地形）碰撞
-	collision_layer = 2
-	collision_mask = 1  # 只检测地形层
+	collision_layer = GlobalDefine.Collision.ENEMY
+	collision_mask = GlobalDefine.Collision.TERRAIN
 
 	var col = CollisionShape2D.new()
 	col.name = "CollisionShape"

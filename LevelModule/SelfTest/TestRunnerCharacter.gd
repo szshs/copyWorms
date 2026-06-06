@@ -9,8 +9,8 @@ var _has_crashed: bool = false
 
 
 func _ready() -> void:
-	collision_layer = 4
-	collision_mask = 1
+	collision_layer = GlobalDefine.Collision.PLAYER
+	collision_mask = GlobalDefine.Collision.TERRAIN
 
 
 func _physics_process(_delta: float) -> void:
