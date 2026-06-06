@@ -126,8 +126,8 @@ func _on_attack() -> void:
 		return
 	has_hit_this_attack = true
 
-	var facing_dir = 1.0 if is_facing_right else -1.0
-	var attack_center = global_position + Vector2(facing_dir * 40, -10)
+	var attack_dir := _get_attack_direction()
+	var attack_center = global_position + attack_dir * 40
 	var attack_range = config.attack_range if config else 80.0
 
 	for enemy in GameManager.get_enemies():
@@ -139,7 +139,7 @@ func _on_attack() -> void:
 				0,
 				GlobalDefine.DamageType.PHYSICAL
 			)
-			var kb_dir = Vector2(facing_dir, -0.3).normalized()
+			var kb_dir = attack_dir.normalized() if attack_dir != Vector2.ZERO else Vector2(1, 0)
 			if enemy.has_method("take_damage"):
 				enemy.take_damage(result["damage"], kb_dir)
 			EventBus.emit(GlobalDefine.EventName.PLAYER_ATTACK_HIT, {
@@ -149,6 +149,19 @@ func _on_attack() -> void:
 				"is_crit": result["is_crit"]
 			})
 			break
+
+## 获取攻击方向：地面→面朝方向，空中→方向键决定
+func _get_attack_direction() -> Vector2:
+	if is_on_floor():
+		return Vector2(1.0 if is_facing_right else -1.0, -0.2)
+
+	# 空中：读取方向键
+	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	if abs(input_dir.x) > 0.1 or abs(input_dir.y) > 0.1:
+		return Vector2(input_dir.x, input_dir.y).normalized()
+
+	# 无方向键 → 面向方向水平攻击
+	return Vector2(1.0 if is_facing_right else -1.0, 0.0)
 
 func _on_skill() -> void:
 	super._on_skill()

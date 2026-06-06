@@ -15,9 +15,7 @@ var current_state: int = LevelState.LIVING_ROOM
 var sleep_count: int = 0
 var current_chat_index: int = 0
 
-var _original_jump_velocity: float = 0.0
-var _original_dash_speed: float = 0.0
-var _original_attack_damage: int = 0
+# 能力开关（布尔标志替代改config数值，更干净）
 
 var _narrative_panel: Panel = null
 var _narrative_text: RichTextLabel = null
@@ -148,20 +146,19 @@ func _cache_ui_refs() -> void:
 
 func _restrict_player_mechanics() -> void:
 	var player = GameManager.player_ref
-	if not player or not player.config: return
-	_original_jump_velocity = player.config.jump_velocity
-	_original_dash_speed = player.config.dash_speed
-	_original_attack_damage = player.config.attack_damage
-	player.config.jump_velocity = 0.0
-	player.config.dash_speed = 0.0
-	player.config.attack_damage = 0
+	if not player: return
+	player.can_jump = false
+	player.can_dash = false
+	player.can_attack = false
+	player.can_skill = false
 
 func _restore_player_mechanics() -> void:
 	var player = GameManager.player_ref
-	if not player or not player.config: return
-	player.config.jump_velocity = _original_jump_velocity
-	player.config.dash_speed = _original_dash_speed
-	player.config.attack_damage = _original_attack_damage
+	if not player: return
+	player.can_jump = true
+	player.can_dash = true
+	player.can_attack = true
+	player.can_skill = true
 
 func _freeze_player(freeze: bool) -> void:
 	var player = GameManager.player_ref
