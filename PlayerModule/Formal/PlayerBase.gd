@@ -9,6 +9,12 @@ class_name PlayerBase
 # 配置引用
 @export var config: PlayerConfig = null
 
+# 能力开关（关卡可控制禁用/启用特定能力）
+var can_jump: bool = true
+var can_dash: bool = true
+var can_attack: bool = true
+var can_skill: bool = true
+
 # 状态变量
 var current_state: int = GlobalDefine.PlayerState.IDLE
 var current_health: int = 100
@@ -130,11 +136,11 @@ func _update_timers(delta: float) -> void:
 				_change_state(GlobalDefine.PlayerState.FALL)
 
 func _handle_input() -> void:
-	if _input_attack_just_pressed():
+	if can_attack and _input_attack_just_pressed():
 		perform_attack()
-	if _input_dash_just_pressed():
+	if can_dash and _input_dash_just_pressed():
 		perform_dash()
-	if _input_skill_just_pressed():
+	if can_skill and _input_skill_just_pressed():
 		perform_skill()
 	if _input_pause_just_pressed():
 		GameManager.toggle_pause()
@@ -298,7 +304,7 @@ func _handle_idle(delta: float) -> void:
 	else:
 		_air_time = 0.0
 
-	if _input_jump_just_pressed():
+	if can_jump and _input_jump_just_pressed():
 		_perform_jump()
 
 func _handle_run(delta: float) -> void:
@@ -315,7 +321,7 @@ func _handle_run(delta: float) -> void:
 	else:
 		_air_time = 0.0
 
-	if _input_jump_just_pressed():
+	if can_jump and _input_jump_just_pressed():
 		_perform_jump()
 
 func _handle_jump(delta: float) -> void:
@@ -342,7 +348,7 @@ func _handle_fall(delta: float) -> void:
 			_change_state(GlobalDefine.PlayerState.RUN)
 		else:
 			_change_state(GlobalDefine.PlayerState.IDLE)
-	if _input_jump_just_pressed() and not has_double_jumped and can_double_jump:
+	if can_jump and _input_jump_just_pressed() and not has_double_jumped and can_double_jump:
 		_perform_double_jump()
 
 func _handle_attack_state(delta: float) -> void:
