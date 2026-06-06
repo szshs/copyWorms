@@ -8,6 +8,10 @@ class_name Player_Warrior
 var _anim_sprite: AnimatedSprite2D = null
 var _last_anim: String = ""
 
+# 状态 → 动画名映射（子类皮肤只需覆盖此字典）
+# 键: PlayerState 枚举值, 值: SpriteFrames 中的动画名
+var _anim_map: Dictionary = {}
+
 func _on_ready() -> void:
 	super._on_ready()
 	if not config:
@@ -28,6 +32,18 @@ func _on_ready() -> void:
 		# scale 在编辑器中控制，代码不覆盖
 		_anim_sprite.offset = Vector2(0, -1.5)
 
+		# 初始化动画映射（子类皮肤覆盖此字典即可）
+		_anim_map = {
+			GlobalDefine.PlayerState.IDLE:    "idle",
+			GlobalDefine.PlayerState.RUN:     "walk",
+			GlobalDefine.PlayerState.JUMP:    "jump",
+			GlobalDefine.PlayerState.FALL:    "jump",
+			GlobalDefine.PlayerState.DASH:    "idle",
+			GlobalDefine.PlayerState.ATTACK:  "idle",
+			GlobalDefine.PlayerState.SKILL:   "idle",
+			GlobalDefine.PlayerState.HURT:    "idle",
+			GlobalDefine.PlayerState.DEAD:    "idle",
+		}
 		# 默认播放 idle
 		if _anim_sprite.sprite_frames and _anim_sprite.sprite_frames.has_animation("idle"):
 			_anim_sprite.play("idle")
@@ -45,26 +61,44 @@ func _update_animation() -> void:
 	if not _anim_sprite or not _anim_sprite.sprite_frames:
 		return
 
-	var target_anim = "idle"
+	var target_anim = _get_anim_for_state()
+	_play_anim_if_changed(target_anim)
+	_apply_anim_scale(target_anim)
+	_handle_jump_freeze(target_anim)
 
-	match current_state:
-		GlobalDefine.PlayerState.RUN:
-			target_anim = "walk" if _anim_sprite.sprite_frames.has_animation("walk") else "idle"
-		GlobalDefine.PlayerState.JUMP, GlobalDefine.PlayerState.FALL:
-			target_anim = "jump" if _anim_sprite.sprite_frames.has_animation("jump") else "idle"
-		_:
-			target_anim = "idle"
+## ① 从字典查动画名，找不到回退 idle
+func _get_anim_for_state() -> String:
+	var anim = _anim_map.get(current_state, "idle")
+	if _anim_sprite.sprite_frames.has_animation(anim):
+		return anim
+	return "idle"
 
-	if target_anim != _last_anim:
-		_last_anim = target_anim
-		if _anim_sprite.sprite_frames.has_animation(target_anim):
-			_anim_sprite.play(target_anim)
+## ② 切换动画（带去重）
+func _play_anim_if_changed(anim: String) -> void:
+	if anim == _last_anim:
+		return
+	_last_anim = anim
+	if _anim_sprite.sprite_frames.has_animation(anim):
+		_anim_sprite.play(anim)
+		_anim_sprite.frame = 0
 
-	# walk 原始帧 64×64，其他动画 128×128
-	if target_anim == "walk":
+## ③ 缩放补偿（walk 64px帧 → 2x）
+func _apply_anim_scale(anim: String) -> void:
+	if anim == "walk":
 		_anim_sprite.scale = Vector2(2, 2)
 	else:
 		_anim_sprite.scale = Vector2(1, 1)
+
+## ④ 跳跃高空停帧
+func _handle_jump_freeze(anim: String) -> void:
+	if anim != "jump" or current_state != GlobalDefine.PlayerState.FALL:
+		_anim_sprite.play(anim)  # 非 jump 动画恢复播放
+		return
+	if velocity.y < 400:
+		_anim_sprite.frame = 4
+		_anim_sprite.pause()
+	else:
+		_anim_sprite.play("jump")
 
 ## 覆盖基类的 scale.x 翻转，统一用 flip_h 控制朝向
 ## 避免 scale.x 和 flip_h 双重翻转导致的频闪

@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://player_warrior_lingnan"]
+
+[ext_resource type="Script" path="res://PlayerModule/Formal/Player_Warrior_Lingnan.gd" id="1_main"]
+
+[node name="Player_Warrior_Lingnan" type="CharacterBody2D"]
+script = ExtResource("1_main")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+centered = true

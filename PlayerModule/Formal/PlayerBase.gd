@@ -57,8 +57,8 @@ func _ready() -> void:
 	_setup_visual()
 	_setup_collision()
 	# 设置碰撞层：玩家用第4层，只与第1层（地形）碰撞，绝不与敌人（layer=2）交互
-	collision_layer = 4
-	collision_mask = 1
+	collision_layer = GlobalDefine.Collision.PLAYER
+	collision_mask = GlobalDefine.Collision.TERRAIN
 	_on_ready()
 
 func _apply_config() -> void:
