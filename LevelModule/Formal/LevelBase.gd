@@ -35,7 +35,7 @@ func _apply_config() -> void:
 func _setup_camera() -> void:
 	# 如果玩家已经有摄像机就不重复创建
 	if GameManager.player_ref and is_instance_valid(GameManager.player_ref):
-		var existing = GameManager.player_ref.get_node_or_null("Camera2D")
+		var existing = GameManager.player_ref.get_node_or_null("LevelCamera")
 		if existing:
 			return
 
@@ -92,13 +92,13 @@ func _setup_triggers() -> void:
 # ---- 公共方法 ----
 
 ## 在指定位置创建敌人
-func spawn_enemy(enemy_scene_path: String, position: Vector2) -> Node2D:
+func spawn_enemy(enemy_scene_path: String, spawn_pos: Vector2) -> Node2D:
 	if not ResourceLoader.exists(enemy_scene_path):
 		print("[LevelBase] 敌人场景不存在: ", enemy_scene_path)
 		return null
 
 	var enemy = load(enemy_scene_path).instantiate()
-	enemy.global_position = position
+	enemy.global_position = spawn_pos
 	add_child(enemy)
 	return enemy
 
