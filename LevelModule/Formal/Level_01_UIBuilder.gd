@@ -72,7 +72,7 @@ func _build_ide_ui() -> void:
 	title_bar.name = "TitleBar"
 	title_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	title_bar.color = Color(0.1, 0.12, 0.18, 1.0)
-	title_bar.size = Vector2(0, 40)
+	title_bar.custom_minimum_size = Vector2(0, 40)
 	ide.add_child(title_bar)
 
 	var title_label = Label.new()
@@ -180,7 +180,7 @@ func _build_ide_ui() -> void:
 	status_bar.name = "StatusBar"
 	status_bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	status_bar.color = Color(0.1, 0.12, 0.18, 1.0)
-	status_bar.size = Vector2(0, 22)
+	status_bar.custom_minimum_size = Vector2(0, 22)
 	ide.add_child(status_bar)
 
 	canvas.add_child(ide)
