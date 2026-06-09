@@ -1,9 +1,9 @@
-# HackathonGame 技术架构报告
+# HackathonGame 关卡技术架构报告（叙事驱动版）
 
-> **目标读者**：下游 AI 关卡设计助手
-> **生成时间**：2026-06-05
+> **目标读者**：关卡设计师 / 下游 AI 关卡设计助手
+> **更新日期**：2026-06-09
 > **引擎版本**：Godot 4.6 (GL Compatibility, GDScript)
-> **项目版本**：v0.1.0
+> **项目版本**：v0.3.0（叙事驱动关卡系统 + SmoothCamera + 前置解锁）
 
 ---
 
@@ -12,647 +12,1109 @@
 | 属性 | 值 |
 |---|---|
 | 项目名称 | HackathonGame |
-| 类型 | 2D 横版动作游戏（类空洞骑士） |
-| 分辨率 | 1280×720，canvas_items 拉伸 |
-| 主场景 | `res://UI/TitleScreen.tscn` |
-| 3 个 Autoload | `GlobalDefine`, `EventBus`, `GameManager` |
-| 运行模式 | `FORMAL`（正式）/ `SELF_TEST`（自测）双模式 |
+| 类型 | 2D 横向叙事探索游戏（类空洞骑士） |
+| 屏幕分辨率 | 1280×720，canvas_items 拉伸 |
+| 主场景 | `res://Global/MainEntry.tscn`（正式入口） |
+| 自测场景 | `res://LevelModule/SelfTest/LevelTest.tscn` |
+| 3 个 Autoload | `GlobalDefine`、`EventBus`、`GameManager` |
+| 运行模式 | `FORMAL`（正式）/ `SELF_TEST`（自测） |
 
 ---
 
-## 2. 核心架构与系统模块划分
+## 2. 系统总览
 
 ### 2.1 分层架构
 
 ```
-┌────────────────────────────────────────────────────┐
-│ UI 层                                              │
-│   TitleScreen.gd   HUD.gd                         │
-│   (CanvasLayer，纯代码构建 UI，无 .theme)           │
-├────────────────────────────────────────────────────┤
-│ 游戏逻辑层                                          │
-│   LevelBase → Level_01      (关卡)                │
-│   PlayerBase → Player_Warrior (玩家)               │
-│   EnemyBase → Enemy_Slime   (敌人)                │
-│   DamageCalculator          (伤害工具)             │
-├────────────────────────────────────────────────────┤
-│ 数据配置层（仅 Resource，非节点）                     │
-│   PlayerConfig.gd → WarriorConfig.tres            │
-│   EnemyConfig.gd  → SlimeConfig.tres              │
-│   SkillConfig.gd  → SlashConfig.tres              │
-│   LevelConfig.gd  → Level01Config.tres            │
-├────────────────────────────────────────────────────┤
-│ 基础设施层（Autoload）                               │
-│   GlobalDefine  (枚举+事件名常量，不可修改)           │
-│   EventBus      (跨模块唯一通信通道)                 │
-│   GameManager   (全局引用/状态管理)                  │
-└────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│ 入口层                                                   │
+│   MainEntry.gd / .tscn   (正式入口，emit GAME_START)     │
+├──────────────────────────────────────────────────────────┤
+│ 关卡控制层（叙事驱动）                                    │
+│   Level_01.gd            (关卡主控/状态调度/叙事编排)     │
+│   ├── Level_01_SceneBuilder.gd   (地形/交互物/UI 构建)  │
+│   ├── Level_01_FSM.gd            (7 态叙事状态机)        │
+│   ├── Level_01_UIBuilder.gd      (Canvas UI 纯代码构建)  │
+│   └── InteractiveObject.gd       (交互物基类 Area2D)     │
+├──────────────────────────────────────────────────────────┤
+│ 通用模块层                                               │
+│   SmoothCamera.gd        (死区+lerp+lookahead 摄像机)    │
+├──────────────────────────────────────────────────────────┤
+│ 角色层                                                   │
+│   Player_Warrior (.tscn)   - CharacterBody2D             │
+│   Enemy_Slime   (.tscn)    - CharacterBody2D             │
+│   TestRunnerCharacter      - SubViewport 预览用           │
+├──────────────────────────────────────────────────────────┤
+│ 数据配置层（纯 Resource，不挂节点）                        │
+│   LevelConfig.gd  →  Level01Config.tres   (关卡数值)      │
+│   Level01Data.gd →  Level01Data.tres      (关卡叙事文本)  │
+│   PlayerConfig / EnemyConfig / SkillConfig (.tres)        │
+├──────────────────────────────────────────────────────────┤
+│ 基础设施层（Autoload）                                   │
+│   GlobalDefine   (枚举/碰撞层常量/事件名常量)              │
+│   EventBus       (跨模块唯一事件通信通道)                  │
+│   GameManager    (player_ref/current_level/enemy_list)    │
+└──────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 模块间通信规则（绝对约束）
+### 2.2 核心设计原则
 
-**所有模块间通信必须通过 `EventBus`，严禁跨模块直接引用节点。**
-
-- 关卡不直接持有玩家/敌人引用 → 通过 `GameManager.player_ref` / `GameManager.get_enemies()`
-- 敌人不直接持有玩家引用 → 通过 `GameManager.player_ref`
-- UI 不直接查询任何游戏对象 → 全由事件驱动
+1. **叙事驱动**：关卡 = 状态机 + 交互物 + 文案数据。设计师只需要编辑 `.tres` 与子类 `.gd`，不必碰核心系统。
+2. **代码构建场景**：地形、墙壁、UI 全部用 `_create_static_body()` / `_create_interactive()` / `Level_01_UIBuilder` 等代码 API 创建，关卡 `.tscn` 只挂脚本与资源引用。
+3. **事件总线唯一通信**：跨模块通信全部走 `EventBus.emit/subscribe`，严禁跨层直接 `get_node()`。
+4. **碰撞层语义化**：所有 `collision_layer/mask` 必须用 `GlobalDefine.Collision.*` 常量，禁止写数字。
+5. **数据驱动前置逻辑**：交互物之间的解锁条件（如"床交互≥4次解锁电脑"）由主控层布尔判定 + `is_active` 控制，不硬编码在 FSM 中。
 
 ---
 
-## 3. 全局系统接口
+## 3. 全局系统接口（强制约束）
 
-### 3.1 GlobalDefine — 枚举与常量（不可修改）
+### 3.1 `GlobalDefine` 常量（不可修改）
 
 ```gdscript
-# === 运行模式 ===
-enum RunMode { FORMAL, SELF_TEST }
+# 碰撞层（必须使用常量，禁止硬编码数字）
+class Collision:
+    const TERRAIN  := 1   # 地形
+    const ENEMY    := 2   # 敌人
+    const PLAYER   := 4   # 玩家
+    const INTERACT := 8   # 交互物（InteractiveObject 用 layer=0 + mask=PLAYER）
 
-# === 玩家状态 ===
-enum PlayerState {
-    IDLE, RUN, JUMP, FALL, DASH, ATTACK, SKILL, HURT, DEAD
-}
-
-# === 敌人状态 ===
-enum EnemyState {
-    IDLE, PATROL, CHASE, ATTACK, HURT, DEAD
-}
-
-# === 伤害类型 ===
-enum DamageType { PHYSICAL, MAGIC, TRUE_DAMAGE }
-
-# === 事件名称 ===
+# 事件名（统一管理，避免拼写错误）
 class EventName:
-    # 玩家事件
-    PLAYER_SPAWNED         = "player_spawned"
-    PLAYER_DIED            = "player_died"
-    PLAYER_HURT            = "player_hurt"
-    PLAYER_ATTACK_HIT      = "player_attack_hit"
-    PLAYER_STATE_CHANGED   = "player_state_changed"
+    # 玩家
+    const PLAYER_SPAWNED      = "player_spawned"
+    const PLAYER_DIED         = "player_died"
+    const PLAYER_HURT         = "player_hurt"
+    const PLAYER_ATTACK_HIT   = "player_attack_hit"
+    const PLAYER_STATE_CHANGED = "player_state_changed"
+    # 敌人
+    const ENEMY_SPAWNED       = "enemy_spawned"
+    const ENEMY_DIED          = "enemy_died"
+    const ENEMY_HURT          = "enemy_hurt"
+    const ENEMY_DETECTED      = "enemy_detected"
+    # 游戏
+    const GAME_START          = "game_start"
+    const GAME_PAUSE          = "game_pause"
+    const GAME_RESUME         = "game_resume"
+    const GAME_OVER           = "game_over"
+    const LEVEL_LOADED        = "level_loaded"
+    const LEVEL_COMPLETE      = "level_complete"
+    # 交互
+    const INTERACTIVE_OBJECT_TRIGGERED = "interactive_object_triggered"
+    # 伤害
+    const DAMAGE_APPLIED      = "damage_applied"
+    const HEALTH_CHANGED      = "health_changed"
 
-    # 敌人事件
-    ENEMY_SPAWNED          = "enemy_spawned"
-    ENEMY_DIED             = "enemy_died"
-    ENEMY_HURT             = "enemy_hurt"
-    ENEMY_DETECTED         = "enemy_detected"
-
-    # 游戏事件
-    GAME_START             = "game_start"
-    GAME_PAUSE             = "game_pause"
-    GAME_RESUME            = "game_resume"
-    GAME_OVER              = "game_over"
-    LEVEL_LOADED           = "level_loaded"
-    LEVEL_COMPLETE         = "level_complete"
-
-    # 伤害事件
-    DAMAGE_APPLIED         = "damage_applied"
-    HEALTH_CHANGED         = "health_changed"
+# 玩家/敌人/伤害/运行模式枚举（IDLE/RUN/JUMP/...）
+enum PlayerState { IDLE, RUN, JUMP, FALL, DASH, ATTACK, SKILL, HURT, DEAD }
+enum EnemyState  { IDLE, PATROL, CHASE, ATTACK, HURT, DEAD }
+enum DamageType  { PHYSICAL, MAGIC, TRUE_DAMAGE }
+enum RunMode     { FORMAL, SELF_TEST }
 ```
 
-### 3.2 EventBus API（Autoload，全局可调）
+### 3.2 `EventBus` API
 
 ```gdscript
-# 注册监听（关卡场景在 _ready 中注册自己即可）
 EventBus.subscribe(event_name: String, node: Node, method: String)
-
-# 注销监听（场景退出时调用）
 EventBus.unsubscribe(event_name: String, node: Node)
-
-# 发射事件（立即执行所有监听者回调）
+EventBus.unsubscribe_all(node: Node)            # 清除某节点全部订阅
 EventBus.emit(event_name: String, data: Dictionary)
-
-# 延迟发射（下一帧批处理，适合帧内多次触发的场景）
 EventBus.emit_deferred(event_name: String, data: Dictionary)
 ```
 
-**关卡设计用到的关键事件及其 data 字典结构：**
+**关卡关键事件 data 字典约定**：
 
-| 事件名称 | 触发时机 | data 字典 |
-|---|---|---|
-| `GAME_START` | 游戏正式启动 | `{}` |
-| `LEVEL_LOADED` | 关卡 `_ready()` 末尾自动发射 | `{"level": self}` |
-| `LEVEL_COMPLETE` | **目前无人发射（预留）** | 待定义 |
-| `GAME_OVER` | 玩家死亡触发 | `{}` |
-| `ENEMY_DIED` | 敌人 `die()` 末尾 | `{"enemy": Node2D, "exp_reward": int}` |
-| `ENEMY_SPAWNED` | `GameManager.register_enemy()` | `{"enemy": Node2D}` |
-| `PLAYER_DIED` | 玩家死亡 | `{"player": Node2D}` |
-| `HEALTH_CHANGED` | 玩家/敌人受伤/回血 | `{"target": Node, "current_health": int, "max_health": int}` |
+| 事件 | data |
+|---|---|
+| `LEVEL_LOADED` | `{"level": self}`（LevelBase 末尾自动 emit） |
+| `LEVEL_COMPLETE` | `{"level": self, "next_level": "res://..."}`（关卡结束 emit） |
+| `INTERACTIVE_OBJECT_TRIGGERED` | `{"object_id": "box"}`（输入层 emit，FSM 消费） |
+| `GAME_START` | `{}`（MainEntry 入口 emit） |
+| `ENEMY_DIED` | `{"enemy": Node2D, "exp_reward": int}` |
+| `PLAYER_DIED` | `{"player": Node2D}` |
+| `HEALTH_CHANGED` | `{"target": Node, "current_health": int, "max_health": int}` |
 
-### 3.3 GameManager API（Autoload，全局可调）
+> 设计师新增交互事件时，请用命名空间式字符串（如 `level01.box_interacted`），并在 `Level_01_FSM` 中订阅。
+
+### 3.3 `GameManager` API
 
 ```gdscript
-# ===== 全局引用（只读使用） =====
-var player_ref: Node2D         # 当前玩家节点
-var current_level: Node        # 当前关卡节点
-var enemy_list: Array[Node2D]  # 所有存活敌人
+var player_ref: Node2D         # 当前玩家（只读）
+var current_level: Node        # 当前关卡（LevelBase 写入）
+var enemy_list: Array[Node2D]  # 存活敌人
 
-# ===== 游戏状态 =====
-var is_paused: bool            # 暂停状态
-var is_game_over: bool         # 游戏结束标志
-var run_mode: int              # FORMAL(0) 或 SELF_TEST(1)
-
-# ===== 敌人管理 =====
-register_player(player: Node2D)         # 关卡生成玩家后调用
-register_enemy(enemy: Node2D)           # 敌人 _ready 自动调用，无需手动
-unregister_enemy(enemy: Node2D)        # 敌人死亡自动调用
-get_enemies() -> Array[Node2D]         # 获取存活敌人（自动过滤无效引用）
-get_nearest_enemy(pos: Vector2) -> Node2D  # 获取离某点最近的敌人
-
-# ===== 游戏控制 =====
-trigger_game_over()                     # 触发 GAME_OVER 流程
-toggle_pause()                          # 切换暂停
-is_self_test() -> bool
-is_formal() -> bool
+register_player(player)             # LevelBase._setup_player 自动调用
+register_enemy(enemy)               # 敌人 _ready 自动调用
+unregister_enemy(enemy)             # 敌人 die() 自动调用
+get_enemies() -> Array[Node2D]      # 过滤无效引用
+get_nearest_enemy(pos) -> Node2D
+trigger_game_over() / toggle_pause() / is_self_test() / is_formal()
 ```
 
 ---
 
-## 4. 关卡系统接口规范
+## 4. 关卡设计框架
 
-### 4.1 关卡基类 LevelBase（`res://LevelModule/Formal/LevelBase.gd`）
+### 4.1 模块划分（4 文件拆分原则）
 
-**继承链**：`Node2D`
+每个叙事关卡由以下 4 个脚本 + 2 个资源 + 1 个场景组成：
 
-**导出字段（编辑器中可见，代码内可赋值）**：
-```gdscript
-@export var level_config: LevelConfig           # 关卡配置 .tres
-@export var enemy_spawn_points: Array[Marker2D]  # 编辑器放置的标记点
-@export var player_spawn_point: Marker2D         # 编辑器放置的玩家出生标记
+| 模块 | 文件模式 | 职责 | 依赖 |
+|------|---------|------|------|
+| **主控** | `Level_XX.gd` | 生命周期/输入分发/叙事编排/摄像机/玩家控制 | LevelBase, EventBus, GameManager |
+| **场景构建** | `Level_XX_SceneBuilder.gd` | 地形/交互物/出生点/Canvas 挂载 | 主控的 `_create_*` 方法 |
+| **状态机** | `Level_XX_FSM.gd` | 状态调度 + 交互分发 + 幂等性防线 | 主控的公共方法 |
+| **UI 构建** | `Level_XX_UIBuilder.gd` | CanvasLayer 下所有 UI 纯代码构建 | 主控的 UI 引用字段 |
+| **关卡数值** | `LevelXXConfig.tres` | 地图尺寸/摄像机边界/出生点/背景色 | LevelConfig.gd |
+| **关卡叙事** | `LevelXXData.tres` | 所有文案/对话/状态分支文本 | LevelXXData.gd |
+| **场景文件** | `Level_XX.tscn` | 最小化：只挂脚本与资源引用 | — |
+
+**模块间调用规则**：
+
+```
+SceneBuilder ──创建──▶ 主控的交互物/地形字段
+FSM          ──调用──▶ 主控的公共方法（_show_narrative, _freeze_player 等）
+UIBuilder    ──写入──▶ 主控的 UI 引用字段（_narrative_panel 等）
+主控         ──读取──▶ Config/Data 资源
 ```
 
-**生命周期（严格顺序）**：
+> **严格约束**：FSM 和 SceneBuilder 之间不直接通信，一切通过主控中转。
+
+### 4.2 核心机制
+
+#### 4.2.1 交互物检测与触发
+
+交互物检测采用**双重保障**机制：
+
+1. **Area2D 信号**（`body_entered/exited`）—— 理想路径，帧精度
+2. **轮询检测**（`_poll_interactives_in_range`）—— 兜底路径，解决 `_ready` 时序与 `collision_layer` 不匹配
+
+```mermaid
+flowchart LR
+    A[_process 每帧] --> B[_poll_interactives_in_range]
+    B --> C{obj.is_active?}
+    C -- 是 --> D[_rect_overlaps_player]
+    D --> E[更新 is_player_in_range]
+    C -- 否 --> F[跳过]
+```
+
+输入触发流程：
+
+```mermaid
+sequenceDiagram
+    participant P as 玩家按 Enter
+    participant I as Level_01._input
+    participant F as _find_nearby_interactive
+    participant E as EventBus
+    participant FSM as Level_01_FSM
+
+    P->>I: ui_accept
+    I->>F: 遍历 _all_interactives
+    F->>F: is_active && !completed && is_player_in_range
+    F-->>I: 返回 nearby_obj
+    I->>E: emit INTERACTIVE_OBJECT_TRIGGERED
+    E->>FSM: _on_object_interacted
+    FSM->>FSM: 二次幂等性检查
+    FSM->>FSM: match current_state + obj_id
+```
+
+#### 4.2.2 叙事面板生命周期
+
+```
+_show_narrative(text)
+  ├── _is_interacting = true, _narrative_open = true
+  ├── _freeze_player(true)
+  ├── panel.show(), text = text
+  ├── await 0.3s（防误触）
+  ├── while _narrative_open && timeout:
+  │     等待 _narrative_enter_pressed（由 _input 设置）
+  ├── panel.hide()
+  ├── _freeze_player(false)
+  ├── _narrative_open = false, _is_interacting = false
+  └── callback.call()（如有）
+```
+
+> **关键**：`_narrative_enter_pressed` 标志由 `_input` 在 `_narrative_open` 分支设置，而非依赖 `Input.is_action_just_pressed`（后者在 await 间隔中不可靠）。
+
+#### 4.2.3 交互物前置解锁
+
+交互物之间的解锁关系通过主控层的布尔判定 + `InteractiveObject.is_active` 控制：
+
+```gdscript
+# 示例：床交互≥4次解锁电脑
+func _try_unlock_computer() -> void:
+    if sleep_count < 4: return
+    if _computer_node.is_active: return
+    _computer_node.is_active = true
+
+# 调用时机：每次睡眠循环结束后
+func _trigger_sleep_cycle():
+    ...
+    sleep_count += 1
+    await _show_narrative(sleep_text)
+    _try_unlock_computer()
+    ...
+```
+
+**设计规范**：
+- 初始 `is_active = false` 在 `SceneBuilder._build_interactives()` 中设置
+- 解锁条件判断放在主控的独立方法中（`_try_unlock_*`）
+- FSM 不需要关心解锁逻辑——未解锁的交互物 `is_active=false`，`_find_nearby_interactive` 自动跳过
+
+#### 4.2.4 睡眠循环机制
+
+```
+_trigger_sleep_cycle()
+  ├── _freeze_player(true)
+  ├── 渐黑动画 1s
+  ├── await _show_narrative(sleep_text)
+  ├── _try_unlock_computer()
+  ├── _freeze_player(true)  （叙事解冻后重新冻结，渐亮期间保持）
+  ├── _sleep_fading = true  （防止 _process 误清交互锁）
+  ├── 渐亮动画 1s
+  └── 回调: _freeze_player(false), _safe_end_interaction(), bed.reset_completed()
+```
+
+> **`_sleep_fading` 标志**：睡眠渐变期间 `_process` 的防御性自愈逻辑不清除 `_is_interacting`，防止动画期间交互锁被误杀。
+
+### 4.3 数据流转
+
+#### 4.3.1 完整交互数据流
+
+```
+玩家按 Enter
+  └─▶ Level_01._input(event)
+        ├─ 叙事打开中 → _narrative_enter_pressed = true → return
+        ├─ IDE_CHAT → _render_next_chat_line() → return
+        ├─ 冻结/冷却中 → 防御性自愈检查 → return
+        └─ 常规路径:
+              └─▶ _find_nearby_interactive()
+                    └─ 遍历 _all_interactives: is_active && !completed && is_player_in_range
+              └─▶ EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED, {object_id})
+                    └─▶ _on_object_interacted(data)
+                          └─▶ _run_safely(func(): _fsm.handle_interaction(obj_id))
+                                └─▶ match current_state + obj_id
+```
+
+#### 4.3.2 二次幂等性防线
+
+```
+InteractiveObject.completed（第一防线，_find_nearby_interactive 过滤）
+    +
+FSM 入口 obj_ref.completed（第二防线，handle_interaction 顶部检查）
+    =
+确保玩家在叙事面板读完后再次按 Enter 不会重复触发剧情
+```
+
+设计师在 FSM 中**必须**先调 `level._mark_interaction_completed(obj_id)` 再做副作用。
+
+### 4.4 SmoothCamera 通用摄像机
+
+**路径**：`res://LevelModule/Common/SmoothCamera.gd`
+
+**算法**：死区 + lerp + lookahead 混合
+
+```
+每帧 _process:
+  1. 读取 player.global_position
+  2. 计算 _cam_offset = target_pos - cam_pos
+  3. 死区判定:
+     - |offset.x| > deadzone → X 轴跟随 + lookahead
+     - |offset.x| < deadzone → X 轴不移动
+     - |offset.y| > deadzone → Y 轴跟随
+     - |offset.y| < deadzone → Y 轴不移动
+  4. lerp 插值: new_pos = cam_pos.lerp(target, lerp_speed * delta)
+  5. clamp 到 limit_left/right/top/bottom
+  6. 赋值 camera.global_position
+```
+
+**升级时序**：
+
+```
+LevelBase._ready() → _setup_camera() → 创建普通 Camera2D ("LevelCamera")
+  → Level_01._on_ready() → _setup_smooth_camera()
+    → 在 player 和 level 两个位置搜索 LevelCamera
+    → 若在 player 下则 reparent 到 level（避免父节点移动干扰 global_position）
+    → cam.set_script(SmoothCamera.gd)
+    → cam.make_current()
+    → cam.set_process(true)
+    → 同步 level_config.camera_limit_* 到 SmoothCamera
+    → bind_target(player)
+```
+
+> **已知限制**：`LevelBase._setup_camera()` 在 `_setup_player()` 之前执行，此时 `player_ref` 尚不存在，摄像机被挂到 Level_01 节点而非 player 下。`_setup_smooth_camera()` 通过双位置搜索 + repather 解决此问题。
+
+---
+
+## 5. 关卡系统核心接口
+
+### 5.1 `LevelBase` 基类（`res://LevelModule/Formal/LevelBase.gd`）
+
+**继承链**：`Node2D` → `LevelBase` → `Level_01`（子类）
+
+**导出字段**：
+
+```gdscript
+@export var level_config: LevelConfig = null
+@export var enemy_spawn_points: Array[Marker2D] = []
+@export var player_spawn_point: Marker2D = null
+```
+
+**生命周期（严格顺序，禁止在子类 `_ready` 中重做）**：
+
 ```
 _ready()
-├── _apply_config()          # 设置背景色
-├── _setup_camera()          # 创建/关联摄像机，应用 limit 边界
-├── _setup_player()          # 自动从 .tscn 加载玩家（如未注册）
-├── _setup_enemies()         # 遍历 enemy_spawn_points，逐个调 _spawn_enemy_at()
-├── _setup_triggers()        # 虚函数，子类重写
+├── _apply_config()          # 应用 LevelConfig.bg_color
+├── _setup_camera()          # 创建 Camera2D（挂到 player 或 level）
+├── _setup_player()          # 自动 instantiate Player_Warrior.tscn
+├── _setup_enemies()         # 遍历 enemy_spawn_points 调 _spawn_enemy_at()
+├── _setup_triggers()        # 虚函数
 ├── GameManager.current_level = self
 ├── EventBus.emit(LEVEL_LOADED, {"level": self})
-└── _on_ready()              # 虚函数：子类在此实现关卡内容
+└── _on_ready()              # 【子类入口】必须先 super._on_ready()
 ```
 
-**子类必须重写的虚函数**：
+**子类公共方法**（开箱即用）：
+
 ```gdscript
-_on_ready()                         # 关卡内容入口（建筑地形、生成敌人、设置触发器等）
-_spawn_enemy_at(spawn_point: Marker2D) -> Node2D  # 【重要】按标记点类型生成不同敌人
-_setup_triggers()                   # 关卡触发器逻辑
+# 1. 静态地形（矩形 StaticBody2D + ColorRect）
+create_ground(pos: Vector2, size: Vector2, color: Color = gray) -> StaticBody2D
+create_wall(pos: Vector2, size: Vector2, color: Color = gray) -> StaticBody2D
+# 内部 collision_layer = GlobalDefine.Collision.TERRAIN
+
+# 2. 敌人实例化
+spawn_enemy(enemy_scene_path: String, spawn_pos: Vector2) -> Node2D
+
+# 3. 子类工具（建议复用 Level_01.gd 的私有方法实现）
+get_or_create_child(node_name, type) -> Node
+create_static_body(name, pos, size, color) -> StaticBody2D
+create_interactive(name, obj_id, pos, size) -> InteractiveObject
+add_physics_blocker(parent, size) -> void   # 在 InteractiveObject 上挂不可见碰撞体
 ```
 
-**子类可调用的公共方法**：
+**虚函数（子类重写点）**：
+
 ```gdscript
-# 创建矩形地面平台（StaticBody2D + CollisionShape2D + ColorRect）
-create_ground(pos: Vector2, size: Vector2, color: Color) -> StaticBody2D
-# 内部自动设置 collision_layer = 1
-
-# 创建墙壁（等同于 create_ground）
-create_wall(pos: Vector2, size: Vector2, color: Color) -> StaticBody2D
-
-# 在指定坐标生成敌人
-spawn_enemy(enemy_scene_path: String, position: Vector2) -> Node2D
+_on_ready()                         # 关卡入口（先 super）
+_spawn_enemy_at(spawn_point) -> Node2D  # 标记点系统（当前未用，Level_01 改用 SceneBuilder）
+_setup_triggers()                   # 触发器（当前未用）
 ```
 
-### 4.2 关卡配置资源 LevelConfig（`res://DataConfig/Level/LevelConfig.gd`）
+---
+
+### 5.2 `LevelConfig` 资源（关卡数值）
 
 ```gdscript
 class_name LevelConfig extends Resource
 
-# 关卡信息
+@export_group("关卡信息")
 @export var level_name: String = "未命名关卡"
 @export var level_id: String = ""
-@export var bgm_resource: AudioStream = null       # BGM（当前全部为 null）
-@export var bg_color: Color = Color(0.1, 0.1, 0.2) # 通过 RenderingServer 设置背景色
+@export var bgm_resource: AudioStream = null
+@export var bg_color: Color = Color(0.1, 0.1, 0.2)
 
-# 摄像机边界限制
+@export_group("摄像机")
 @export var camera_limit_left: int = -10000
 @export var camera_limit_right: int = 10000
 @export var camera_limit_top: int = -10000
 @export var camera_limit_bottom: int = 10000
 
-# 重生点
+@export_group("重生点")
 @export var spawn_point: Vector2 = Vector2(100, 500)
 ```
 
-### 4.3 现有关卡模板：Level_01
-
-**路径**：`res://LevelModule/Formal/Level_01.tscn` + `Level_01.gd`
+### 5.3 `Level01Data` 资源（叙事文案）
 
 ```gdscript
-# _on_ready 模式：
-_on_ready():
+class_name Level01Data extends Resource
+
+@export_category("Obstacle Narrative")
+@export_multiline var obstacle_1_text: String
+@export_multiline var obstacle_2_text: String
+
+@export_category("Bedroom Detail Objects")
+@export_multiline var notice_text: String
+@export_multiline var thermos_text: String
+
+@export_category("Bed Sleep Cycles")
+@export var sleep_texts: Array[String]    # 多次睡眠循环使用
+
+@export_category("AI IDE Dialogues")
+@export var ide_speakers: Array[String]   # "System" / "AI" / "Ming"
+@export_multiline var ide_texts: Array[String]
+
+@export_category("Phone Climax")
+@export_multiline var phone_sender: String
+@export_multiline var phone_content: String
+@export_multiline var climax_monologue: String
+```
+
+> **新关卡建议**：照搬这个结构为 `Level02Data.gd` / `.tres`，避免把文案散落到 `.gd` 中。
+
+---
+
+## 6. 交互物系统 `InteractiveObject`
+
+### 6.1 节点类型与碰撞层
+
+- 节点类型：`Area2D`
+- `collision_layer = 0`（不参与物理碰撞）
+- `collision_mask  = GlobalDefine.Collision.PLAYER`（仅检测玩家）
+- 内部通过 `body_entered / body_exited` 信号 + `_poll` 轮询双重判定玩家是否进入范围
+
+### 6.2 导出字段
+
+```gdscript
+@export var object_id: String = ""         # 必须唯一："box" / "clothes" / "bed" / ...
+@export var is_active: bool = true         # false 时玩家进入不显示提示，不可交互
+@export var prompt_text: String = "按 Enter 交互"
+@export var allow_repeat: bool = false     # true 时可重复交互（床、镜子等）
+```
+
+### 6.3 内部状态机
+
+```
+is_active=false     → 玩家进入不显示提示，_find_nearby_interactive 跳过
+completed=false     → 黄字呼吸闪烁 "按 Enter 交互"
+completed=true      → 灰字静态 "已完成 ✓"
+allow_repeat=true   → 触发完成后可调 reset_completed() 重置
+```
+
+### 6.4 公共方法
+
+```gdscript
+mark_completed()    # 标记完成（幂等性）
+reset_completed()   # 仅 allow_repeat=true 才生效
+set_active(bool)    # 启用/禁用并隐藏提示
+freeze_monitoring(frozen: bool)  # 冻结/解冻时控制 monitoring，防止 body_exited 误触发
+check_player_in_range(player: Node2D)  # 轮询式玩家检测（AABB）
+```
+
+### 6.5 信号
+
+```gdscript
+signal player_entered
+signal player_exited
+```
+
+> **关键设计**：交互物**不**自己处理 `ui_accept` 输入。`_input` 由 `Level_01` 统一捕获后通过 `EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED, {object_id})` 派发到 FSM。这一设计解决了"动态 `_ready` 创建的节点 `_input()` 不可靠"的问题。
+
+---
+
+## 7. 关卡主控 `Level_01` 拆解
+
+### 7.1 文件结构（拆分原则）
+
+| 文件 | 职责 | 行数参考 |
+|---|---|---|
+| `Level_01.gd` | 主控/状态调度/输入/玩家控制/叙事编排/Glitch 终局/摄像机 | ~690 |
+| `Level_01_SceneBuilder.gd` | 地形 + 交互物 + 出生点 + Canvas UI 挂载 | ~84 |
+| `Level_01_FSM.gd` | 7 态叙事状态机 + 交互处理 | ~118 |
+| `Level_01_UIBuilder.gd` | SleepOverlay / NarrativePanel / IdeUI / GlitchOverlay | ~205 |
+| `InteractiveObject.gd` | 交互物基类（可被新关卡复用） | ~189 |
+| `SmoothCamera.gd` | 通用死区+lerp+lookahead 摄像机 | ~88 |
+| `glitch_effect.gdshader` | 终局画面扭曲 + 色相分离 | ~25 |
+
+### 7.2 7 态叙事状态机（`Level_01.LevelState`）
+
+```gdscript
+enum LevelState {
+    LIVING_ROOM,        # 客厅：纸箱阻塞
+    CORRIDOR,           # 走廊：衣服阻塞
+    BEDROOM,            # 卧室：床（多次睡眠循环）+ 电脑（需前置解锁）
+    IDE_CHAT,           # AI IDE 对话
+    IDE_PREVIEW,        # SubViewport 预览 → 触发崩溃
+    PHONE_RINGING,       # 手机震动 + 接听
+    GLITCH_TRANSIT       # 终局：glitch 着色器 → emit LEVEL_COMPLETE
+}
+```
+
+**状态流转图**：
+
+```
+                     ┌──────────────┐
+   [进入关卡] ───▶    │ LIVING_ROOM  │ ── 交互 box ──▶ CORRIDOR
+                     └──────────────┘
+
+                     ┌──────────────┐
+                     │   CORRIDOR   │ ── 交互 clothes ──▶ BEDROOM
+                     └──────────────┘
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │ BEDROOM                                                      │
+   │   ── 交互 bed (×N)       ──▶ 睡眠叙事循环                    │
+   │   ── bed 交互≥4次后       ──▶ 电脑解锁 (is_active=true)      │
+   │   ── 交互 computer       ──▶ IDE_CHAT                       │
+   │   ── 交互 notice/thermos ──▶ 一次性叙事                      │
+   └──────────────────────────────────────────────────────────────┘
+
+   IDE_CHAT ── 对话全部渲染完 ──▶ IDE_PREVIEW
+   IDE_PREVIEW ── TestRunner 出界/8s超时 ──▶ PHONE_RINGING
+   PHONE_RINGING ── 交互 phone ──▶ GLITCH_TRANSIT
+   GLITCH_TRANSIT ── 交互 bed ──▶ 终局链 → emit LEVEL_COMPLETE
+```
+
+### 7.3 入口初始化（`Level_01._on_ready`）
+
+```gdscript
+func _on_ready() -> void:
     super._on_ready()
-    # 1. 加载配置
+    set_process_input(true)
+    set_process_unhandled_input(true)
+
     if not level_config:
-        level_config = load("res://DataConfig/Level/Level01Config.tres")
+        level_config = load("res://DataConfig/Level/Level01Config.tres") as LevelConfig
         _apply_config()
-    # 2. 搭建地形
-    _build_terrain()
-    # 3. 生成敌人
-    _spawn_level_enemies()
+    if not level_data:
+        level_data = load("res://DataConfig/Level/Level01Data.tres") as Level01Data
+
+    var builder = Level_01_SceneBuilder.new(self)
+    builder.build_all()           # 地形/交互物/出生点/Canvas UI
+
+    _setup_smooth_camera()        # 升级 Camera2D → SmoothCamera
+    _cache_ui_refs()              # 把 UI 子节点缓存到私有字段
+    _restrict_player_mechanics()  # 关卡禁用跳跃/攻击/冲刺（叙事期）
+
+    # 初始化交互物统一列表（SceneBuilder 已设置 is_active 初始值）
+    _all_interactives = [_obstacle_box, _obstacle_clothes, _bed_node,
+                         _computer_node, _phone_node, _notice_node, _thermos_node]
+
+    EventBus.subscribe(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, self, "_on_object_interacted")
+    _fsm = Level_01_FSM.new(self)
+    _ensure_player_collision_layer()
 ```
 
-**新建关卡请严格遵循此模式。**
+### 7.4 SceneBuilder 调用顺序
 
----
+```
+build_all()
+├── _build_terrain()        # 地面 + 左墙 + 右墙
+├── _build_interactives()   # box / clothes / notice / thermos / computer / phone / bed
+├── _build_spawn_points()   # PlayerSpawnPoint Marker2D
+└── _build_canvas_ui()      # CanvasLayerUI (layer=2) → UIBuilder.build_all()
+```
 
-## 5. 玩家系统（关卡需了解的接口）
+### 7.5 关卡 1 当前地图参数
 
-### 5.1 玩家节点类型
+**地图尺寸**：1920×720（1.5 屏）
 
-`CharacterBody2D` (PlayerBase) → `Player_Warrior`
+| 元素 | 坐标 | 尺寸 | 所属区域 |
+|------|------|------|----------|
+| MainGround | (960, 620) | 1920×40 | — |
+| LeftWall | (-10, 360) | 20×720 | — |
+| RightWall | (1930, 360) | 20×720 | — |
+| Obstacle_Box | (350, 560) | 120×80 | 客厅 |
+| Obstacle_Clothes | (750, 560) | 100×80 | 走廊 |
+| Notice | (1100, 570) | 40×40 | 卧室 |
+| Thermos | (1280, 580) | 30×40 | 卧室 |
+| Computer | (1470, 560) | 100×80 | 卧室 |
+| Phone | (1660, 580) | 50×40 | 卧室 |
+| Bed | (1830, 570) | 160×60 | 卧室 |
 
-**场景路径**：`res://PlayerModule/Formal/Player_Warrior.tscn`
+### 7.6 UIBuilder 生成的 Canvas 节点树
 
-### 5.2 玩家碰撞层
+```
+CanvasLayerUI (CanvasLayer, layer=2, PROCESS_MODE_ALWAYS)
+├── SleepOverlay        (ColorRect, 全屏黑渐变)
+├── NarrativePanel      (Panel 1280×200, RichTextLabel)
+├── IdeUI               (Control, 标题栏+ChatPanel+ViewportContainer+StatusBar)
+│   ├── Background
+│   ├── TitleBar / TitleLabel
+│   ├── ChatPanel / TabLabel
+│   ├── ChatWindow        (RichTextLabel, BBCode)
+│   ├── PreviewPanel / PreviewTab
+│   ├── ViewportContainer
+│   │   └── MiniViewport   (SubViewport, 600×400)
+│   └── StatusBar
+└── GlitchOverlay       (ColorRect + ShaderMaterial)
+```
 
-| 层 | 用途 |
-|---|---|
-| `collision_layer = 4` | 玩家自身所在的碰撞层 |
-| `collision_mask = 1` | 只检测第 1 层（地形层） |
-
-**关键含义**：玩家不会与敌人发生物理碰撞（敌人 `collision_layer = 2`）。玩家对敌人的接触伤害通过代码级 Rect2 检测实现（`_check_enemy_contact()` 每帧遍历）。
-
-### 5.3 玩家核心数值（默认 WarriorConfig.tres）
-
-| 参数 | 值 | 说明 |
-|---|---|---|
-| `max_health` | 100 | 最大生命值 |
-| `move_speed` | 300.0 | 水平移动速度 |
-| `jump_velocity` | -650.0 | 起跳初速度（负=向上） |
-| `jump_hold_gravity_scale` | 0.35 | 长按跳跃时的重力缩放（越小跳越高） |
-| `jump_release_gravity_scale` | 2.5 | 松手后的重力缩放（快速落下） |
-| `gravity` | 1200.0 | 基础重力 |
-| `attack_damage` | 25 | 普攻伤害 |
-| `attack_cooldown` | 0.4s | 普攻冷却 |
-| `attack_range` | 80.0 | 普攻半径（圆心=玩家向前面 40px + 上方 -10px） |
-| `dash_speed` | 800.0 | 冲刺速度 |
-| `dash_duration` | 0.2s | 冲刺持续时间（期间无敌） |
-| `dash_cooldown` | 0.8s | 冲刺冷却 |
-| `hurt_invincible_time` | 1.0s | 受伤后无敌帧时长 |
-| `can_double_jump` | true | 战士默认开启二段跳 |
-
-### 5.4 玩家可执行的动作
-
-| 动作 | 触发方式 | 对关卡的影响 |
-|---|---|---|
-| 移动 | 方向键/摇杆 | 水平速度受 `_handle_state` 控制 |
-| 跳跃 | 空格 (player_jump) | 二段跳可用时空中再按一次触发 |
-| 普攻 | 鼠标左键/J | 圆形范围 80px，对范围内最近敌人造成 (25×暴击) 伤害 |
-| 冲刺 | Shift/K | 水平高速移动 + 短暂无敌 |
-| 技能横斩 | I | 范围 100px，伤害 35，CD 2s |
-
----
-
-## 6. 敌人系统（关卡需了解的接口）
-
-### 6.1 现有敌人类型：Enemy_Slime
-
-**场景路径**：`res://EnemyModule/Formal/Enemy_Slime.tscn`
-
-**配置**：`res://DataConfig/Enemy/SlimeConfig.tres`
-
-| 参数 | 史莱姆值 | 说明 |
-|---|---|---|
-| `max_health` | 30 | 血量（战士一刀暴击 37.5 可能秒杀） |
-| `move_speed` | 80.0 | 巡逻/基础移速 |
-| `chase_speed_multiplier` | 1.5 | 追逐速度 = 80×1.5 = 120 |
-| `attack_damage` | 8 | 造成伤害 |
-| `attack_cooldown` | 1.5s | 攻击后冷却 |
-| `attack_range` | 35.0 | 近战攻击距离 |
-| `detect_range` | 250.0 | 发现玩家的检测半径 |
-| `wander_radius` | 80.0 | 巡逻活动半径（以出生点为基准 ±80px） |
-| `patrol_wait_time` | 2.5s | 巡逻间隔等待 |
-| `knockback_resistance` | 0.1 | 击退抗性（1.0=完全免疫） |
-| `drop_health_chance` | 0.15 | 死亡后掉落生命概率（**当前未实现掉落**） |
-| `exp_reward` | 5 | 死亡经验（**当前未实现经验系统**） |
-
-**史莱姆特有行为**：
-- 每 2~4 秒随机起跳（`jump_velocity = -300`）
-- 追逐时向玩家方向跳跃（水平速度 150）
-- 巡逻时沿巡逻方向跳跃（水平速度 100）
-
-### 6.2 敌人碰撞层
-
-| 层 | 值 |
-|---|---|
-| `collision_layer = 2` | 敌人所在层 |
-| `collision_mask = 1` | 只与地形层碰撞 |
-
-### 6.3 敌人基类 EnemyBase 公共接口
+### 7.7 玩家控制工具
 
 ```gdscript
-# 敌人收到伤害（玩家攻击/技能调用此方法）
-take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO)
-
-# 可查询的属性
-var current_health: int
-var max_health: int
-var current_state: int  # 对应 EnemyState 枚举
-var config: EnemyConfig
+_restrict_player_mechanics()    # 关卡禁用 can_jump/dash/attack/skill
+_restore_player_mechanics()     # 恢复
+_freeze_player(true|false)      # 物理冻结 + 输入冻结 + 切到 IDLE + 同步交互物 monitoring
 ```
 
-### 6.4 创建新敌人类型的方式
+### 7.8 关键流程 API
 
-```
-1. 创建 EnemyConfig 子类的 .tres 实例，填入具体数值
-2. 新建脚本 extends EnemyBase
-3. 重写虚函数：
-   - _on_ready()       → 初始化特有行为
-   - _on_physics_process(delta) → 追加 AI 逻辑
-   - _on_attack()      → 攻击玩家逻辑
-   - _get_placeholder_color()/size() → 占位视觉
-4. 创建 .tscn 场景（CharacterBody2D 根节点，挂载脚本）
-```
+| API | 触发 | 用途 |
+|---|---|---|
+| `_show_narrative(text)` | 任意叙事 | 弹出 NarrativePanel → 等待 Enter → 关闭 |
+| `_trigger_sleep_cycle()` | 床 | 渐黑 + 叙事 + 渐亮 + 解锁检测 |
+| `_try_unlock_computer()` | 睡眠后 | sleep_count≥4 时解锁电脑 |
+| `_enter_ide_mode()` | 电脑 | 显示 IdeUI + 逐行渲染对话 |
+| `_start_ide_viewport_preview()` | 对话结束 | SubViewport 加载 MiniTestWorld.tscn |
+| `_on_preview_crashed()` | TestRunner 出界/超时 | 崩溃信息 + 启用手机 + 震动 |
+| `_start_phone_vibration()` | 终局前置 | 循环 Tween 让手机左右抖动 |
+| `_trigger_climax_transition()` | 手机 | 来电消息 + 独白 + glitch 渐强 |
+| `_start_glitch_shader_effect()` | 终局 | 2s 内 intensity 0→1 → emit LEVEL_COMPLETE |
 
 ---
 
-## 7. 伤害系统
+## 8. 玩家系统（关卡用到的接口）
 
-### 7.1 DamageCalculator（静态工具类）
+| 参数 | 默认值（Warrior） |
+|---|---|
+| `max_health` | 100 |
+| `move_speed` | 300.0 |
+| `jump_velocity` | -650.0 |
+| `dash_speed` / `dash_duration` | 800.0 / 0.2s（期间无敌） |
+| `attack_damage` | 25 |
+| `attack_range` | 80.0 圆心判定 |
+| `hurt_invincible_time` | 1.0s |
+
+**关卡运行时可调用的开关**（`Level_01._restrict_player_mechanics` 用到）：
 
 ```gdscript
-# 计算最终伤害
-static func calculate(
-    attacker_atk: int,          # 攻击力
-    target_def: int = 0,        # 防御力（当前全部传 0！）
-    damage_type: int = PHYSICAL, # DamageType 枚举值
-    crit_rate: float = 0.05,    # 暴击率（0.0~1.0）
-    crit_mult: float = 1.5      # 暴击倍率
-) -> Dictionary  # {"damage": int, "is_crit": bool}
-
-# 计算击退方向
-static func get_knockback_direction(attacker_pos: Vector2, target_pos: Vector2) -> Vector2
+player.can_jump = false
+player.can_dash = false
+player.can_attack = false
+player.can_skill = false
 ```
 
-**伤害公式（PHYSICAL）**：`max(attack - def×0.5, attack×0.3)` × 暴击倍率
-
-### 7.2 伤害流程（玩家攻击敌人）
-
-```
-玩家按攻击键
-→ PlayerBase.perform_attack()
-  → is_attacking = true, attack_timer = 0.25s
-  → _on_attack() (虚函数，子类实现)
-    → Player_Warrior._on_attack()
-      → 遍历 GameManager.get_enemies()
-      → 距离判定：attack_center.distance_to(enemy.global_position) <= 80
-      → DamageCalculator.calculate(25, 0, PHYSICAL)
-      → enemy.take_damage(result["damage"], kb_dir)
-      → EventBus.emit(PLAYER_ATTACK_HIT, {...})
-      → break（只命中第一个！）
-```
-
-### 7.3 敌人对玩家伤害（两条路径）
-
-**路径 A**：接触伤害（`PlayerBase._check_enemy_contact()`，每帧 Rect2 碰撞检测）
-- 离开无敌帧且未死亡时触发
-- 伤害 = `enemy.config.attack_damage`（史莱姆=8）
-- 击退水平 300、垂直 -200
-- 无敌帧设为 1.5 秒
-
-**路径 B**：敌人主动攻击（`EnemyBase._perform_attack()` → `Enemy_Slime._on_attack()`）
-- 离开无敌帧时触发
-- 通过 `target.take_damage(result["damage"], kb_dir)` 调用玩家的 `take_damage` 方法
-- 玩家的 `take_damage` 被调用时：无敌帧 = `hurt_invincible_time` (1.0s)，击退力 = `hurt_knockback` (300)
+> Level_01 全程禁用战斗，叙事结束后通常不再恢复。
 
 ---
 
-## 8. 碰撞层系统
+## 9. 敌人系统（关卡用到的接口）
 
-**这是关卡地形设计的核心约束。**
+- 场景：`res://EnemyModule/Formal/Enemy_Slime.tscn`
+- 配置：`res://DataConfig/Enemy/SlimeConfig.tres`
+- 关键参数：`max_health=30`, `attack_damage=8`, `detect_range=250`, `wander_radius=80`
 
-| 层号 | 用途 | 节点 |
+**基类 API**：
+
+```gdscript
+enemy.take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO)
+enemy.current_health / max_health / current_state
+enemy.config: EnemyConfig
+```
+
+> **当前 Level_01 不用任何敌人**（叙事型关卡）。如需战斗型关卡，在 `_build_enemies()` 中调用 `spawn_enemy("res://EnemyModule/Formal/Enemy_Slime.tscn", pos)`。
+
+---
+
+## 10. 碰撞层系统
+
+| 层 | 常量 | 用途 |
 |---|---|---|
-| **1** | 地形层 | `StaticBody2D`（地面、平台、墙壁） |
-| **2** | 敌人层 | `EnemyBase` 及其子类 |
-| **4** | 玩家层 | `PlayerBase` 及其子类 |
+| **1** | `Collision.TERRAIN` | `StaticBody2D`（地面、墙） |
+| **2** | `Collision.ENEMY` | 敌人 |
+| **4** | `Collision.PLAYER` | 玩家 |
+| **8** | `Collision.INTERACT` | （预留） |
 
-**碰撞掩码规则**：
-- 玩家 (`mask=1`)：只与地形碰撞，不与敌人碰撞
-- 敌人 (`mask=1`)：只与地形碰撞，不与玩家碰撞
-- 地形 (`layer=1`)：被动接受其他层的碰撞
-
-**含义**：
-- 玩家和敌人之间**不会**因物理引擎发生碰撞
-- 玩家对敌人的接触伤害通过 `PlayerBase._check_enemy_contact()` 的 Rect2 代码级检测实现
-- 所有 `StaticBody2D` 地形必须设置 `collision_layer = 1`（`create_ground()` 已自动设置）
+**硬约束**：
+- 玩家和敌人之间**不**发生物理碰撞（伤害走代码级 Rect2）
+- `InteractiveObject` 必走 Area2D + `monitoring=true` + `mask=PLAYER`
+- 所有 StaticBody2D 必须 `collision_layer = GlobalDefine.Collision.TERRAIN`
 
 ---
 
-## 9. 坐标系统与物理单位
+## 11. 物理与坐标约定
 
 | 参数 | 值 |
 |---|---|
 | 屏幕逻辑分辨率 | 1280×720 |
-| 原点 | 左上角 (0,0) |
-| Y 轴方向 | **向下为正**（Godot 2D 默认） |
-| 重力 | 1200 px/s² 向下 |
-| 摄像机锚点 | DRAG_CENTER（跟随玩家中心） |
-| 地面 Y | 通常 620（屏幕底部上方 100px） |
-| 玩家出生 Y | 通常 550~500（在地面 Y 上方留余量） |
-| 跳跃速度 | -650 px/s（负=向上） |
-
-**关卡设计时注意**：
-- `create_ground(pos, size)` 的 `pos` 是**平台中心**坐标
-- 地面 Y 推荐 620，厚度推荐 80（保证不穿透）
-- 平台 Y 推荐 460/420/340/200（阶梯式）
-- 墙壁 X 推荐 0（左墙）和 1280（右墙），厚度 20
+| 地图宽度规范 | 1.5 屏 = 1920px（当前 Level_01） |
+| Y 轴 | 向下为正 |
+| 重力 | 1200 px/s² |
+| 摄像机锚点 | DRAG_CENTER（SmoothCamera 接管后为死区+lerp 控制） |
+| 玩家出生 Y | 550（头顶在地面之上） |
+| 地面 Y | 620（厚度 40~80） |
+| `create_ground` 的 `pos` | **平台中心**坐标 |
+| 平台 Y 推荐阶梯 | 500 / 460 / 420 / 340 / 200 |
 
 ---
 
-## 10. 资源加载机制
+## 12. 资源加载机制
 
-### 10.1 已存在的可引用资源路径
-
-```
-玩家:     res://PlayerModule/Formal/Player_Warrior.tscn
-敌人:     res://EnemyModule/Formal/Enemy_Slime.tscn
-关卡01:   res://LevelModule/Formal/Level_01.tscn
-HUD:      res://UI/HUD.tscn
-主菜单:   res://UI/TitleScreen.tscn
-
-玩家配置: res://DataConfig/Player/WarriorConfig.tres
-敌人配置: res://DataConfig/Enemy/SlimeConfig.tres
-技能配置: res://DataConfig/Skill/SlashConfig.tres
-关卡配置: res://DataConfig/Level/Level01Config.tres
-```
-
-### 10.2 背景图片资源
+### 12.1 关键路径
 
 ```
-res://LevelModule/Background images/
-├── Generated Image June 04, 2026 - 9_38PM.jpg
-├── Generated Image June 04, 2026 - 9_41PM.jpg
-├── Generated Image June 04, 2026 - 9_43PM.jpg
-└── Generated Image June 04, 2026 - 9_55PM.jpg
+关卡:        res://LevelModule/Formal/Level_01.tscn
+玩家:        res://PlayerModule/Formal/Player_Warrior.tscn
+敌人:        res://EnemyModule/Formal/Enemy_Slime.tscn
+HUD:        res://UI/HUD.tscn
+入口:        res://Global/MainEntry.tscn
+自测关卡:    res://LevelModule/SelfTest/LevelTest.tscn
+预览世界:    res://LevelModule/SelfTest/MiniTestWorld.tscn
+测试角色:    res://LevelModule/SelfTest/TestRunnerCharacter.tscn
+
+关卡配置:    res://DataConfig/Level/Level01Config.tres
+关卡叙事:    res://DataConfig/Level/Level01Data.tres
+玩家配置:    res://DataConfig/Player/WarriorConfig.tres
+敌人配置:    res://DataConfig/Enemy/SlimeConfig.tres
+技能配置:    res://DataConfig/Skill/SlashConfig.tres
+
+交互物:      res://LevelModule/Formal/InteractiveObject.gd
+摄像机:      res://LevelModule/Common/SmoothCamera.gd
+Shader:     res://LevelModule/Formal/glitch_effect.gdshader
 ```
 
-**这些图片已导入但未在任何代码或场景中引用**。如需关卡背景，可以通过以下代码加载：
+### 12.2 美术资产（已导入但未全部使用）
+
+- `res://LevelModule/Background images/` — 4 张 JPG（关卡背景图）
+- `res://Assets/Sprites/player Ani/` — 6 张 PNG（玩家动画）
+
+---
+
+## 13. 数据流转机制（核心）
+
+### 13.1 玩家按下 Enter 触发交互的完整数据流
+
+```
+玩家按 Enter
+  └─▶ Level_01._input(event)
+        ├─ 叙事打开? → _narrative_enter_pressed = true → return
+        ├─ IDE_CHAT? → _render_next_chat_line() → return
+        ├─ 冻结/冷却? → 防御性自愈检查 → return
+        └─ 常规路径:
+              └─▶ _find_nearby_interactive() 遍历 _all_interactives
+                    └─▶ 找到 is_active && !completed && is_player_in_range
+              └─▶ EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED, {object_id})
+                    └─▶ Level_01._on_object_interacted(data)
+                          └─▶ _run_safely(func(): _fsm.handle_interaction(obj_id))
+                                └─▶ match current_state + obj_id
+```
+
+### 13.2 二次幂等性防线
+
+`InteractiveObject.completed`（第一防线，`_find_nearby_interactive` 过滤）+ FSM 入口再判定 `obj_ref.completed`（第二防线），确保玩家在叙事面板读完后再次按 Enter 不会重复触发剧情。设计师在 FSM 中**必须**先调 `level._mark_interaction_completed(obj_id)` 再做副作用。
+
+### 13.3 状态机的副作用链路
+
+```
+_handle_box():
+  level._mark_interaction_completed("box")
+  level._show_narrative(text, callback)
+    → callback():
+          level._clear_obstacle(_obstacle_box)   # 物理禁用 + 淡出 + queue_free
+          level.current_state = CORRIDOR
+
+_handle_bed():
+  level._trigger_sleep_cycle()
+    → sleep_count += 1
+    → 渐黑 + 叙事 + 渐亮
+    → _try_unlock_computer()  # sleep_count≥4 时解锁
+    → bed.reset_completed()   # 允许重复交互
+```
+
+---
+
+## 14. 模块依赖关系
+
+```
+LevelBase (基类)
+  ├── _apply_config       → LevelConfig
+  ├── _setup_camera       → GameManager.player_ref
+  ├── _setup_player       → Player_Warrior.tscn
+  ├── _setup_enemies      → InteractiveObject / Enemy_*.tscn
+  └── EventBus  ←→ 全局
+
+Level_01 (子类)
+  ├── extends LevelBase
+  ├── _on_ready
+  │     ├── Level_01_SceneBuilder.build_all
+  │     │     └── Level_01_UIBuilder.build_all
+  │     ├── _setup_smooth_camera → SmoothCamera.gd
+  │     ├── _all_interactives 初始化
+  │     ├── EventBus.subscribe(INTERACTIVE_OBJECT_TRIGGERED)
+  │     └── Level_01_FSM.new(self)
+  ├── _input
+  │     └── EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED)
+  ├── _show_narrative / _trigger_sleep_cycle / _enter_ide_mode
+  │     └── Level01Data (文案)
+  └── _start_glitch_shader_effect
+        └── EventBus.emit(LEVEL_COMPLETE)
+
+SmoothCamera (通用模块)
+  ├── extends Camera2D
+  ├── bind_target(player)
+  └── _process: 死区+lerp+lookahead
+
+InteractiveObject
+  ├── Area2D + body_entered/exited + check_player_in_range(轮询)
+  ├── 渲染提示 Label
+  └── 与 Level_01._input 解耦（设计关键点）
+
+FSM
+  ├── 引用 level（Level_01）
+  └── 状态机 + 幂等性
+```
+
+---
+
+## 15. 关卡设计规范
+
+### 15.1 关卡编辑标准化流程
+
+| 步骤 | 操作 | 输出 |
+|------|------|------|
+| 1 | 创建 `LevelXXConfig.tres` + `LevelXXData.gd` + `LevelXXData.tres` | 数据层 |
+| 2 | 创建 4 个脚本文件（主控/SceneBuilder/FSM/UIBuilder） | 逻辑层 |
+| 3 | 创建 `Level_XX.tscn`（最小化，只挂脚本与资源） | 场景层 |
+| 4 | 在 SceneBuilder 中用代码构建地形和交互物 | 场景内容 |
+| 5 | 在 FSM 中定义状态枚举 + 交互分支 | 状态逻辑 |
+| 6 | 在 `_on_ready` 末尾初始化 `_all_interactives` | 交互物管理 |
+| 7 | 注册到 `MainEntry._load_formal_level()` | 入口集成 |
+| 8 | 创建自测场景并验证 | 质量保证 |
+
+### 15.2 命名规则
+
+| 类别 | 规则 | 示例 |
+|------|------|------|
+| 关卡主控类 | `Level_XX`（PascalCase，下划线后数字编号） | `Level_01`, `Level_02` |
+| 关卡脚本文件 | 与类名一致 | `Level_01.gd` |
+| SceneBuilder | `Level_XX_SceneBuilder` | `Level_01_SceneBuilder.gd` |
+| FSM | `Level_XX_FSM` | `Level_01_FSM.gd` |
+| UIBuilder | `Level_XX_UIBuilder` | `Level_01_UIBuilder.gd` |
+| 关卡配置 | `LevelXXConfig.tres` | `Level01Config.tres` |
+| 关卡叙事 | `LevelXXData.gd` + `LevelXXData.tres` | `Level01Data.gd` |
+| 关卡场景 | `Level_XX.tscn` | `Level_01.tscn` |
+| 交互物 object_id | 小写英文，下划线分隔 | `box`, `clothes`, `phone` |
+| 交互物节点名 | PascalCase，类型前缀 | `Obstacle_Box`, `Bed` |
+| 地形节点名 | PascalCase，描述性 | `MainGround`, `LeftWall` |
+| UI 节点名 | PascalCase | `NarrativePanel`, `SleepOverlay` |
+| 事件名 | 命名空间式 | `level01.box_interacted` |
+| 私有字段 | 下划线前缀 | `_is_interacting`, `_phone_node` |
+
+### 15.3 资源管理约束
+
+| 约束 | 说明 |
+|------|------|
+| `.tscn` 最小化 | 关卡 `.tscn` 只挂脚本与资源引用，不拖拽节点 |
+| 代码构建场景 | 地形、墙壁、交互物、UI 全部用代码 API 创建 |
+| 文案不进 `.gd` | 所有文案必须放在 `LevelXXData.tres`，禁止硬编码 |
+| 数值不进 `.gd` | 地图尺寸、摄像机边界、出生点等放在 `LevelXXConfig.tres` |
+| `collision_layer/mask` 常量化 | 必须用 `GlobalDefine.Collision.*`，禁止硬编码数字 |
+| 事件名常量化 | 必须用 `GlobalDefine.EventName.*`，禁止字符串字面量 |
+| `.uid` 同步 | 修改 `.gd` 文件后，检查 `.tscn` 中的 UID 引用是否与 `.uid` 文件一致 |
+| 通用模块复用 | `SmoothCamera.gd` / `InteractiveObject.gd` 不复制，直接引用原路径 |
+
+### 15.4 性能指标要求
+
+| 指标 | 要求 | 说明 |
+|------|------|------|
+| 交互物数量 | ≤ 10 | 超过 10 个时 `_poll_interactives_in_range` 每帧遍历开销增大 |
+| 地图宽度 | ≤ 3 屏（3840px） | 超过后摄像机 clamp 计算与渲染范围需额外优化 |
+| 同时活跃 Tween | ≤ 5 | 避免动画系统过载 |
+| `_process` 轮询 | 仅交互物检测 + cooldown | 禁止在 `_process` 中做资源加载或场景实例化 |
+| 叙事面板 await 间隔 | ≥ 50ms | `_show_narrative` 轮询间隔不低于 50ms，避免空转 |
+| `queue_free` 延迟 | 0.5s 淡出后 | 障碍物清除必须先淡出再 `queue_free`，避免闪烁 |
+| SubViewport 尺寸 | ≤ 600×400 | IDE 预览 SubViewport 不超过此尺寸 |
+
+### 15.5 验收标准
+
+| 检查项 | 通过条件 |
+|--------|----------|
+| Headless 启动 | 零编译错误、零运行时错误 |
+| 叙事面板 | 按 Enter 后面板持续显示，再次按 Enter 后关闭，玩家恢复控制 |
+| 睡眠循环 | 睡眠结束后玩家可自由移动，bed 可重复交互 |
+| 前置解锁 | 未满足条件的交互物不显示提示、不可交互 |
+| 摄像机跟随 | SmoothCamera 正常激活，玩家移动时摄像机平滑跟随 |
+| 状态机流转 | 7 个状态按设计顺序流转，无跳过或回退 |
+| 幂等性 | 已完成的交互物不可再次触发 |
+| 事件清理 | 关卡结束时 `EventBus.unsubscribe_all(self)` 已调用 |
+| 交互锁自愈 | `_is_interacting` 在异常情况下被 `_process` 防御性清理 |
+| Linter 零警告 | 无 SHADOWED_VARIABLE / UNUSED_PARAMETER 等警告 |
+
+---
+
+## 16. 地形/交互物设计参数速查
+
+### 16.1 地形代码示例
 
 ```gdscript
-var bg_texture = load("res://LevelModule/Background images/Generated Image June 04, 2026 - 9_41PM.jpg")
-var bg = TextureRect.new()
-bg.texture = bg_texture
-bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-add_child(bg)
-# 注意：关卡是 Node2D，TextureRect 需要作为 CanvasLayer 的子节点
+# 主地面（1.5 屏宽）
+level._create_static_body("MainGround", Vector2(960, 620), Vector2(1920, 40), Color(0.12, 0.12, 0.15))
+# 左墙
+level._create_static_body("LeftWall", Vector2(-10, 360), Vector2(20, 720), Color(0.1, 0.1, 0.12))
+# 右墙
+level._create_static_body("RightWall", Vector2(1930, 360), Vector2(20, 720), Color(0.1, 0.1, 0.12))
 ```
 
-### 10.3 玩家精灵资产
+### 16.2 交互物代码示例
 
+```gdscript
+# 带物理阻挡的障碍（如纸箱）
+var box = level._create_interactive("Obstacle_Box", "box", Vector2(350, 560), Vector2(120, 80))
+level._add_physics_blocker(box, Vector2(120, 80))   # 玩家不能穿过
+container.add_child(box)
+
+# 可重复交互（如床）
+var bed = level._create_interactive("Bed", "bed", Vector2(1830, 570), Vector2(160, 60))
+bed.allow_repeat = true
+container.add_child(bed)
+
+# 初始禁用的道具（如电脑，需前置解锁）
+var computer = level._create_interactive("Computer", "computer", Vector2(1470, 560), Vector2(100, 80))
+computer.is_active = false  # SceneBuilder 中设置，主控层通过 _try_unlock_* 解锁
+container.add_child(computer)
 ```
-res://Assets/Sprites/player Ani/
-├── 人物行走.png     (已在 Player_Warrior.tscn 中引用，切为 64×64 ×16 帧 "walk" 动画)
-├── 人物待机.png     (未引用)
-├── 人物跳跃.png     (未引用)
-├── 人物冲刺.png     (未引用)
-└── 另外 2 张        (未引用)
-```
 
----
+### 16.3 平台 Y 推荐阶梯
 
-## 11. 功能边界与尚未实现的系统
-
-### 11.1 可立即使用的系统
-
-- ✅ 9 态玩家状态机（含二段跳、长按变高跳）
-- ✅ 冲刺（0.2s，无敌帧覆盖）
-- ✅ 普攻 + 技能横斩
-- ✅ 6 态敌人 AI（巡逻/追逐/攻击/受伤/死亡）
-- ✅ EventBus 事件驱动通信
-- ✅ 暂停/恢复/游戏结束面板
-- ✅ HUD 血条显示（百分比宽度缩放）
-- ✅ 代码级 StaticBody2D 平台搭建
-- ✅ 摄像机跟随 + limit 边界限制
-- ✅ 双层运行模式（正式/自测）
-
-### 11.2 已定义但未实现的功能（关卡可用事件驱动激活）
-
-| 功能 | 现有基础 | 缺失 |
+| 等级 | Y | 适用 |
 |---|---|---|
-| **关卡完成逻辑** | `EventName.LEVEL_COMPLETE` 已定义 | 无人发射 |
-| **关卡触发器/门/传送** | `LevelBase._setup_triggers()` 虚函数已定义 | 无具体实现 |
-| **多关卡切换** | `EventBus` 和 `MainEntry` 支持 load/scene | 无第二关，无切换逻辑 |
-| **重生点** | `LevelConfig.spawn_point` 已定义 | 死亡后直接 Game Over，未重生 |
-| **敌人标记点系统** | `enemy_spawn_points: Array[Marker2D]` 已定义 | `_spawn_enemy_at()` 返回 null，Level_01 实际用独立方法 |
-| **防御系统** | `DamageCalculator.calculate(target_def)` | 所有调用 `target_def = 0` |
-| **Mana/能量** | `SkillConfig.mana_cost = 15` | 玩家无能量条，技能不扣费 |
-| **经验/升级** | `EnemyConfig.exp_reward` | 无经验系统 |
-| **掉落系统** | `EnemyConfig.drop_health_chance` | 无掉落 |
-| **回血** | `PlayerBase.heal(amount)` 方法存在 | 无人调用 |
-| **BGM/音效** | `LevelConfig.bgm_resource` 字段存在 | 全部 null，无音频文件 |
-| **伤害数字飘屏** | 无 | 无 |
-
-### 11.3 已知技术限制
-
-| 限制 | 说明 |
-|---|---|
-| **敌人数量上限** | 无硬上限，但 `PlayerBase._check_enemy_contact()` 每帧 O(n) 遍历 + Rect2 判断，预估值：50+ 敌人时可能降至 < 60fps |
-| **平台斜率** | `create_ground()` 仅支持矩形，不支持斜面或曲线地形 |
-| **关卡宽度** | camera_limit 默认 ±2000，可扩展到 ±10000，但地形必须在 1280×720 可视范围内用代码构建 |
-| **碰撞形状** | 仅矩形，无圆形或多边形碰撞体 |
-| **多玩家** | 不支持，GameManager 只持有单个 `player_ref` |
-| **存档** | 无任何持久化机制 |
+| LOW | 500 | 略高于地面（一步跳上） |
+| MID-LOW | 460 | 需二段跳 |
+| MID | 420 | 需冲刺跳 |
+| HIGH | 340 | 高难度 |
+| VERY_HIGH | 200 | 极限 |
 
 ---
 
-## 12. 关卡开发标准流程
+## 17. 接口调用示例（设计师 Cookbook）
 
-### 12.1 新建正式关卡的步骤
-
-```
-1. 在 DataConfig/Level/ 创建 Level02Config.tres
-   - level_name = "第二关名称"
-   - level_id = "level_02"
-   - 设置 camera_limit 边界
-   - 设置 spawn_point
-
-2. 在 LevelModule/Formal/ 创建 Level_02.gd
-   class_name Level_02
-   extends LevelBase
-
-   func _on_ready():
-       super._on_ready()
-       if not level_config:
-           level_config = load("res://DataConfig/Level/Level02Config.tres")
-           _apply_config()
-       _build_terrain()
-       _spawn_level_enemies()
-       # _setup_triggers() ...（未来实现）
-
-3. 在 LevelModule/Formal/ 创建 Level_02.tscn
-   [gd_scene load_steps=2 format=3]
-   [ext_resource type="Script" path=".../Level_02.gd" id="1_main"]
-   [node name="Level_02" type="Node2D"]
-   script = ExtResource("1_main")
-
-4. 在 LevelModule/SelfTest/ 创建 LevelTest_02.gd + .tscn
-   参考 LevelTest.gd 结构：地形+玩家+敌人+HUD
-
-5. 如需从 Level_01 过渡到 Level_02：
-   监听 ENEMY_DIED 事件，所有敌人死亡后发射 LEVEL_COMPLETE，
-   然后 change_scene_to_file("res://LevelModule/Formal/Level_02.tscn")
-```
-
-### 12.2 地形设计参数速查
-
-```
-主地面:  create_ground(Vector2(640, 620), Vector2(1280, 80))
-左墙:    create_wall(Vector2(0, 360), Vector2(20, 720))
-右墙:    create_wall(Vector2(1280, 360), Vector2(20, 720))
-平台:    create_ground(Vector2(X, Y), Vector2(宽度, 16~20))
-
-平台 Y 推荐阶梯：
-  VERY_LOW:  500  (略高于地面)
-  LOW:       460
-  MID:       420
-  HIGH:      340
-  VERY_HIGH: 200
-
-玩家跳跃可达高度（以 WarriorConfig 计算）：
-  一段跳 max ≈ asb(-650²)/(2×1200×0.35) + 64 ≈ 510 px（高于平台中心）
-  站立跳跃起点 y=550 可到达 y≈40 的高度
-```
-
-### 12.3 敌人放置策略
+### 17.1 在新关卡里加一个新交互物
 
 ```gdscript
-# 方法 1：直接 spawn（推荐）
-spawn_enemy("res://EnemyModule/Formal/Enemy_Slime.tscn", Vector2(300, 588))
-# 注意：Y=588 让 36px 高的敌人脚踩在 Y=620 的地面中心（620 - 80/2 + 36/2 ≈ 588）
-
-# 方法 2：用 Marker2D 标记点（需要先重写 _spawn_enemy_at()）
-@export var enemy_spawn_points: Array[Marker2D]
-# 在编辑器中放置 Marker2D，每个标记点可附加元数据
+# Level_02_SceneBuilder._build_interactives()
+var window = level._create_interactive("Window", "window", Vector2(800, 400), Vector2(80, 60))
+container.add_child(window)
 ```
 
-**史莱姆推荐放置位置**：
-- 地面敌人 Y = 588（适配 80px 厚地面）
-- 平台敌人 Y = platform_Y - (platform_thickness/2) + (enemy_height/2)
-  - 例：平台 Y=460, thickness=20, enemy=36 → Y = 460 - 10 + 18 = 468
+### 17.2 在 FSM 里处理新交互
+
+```gdscript
+# Level_02_FSM.handle_interaction()
+match level.current_state:
+    Level_02.LevelState.ROOM_A:
+        if obj_id == "window":
+            _handle_window()
+        elif obj_id == "door":
+            _handle_door()
+```
+
+### 17.3 让玩家进入关卡后弹一段叙事
+
+```gdscript
+# Level_02._on_ready 末尾
+level._show_narrative("……这里是新关卡的起点。", func():
+    print("玩家已读序章")
+)
+```
+
+### 17.4 让玩家失去能力（叙事期常见）
+
+```gdscript
+# 进入卧室时禁用跳跃
+level._restrict_player_mechanics()  # 同时禁 jump/dash/attack/skill
+```
+
+### 17.5 设置前置解锁条件
+
+```gdscript
+# SceneBuilder: 初始禁用
+computer.is_active = false
+
+# 主控: 解锁判断
+func _try_unlock_computer() -> void:
+    if some_condition < THRESHOLD: return
+    if _computer_node.is_active: return
+    _computer_node.is_active = true
+```
+
+### 17.6 加载 SubViewport 预览
+
+```gdscript
+# 加载任何 .tscn 到 _mini_viewport
+var mini_world = load("res://Path/To/MyMini.tscn").instantiate()
+level._mini_viewport.add_child(mini_world)
+if mini_world.has_signal("some_event"):
+    mini_world.connect("some_event", level._on_some_event)
+```
+
+### 17.7 终局切换关卡
+
+```gdscript
+# 在 _start_glitch_shader_effect() 末尾
+EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {
+    "level": self,
+    "next_level": "res://LevelModule/Formal/Level_02.tscn"
+})
+```
+
+### 17.8 监听敌人死亡以推进剧情
+
+```gdscript
+# 在 Level_XX._on_ready 末尾
+EventBus.subscribe(GlobalDefine.EventName.ENEMY_DIED, self, "_on_enemy_died")
+
+func _on_enemy_died(data: Dictionary) -> void:
+    if GameManager.enemy_list.is_empty():
+        level._show_narrative("……终于清完了。", func():
+            EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {...})
+        )
+```
 
 ---
 
-## 13. 附录：文件路径速查
+## 18. 功能边界与已知限制
+
+### 18.1 当前可立即使用
+
+- 7 态叙事状态机（LIVING_ROOM → GLITCH_TRANSIT）
+- InteractiveObject 交互物系统（带幂等性 + 重复交互 + 前置解锁）
+- SmoothCamera 通用摄像机（死区 + lerp + lookahead）
+- Canvas UI 纯代码构建（Narrative / Sleep / IDE / Glitch）
+- SubViewport 嵌入预览世界并跨场景通信（`prototype_crashed` 信号）
+- Glitch 终局着色器（色相分离 + 噪声 + 渐强）
+- EventBus 事件驱动通信（自动清理失效订阅）
+- 双运行模式（FORMAL / SELF_TEST）
+- LevelConfig（数值）与 LevelData（叙事）分离
+- `_all_interactives` 统一管理（消除硬编码重复）
+
+### 18.2 已定义但未完整实现
+
+| 功能 | 现状 | 后续接入点 |
+|---|---|---|
+| 多关卡切换 | `LEVEL_COMPLETE` 已 emit + 含 `next_level` | 在 `MainEntry` 监听并 `change_scene_to_file()` |
+| 玩家重生 | `LevelConfig.spawn_point` 已定义 | `Player_Base` 需要 `respawn()` |
+| 敌人标记点 | `enemy_spawn_points` 字段已存在 | 当前 `_spawn_enemy_at()` 返回 null |
+| 触发器/门/传送 | `_setup_triggers()` 虚函数 | 建议用 Area2D + `body_entered` |
+| 防御/Mana/经验/掉落 | 字段存在 | `Player_Base` 需扩展 |
+| BGM | 字段为 null | 接 `.ogg` 资源并 AudioStreamPlayer |
+| 伤害数字飘屏 | 无 | 需在 `PlayerBase` 攻击反馈里加 |
+| 环境声效交叉渐变 | `_fade_ambient_audio()` 占位接口 | 接入 AudioStreamPlayer 列表 |
+
+### 18.3 已知技术限制
+
+- 敌人数量 > 50 时 `Player_Base._check_enemy_contact()` 可能掉帧（O(n) 每帧 Rect2）
+- 地形只支持矩形，斜面/曲线需要自写多边形 CollisionShape
+- 单玩家，无存档
+- 玩家和敌人不发生物理碰撞（接触伤害走代码）
+- `LevelBase._setup_camera` 在 `_setup_player` 之前执行，摄像机初始挂载位置不一致（由 `_setup_smooth_camera` 修正）
+
+---
+
+## 19. 附录：文件路径速查
 
 ```
 项目根目录
-├── project.godot                           # 引擎配置
-├── Global/                                  # Autoload（3个已注册单例）
-│   ├── GlobalDefine.gd
-│   ├── EventBus.gd
-│   ├── GameManager.gd
-│   ├── MainEntry.gd / .tscn
+├── project.godot                       # 引擎配置
+├── TECHNICAL_ARCHITECTURE_REPORT.md    # 本文档
+├── Global/                              # 3 个 Autoload + MainEntry
+│   ├── GlobalDefine.gd                  # 枚举 + Collision + EventName 常量
+│   ├── EventBus.gd                      # 跨模块事件总线
+│   ├── GameManager.gd                   # player_ref / enemy_list / 状态
+│   └── MainEntry.gd / .tscn             # 正式入口
 ├── Tools/
-│   └── DamageCalculator.gd                  # 静态伤害工具
+│   └── DamageCalculator.gd              # 静态伤害计算
 ├── UI/
-│   ├── TitleScreen.gd / .tscn               # 主菜单（纯代码 UI）
-│   └── HUD.gd / .tscn                       # HUD（CanvasLayer）
+│   ├── TitleScreen.gd / .tscn           # 主菜单
+│   └── HUD.gd / .tscn                   # HUD
 ├── DataConfig/
-│   ├── Player/ PlayerConfig.gd + WarriorConfig.tres
-│   ├── Enemy/  EnemyConfig.gd + SlimeConfig.tres
-│   ├── Skill/  SkillConfig.gd + SlashConfig.tres
-│   └── Level/  LevelConfig.gd + Level01Config.tres
+│   ├── Player/ WarriorConfig (.gd/.tres)
+│   ├── Enemy/  SlimeConfig   (.gd/.tres)
+│   ├── Skill/  SlashConfig   (.gd/.tres)
+│   └── Level/
+│       ├── LevelConfig.gd               # 关卡数值基类
+│       ├── Level01Config.tres
+│       ├── Level01Data.gd               # 关卡叙事基类
+│       └── Level01Data.tres
 ├── PlayerModule/
 │   ├── Formal/ PlayerBase.gd + Player_Warrior.gd/.tscn
 │   └── SelfTest/ PlayerTest.gd/.tscn
@@ -660,12 +1122,32 @@ spawn_enemy("res://EnemyModule/Formal/Enemy_Slime.tscn", Vector2(300, 588))
 │   ├── Formal/ EnemyBase.gd + Enemy_Slime.gd/.tscn
 │   └── SelfTest/ EnemyTest.gd/.tscn
 ├── LevelModule/
-│   ├── Formal/ LevelBase.gd + Level_01.gd/.tscn
-│   ├── SelfTest/ LevelTest.gd/.tscn
-│   └── Background images/ (4 张 JPG + .import)
-└── Assets/Sprites/player Ani/ (6 张 PNG)
+│   ├── Formal/
+│   │   ├── LevelBase.gd                 # 关卡基类（核心 API）
+│   │   ├── InteractiveObject.gd         # 交互物基类（核心 API）
+│   │   ├── glitch_effect.gdshader       # 终局着色器
+│   │   ├── Level_01.gd                  # 关卡主控
+│   │   ├── Level_01_SceneBuilder.gd     # 场景构建器
+│   │   ├── Level_01_FSM.gd              # 状态机
+│   │   ├── Level_01_UIBuilder.gd        # UI 构建器
+│   │   └── Level_01.tscn                # 关卡场景（最小化）
+│   ├── Common/
+│   │   └── SmoothCamera.gd              # 通用平滑摄像机
+│   ├── SelfTest/
+│   │   ├── LevelTest.gd/.tscn
+│   │   ├── MiniTestWorld.gd/.tscn       # IDE 预览世界
+│   │   └── TestRunnerCharacter.gd/.tscn
+│   └── Background images/               # 4 张 JPG
+└── Assets/Sprites/                      # 玩家动画 6 张 PNG
 ```
 
 ---
 
-**此报告覆盖所有关卡设计所需的技术边界、接口规范和约束条件。设计关卡时请严格遵循上述 API 和碰撞层规则，通过 EventBus 进行跨模块通信。**
+**此报告已同步叙事驱动关卡架构（v0.3.0）。关卡设计时请严格遵循：**
+1. **代码构建**地形/UI，不在 `.tscn` 拖拽
+2. **`.tres` 编辑**文案与数值，不改 `.gd` 写死字符串
+3. **事件总线**做跨模块通信，禁止 `get_node()` 跨层
+4. **碰撞层常量** `GlobalDefine.Collision.*`，禁止硬编码数字
+5. **新关卡 = 4 文件**（主控/SceneBuilder/FSM/UIBuilder）+ 2 资源（Config/Data）+ 1 场景
+6. **前置解锁**通过 `is_active` + 主控布尔判定，不硬编码在 FSM
+7. **交互物统一管理**通过 `_all_interactives` 数组，新增/移除交互物只改一处
