@@ -70,6 +70,9 @@ class EventName:
 	const LEVEL_LOADED       := "level_loaded"
 	const LEVEL_COMPLETE     := "level_complete"
 
+	# 交互事件
+	const INTERACTIVE_OBJECT_TRIGGERED := "interactive_object_triggered"
+
 	# 伤害事件
 	const DAMAGE_APPLIED     := "damage_applied"
 	const HEALTH_CHANGED     := "health_changed"
