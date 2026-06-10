@@ -1,10 +1,18 @@
 # ============================================================
 # EventBus.gd - 全局事件总线 (Autoload)
 # 模块间通信的唯一通道，禁止跨模块直接引用节点
-# 设计原则：
+#
+# 设计原则:
 #   1. 节点失效/被 queue_free 时自动跳过回调（is_instance_valid 双重检查）
-#   2. 抛出异常不影响其他订阅者（try-style 隔离）
-#   3. 同一节点重复订阅同一事件自动去重
+#   2. 抛出异常不影响其他订阅者（错误隔离）
+#   3. 同一节点重复订阅同一事件自动去重（幂等性）
+#   4. tree_exited 自动清理: 节点销毁时一次性 unsubscribe_all(node),
+#      清除该节点全部事件订阅（非仅单个事件），防止游离回调
+#
+# 使用方式:
+#   EventBus.subscribe(EventName.LEVEL_LOADED, self, "_on_level_loaded")
+#   EventBus.emit(EventName.LEVEL_LOADED, {"level": self})
+#   EventBus.unsubscribe_all(self)  # 手动清理(可选, tree_exited 已自动处理)
 # ============================================================
 extends Node
 
