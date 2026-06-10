@@ -35,18 +35,13 @@ func subscribe(event_name: String, node: Node, method: String) -> void:
 	_listeners[event_name].append({ "node": node, "method": method })
 
 	# 自动清理: 节点被销毁时自动取消其全部订阅（避免游离回调）
-	# 使用 CONNECT_ONE_SHOT + 弱引用语义: 通过监听 tree_exited 信号
-	# 修复: bind 参数顺序必须与 _on_subscriber_tree_exited(node, event_name) 签名一致
+	# 只连接一次 tree_exited，回调内用 unsubscribe_all 清除该节点的所有事件订阅
 	if not node.is_connected("tree_exited", _on_subscriber_tree_exited):
-		node.connect("tree_exited", _on_subscriber_tree_exited.bind(node, event_name), CONNECT_ONE_SHOT)
+		node.connect("tree_exited", _on_subscriber_tree_exited.bind(node), CONNECT_ONE_SHOT)
 
-## 节点退出场景树时自动清理该节点的全部订阅
-func _on_subscriber_tree_exited(node: Node, event_name: String = "") -> void:
-	if event_name != "":
-		unsubscribe(event_name, node)
-	else:
-		# 兼容旧的 bind 方式（如有传空事件名则全部清理）
-		unsubscribe_all(node)
+## 节点退出场景树时自动清理该节点的全部事件订阅
+func _on_subscriber_tree_exited(node: Node, _event_name: String = "") -> void:
+	unsubscribe_all(node)
 
 ## 取消注册单个事件
 func unsubscribe(event_name: String, node: Node) -> void:

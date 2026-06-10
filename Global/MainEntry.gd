@@ -22,13 +22,12 @@ func _load_formal_level() -> void:
 		add_child(level)
 		EventBus.emit(GlobalDefine.EventName.LEVEL_LOADED, { "level": level })
 		print("[MainEntry] 关卡加载成功: Level_01")
+		# HUD 由关卡模块自行管理，MainEntry 不再插手
+		return
 	else:
 		# 关卡不存在时加载临时占位场景
 		print("[MainEntry] 关卡未找到，加载占位场景")
 		_spawn_placeholder()
-
-	# 无论哪种方式都要加载HUD
-	_load_hud()
 
 func _spawn_placeholder() -> void:
 	# 创建基础地面和墙壁（占位用）
@@ -68,16 +67,6 @@ func _spawn_player() -> void:
 		player.position = Vector2(200, 550)  # 地面左侧，远离敌人
 		add_child(player)
 		GameManager.register_player(player)
-
-		# 添加摄像机
-		var camera = Camera2D.new()
-		camera.enabled = true
-		camera.anchor_mode = Camera2D.ANCHOR_MODE_DRAG_CENTER
-		camera.limit_left = 0
-		camera.limit_right = 1280
-		camera.limit_top = -1000
-		camera.limit_bottom = 1000
-		player.add_child(camera)
 
 		print("[MainEntry] 玩家创建成功")
 	else:

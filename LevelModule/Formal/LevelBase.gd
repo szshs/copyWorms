@@ -33,33 +33,10 @@ func _apply_config() -> void:
 		RenderingServer.set_default_clear_color(level_config.bg_color)
 
 func _setup_camera() -> void:
-	# 如果玩家已经有摄像机就不重复创建
-	if GameManager.player_ref and is_instance_valid(GameManager.player_ref):
-		var existing = GameManager.player_ref.get_node_or_null("LevelCamera")
-		if existing:
-			return
-
-	var camera = Camera2D.new()
-	camera.name = "LevelCamera"
-	camera.enabled = true
-	camera.anchor_mode = Camera2D.ANCHOR_MODE_DRAG_CENTER
-	camera.position = Vector2(640, 360)
-	if level_config:
-		camera.limit_left = level_config.camera_limit_left
-		camera.limit_right = level_config.camera_limit_right
-		camera.limit_top = level_config.camera_limit_top
-		camera.limit_bottom = level_config.camera_limit_bottom
-	else:
-		camera.limit_left = 0
-		camera.limit_right = 1280
-		camera.limit_top = -1000
-		camera.limit_bottom = 1000
-
-	# 摄像机跟随玩家
-	if GameManager.player_ref and is_instance_valid(GameManager.player_ref):
-		GameManager.player_ref.add_child(camera)
-	else:
-		add_child(camera)
+	# 相机管理已移交 SmoothCamera（Player_Warrior 预制体子节点）
+	# SmoothCamera 在 _ready 中自动绑定目标 + make_current + top_level
+	# 子类 Level_01 通过 _setup_camera_limits() 配置 limit 参数
+	pass
 
 func _setup_player() -> void:
 	# 正式关卡自动生成玩家

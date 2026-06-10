@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://dscbkxfaq0ooi" path="res://Assets/Sprites/player_cyber Ani/赛博人物行走.png" id="3_walk"]
 [ext_resource type="Texture2D" uid="uid://bdttgdpkwl1st" path="res://Assets/Sprites/player_cyber Ani/赛博人物跳跃.png" id="4_jump"]
 [ext_resource type="Texture2D" uid="uid://dog52n55w6hod" path="res://Assets/Sprites/player_cyber Ani/赛博人物攻击.png" id="5_attack"]
+[ext_resource type="Script" uid="uid://smooth_camera_script" path="res://PlayerModule/Formal/SmoothCamera.gd" id="cam_script"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_uvyaf"]
 atlas = ExtResource("5_attack")
@@ -374,6 +375,10 @@ animations = [{
 
 [node name="Player_Warrior_Cyber" type="CharacterBody2D" unique_id=693168299]
 script = ExtResource("1_main")
+
+[node name="SmoothCamera" type="Camera2D" parent="."]
+script = ExtResource("cam_script")
+position_smoothing_enabled = false
 
 [node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1920920761]
 sprite_frames = SubResource("SpriteFrames_cyber")

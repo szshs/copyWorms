@@ -81,11 +81,8 @@ func _process(_delta: float) -> void:
 		var alpha = 0.6 + 0.4 * abs(sin(Time.get_ticks_msec() * 0.004))
 		_prompt_label.add_theme_color_override("font_color", Color(1, 0.9, 0.2, alpha))
 
-	# 直接在这里检测 Enter 交互
-	if is_player_in_range and is_active and not completed:
-		if Input.is_action_just_pressed("ui_accept"):
-			print("[InteractiveObject] 交互触发: %s" % object_id)
-			EventBus.emit("interactive_object_triggered", {"object_id": object_id})
+	# 输入处理已统一收归 Level_01._input() 分发
+	# 此处不再检测 ui_accept，避免与 Level_01 双重触发交互事件
 
 
 # ---- 碰撞检测 ----
@@ -134,37 +131,28 @@ func check_player_in_range(player: Node2D) -> void:
 		else:
 			print("[InteractiveObject] 玩家离开 %s 范围 (轮询检测)" % object_id)
 
-## 用 AABB 矩形检测玩家是否在 CollisionShape2D 范围内
+## 距离判定：玩家中心与交互物中心的距离是否在触发半径内
+## 修复: 原 AABB 矩形检测在物理阻挡紧贴交互触发区时永远 false（玩家贴边差 0.02 像素）
+## 改用更稳健的距离判定，半径 = 物体 size 最大边 + 32 像素容差
 func _rect_overlaps_player(player: Node2D) -> bool:
 	var col_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
 	if not col_shape or not col_shape.shape:
 		return false
-	# 玩家碰撞尺寸 (从 PlayerBase._get_collision_size 取)
-	var p_size: Vector2 = Vector2(50, 55)  # 默认值
+	# 玩家中心到交互物中心的距离
+	var dist: float = player.global_position.distance_to(global_position)
+	# 触发半径 = 物体碰撞尺寸最大边的一半 + 玩家半宽 + 容差
+	var half_max_dim: float = 0.0
+	if col_shape.shape is RectangleShape2D:
+		var s: Vector2 = col_shape.shape.size
+		half_max_dim = max(s.x, s.y) / 2.0
+	# 玩家半宽（取最长边的一半，兼容不同角色）
+	var p_size: Vector2 = Vector2(50, 55)
 	if player.has_method("_get_collision_size"):
 		p_size = player._get_collision_size()
-	# 玩家 AABB
-	var p_rect: Rect2 = Rect2(player.global_position - p_size / 2.0, p_size)
-	# 交互物 AABB (CollisionShape2D 的 shape 在交互物的 local 空间,以 global_transform 转世界)
-	var shape_rect: Rect2 = col_shape.shape.get_rect() if col_shape.shape is RectangleShape2D else Rect2()
-	if shape_rect.size == Vector2.ZERO:
-		return false
-	# transform 2D 应用
-	var xform: Transform2D = col_shape.global_transform
-	var corners: Array[Vector2] = [
-		xform * shape_rect.position,
-		xform * (shape_rect.position + Vector2(shape_rect.size.x, 0)),
-		xform * (shape_rect.position + Vector2(0, shape_rect.size.y)),
-		xform * (shape_rect.position + shape_rect.size)
-	]
-	# 取 AABB 包络
-	var min_pt: Vector2 = corners[0]
-	var max_pt: Vector2 = corners[0]
-	for c in corners:
-		min_pt = Vector2(min(min_pt.x, c.x), min(min_pt.y, c.y))
-		max_pt = Vector2(max(max_pt.x, c.x), max(max_pt.y, c.y))
-	var obj_rect: Rect2 = Rect2(min_pt, max_pt - min_pt)
-	return obj_rect.intersects(p_rect)
+	var half_p: float = max(p_size.x, p_size.y) / 2.0
+	# 触发半径 = 物体半径 + 玩家半径 + 16 像素容差
+	const TOLERANCE: float = 16.0
+	return dist <= (half_max_dim + half_p + TOLERANCE)
 
 
 ## 标记交互为已完成（幂等性：调用后该物体不可再触发的交互）
