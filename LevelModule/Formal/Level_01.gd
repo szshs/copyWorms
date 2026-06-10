@@ -313,41 +313,22 @@ func _handle_accept_input() -> void:
 		_interact_cooldown = 0.3
 		EventBus.emit(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, {"object_id": obj.object_id})
 
-## 输入处理 — Enter 交互分发（阶段3: InputManager 信号驱动为主，_input 为兜底）
-##   - InputManager._unhandled_input() 先拦截 ui_accept → 发射 game_action 信号 → 走 _handle_accept_input
-##   - 若 InputManager 未拦截（不应发生），原始 _input() 兜底仍保留
+## 输入处理 — Enter 交互分发
+##   主路径: InputManager._unhandled_input() 拦截 ui_accept → game_action 信号 → _on_game_action → _handle_accept_input
+##   _input() 兜底: 仅当 InputManager 未拦截时执行（理论上不应触发），且受 block_input 守卫保护
 func _input(event: InputEvent) -> void:
 	if not event.is_action_pressed("ui_accept"):
 		return
 
-	# ---- 1) IDE_CHAT 状态: 推进对话行 ----
-	if current_state == LevelState.IDE_CHAT:
-		_render_next_chat_line()
-		get_viewport().set_input_as_handled()
+	# 兜底路径：必须遵守 block_input 守卫（与 _handle_accept_input 一致）
+	if InputManager.is_input_blocked:
 		return
 
-	# ---- 2) 叙事面板打开时: 通知 _show_narrative 退出等待 ----
-	if _narrative_open:
-		_narrative_enter_pressed = true
-		get_viewport().set_input_as_handled()
-		return
+	# 复用信号路径的统一处理函数（保证单一路径）
+	_handle_accept_input()
 
-	# ---- 3) 玩家被冻结或冷却中: 拒绝新交互（但仍清空 is_interacting 以防锁死） ----
-	if _is_interacting or _interact_cooldown > 0.0:
-		# B3 修复: 防御性自愈 — 等待时间超过 0.5s 仍冻结时，强制解锁
-		# 这种情况意味着 _safe_end_interaction 未被调用（例如异常退出）
-		if current_state != LevelState.IDE_PREVIEW and current_state != LevelState.IDE_CHAT:
-			if _interact_cooldown > 0.5:
-				_safe_end_interaction()
-		return
-
-	# ---- 4) 常规路径: 查找最近交互物并发射事件 ----
-	var nearby_obj = _find_nearby_interactive()
-	if nearby_obj:
-		_interact_cooldown = 0.3
-		# B5 修复: 使用 GlobalDefine 常量
-		EventBus.emit(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, {"object_id": nearby_obj.object_id})
-		get_viewport().set_input_as_handled()
+	# 标记已处理，防止继续传播
+	get_viewport().set_input_as_handled()
 
 func _find_nearby_interactive() -> InteractiveObject:
 	# 优先用 is_player_in_range (由 body_entered 或 _poll 维护)
@@ -729,5 +710,6 @@ func _emit_level_complete() -> void:
 	EventBus.unsubscribe_all(self)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {
 		"level": self,
-		"next_level": "res://LevelModule/Formal/Level_02.tscn"
+		# TODO: Level_02 尚未创建，由 MainEntry/GameManager 监听 LEVEL_COMPLETE 后接管
+		"next_level": ""
 	})

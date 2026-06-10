@@ -30,8 +30,11 @@ signal game_action(action: StringName, event: InputEvent)
 ## 输入屏蔽标志
 var is_input_blocked: bool = false
 
-## 屏蔽原因（调试用）
+## 屏蔽原因（调试用，显示最外层屏蔽来源）
 var block_reason: String = ""
+
+## 屏蔽引用计数（栈式: block++, unblock--; 为0时才真正解除）
+var _block_count: int = 0
 
 ## 本帧捕获的动作（用于外部查询）
 var captured_this_frame: StringName = &""
@@ -123,12 +126,17 @@ func _get_ui_focus_info() -> String:
 #  公共 API: 输入屏蔽
 # ================================================================
 
-## 请求屏蔽游戏输入
+## 请求屏蔽游戏输入（栈式: 支持嵌套调用，每次 block 必须配对 unblock）
 func block_input(reason: String, _caller: Node = null) -> void:
+	_block_count += 1
+	if not is_input_blocked:
+		block_reason = reason
 	is_input_blocked = true
-	block_reason = reason
 
-## 取消屏蔽游戏输入
+## 取消屏蔽游戏输入（栈式: 引用计数归零时才真正解除，防止内层提前释放外层）
 func unblock_input(_reason: String = "") -> void:
-	is_input_blocked = false
-	block_reason = ""
+	_block_count = maxi(_block_count - 1, 0)
+	if _block_count <= 0:
+		is_input_blocked = false
+		block_reason = ""
+		_block_count = 0
