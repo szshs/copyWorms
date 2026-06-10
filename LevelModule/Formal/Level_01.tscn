@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://dkhxpg7r68vk5"]
 
-[ext_resource type="Script" uid="uid://crqoxqn7qug1w" path="res://LevelModule/Formal/Level_01.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://c3qjw5j3lin5q" path="res://LevelModule/Formal/Level_01.gd" id="1_script"]
 [ext_resource type="Resource" path="res://DataConfig/Level/Level01Config.tres" id="2_config"]
 [ext_resource type="Resource" path="res://DataConfig/Level/Level01Data.tres" id="3_data"]
 
