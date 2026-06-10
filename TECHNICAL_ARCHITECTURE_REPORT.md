@@ -3,7 +3,20 @@
 > **目标读者**：关卡设计师 / 下游 AI 关卡设计助手
 > **更新日期**：2026-06-10
 > **引擎版本**：Godot 4.6 (GL Compatibility, GDScript)
-> **项目版本**：v0.3.1（SmoothCamera 重构为玩家子组件 + 摄像机频闪修复 + EventBus 简化）
+> **项目版本**：v0.6.0（InputManager 全面接管 + 阶段3d 叙事联动 + 测试日志清理）
+>
+> **v0.6.0 变更摘要**：
+> - InputManager.gd Autoload 全面接管游戏操作输入（attack/dash/skill/accept 信号分发）
+> - PlayerBase 迁移至 game_action 信号驱动，_handle_input() 清空攻击/冲刺/技能轮询
+> - Level_01 叙事/对话/睡眠/IDE/终局状态全量接入 InputManager.block_input() 联动
+> - 清理 InputManager 全部测试日志输出（5处 print）
+>
+> **v0.5.0 变更摘要（历史）**：
+> - SmoothCamera 从 LevelModule/Common 迁移至 PlayerModule/Formal，预置于3个玩家预制体
+> - 根治反向移动颤动（转向清零 + lookahead 去硬边界 + X轴去死区）
+> - EventBus tree_exited 改为 unsubscribe_all（全量清理）
+> - MainEntry 不再创建 Camera2D/HUD（避免重复/泄漏）
+> - InteractiveObject 输入检测统一收归 Level_01
 
 ---
 
@@ -16,8 +29,9 @@
 | 屏幕分辨率 | 1280×720，canvas_items 拉伸 |
 | 主场景 | `res://Global/MainEntry.tscn`（正式入口） |
 | 自测场景 | `res://LevelModule/SelfTest/LevelTest.tscn` |
-| 3 个 Autoload | `GlobalDefine`、`EventBus`、`GameManager` |
+| **4 个 Autoload** | `GlobalDefine`、`EventBus`、`GameManager`、**`InputManager`** |
 | 运行模式 | `FORMAL`（正式）/ `SELF_TEST`（自测） |
+| 玩家外观 | Player_Warrior / Player_Warrior_Cyber / Player_Warrior_Lingnan |
 
 ---
 
@@ -28,7 +42,8 @@
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ 入口层                                                   │
-│   MainEntry.gd / .tscn   (正式入口，emit GAME_START)     │
+│   MainEntry.gd / .tscn   (正式入口, emit GAME_START)     │
+│   注意: 不再创建 Camera2D 和 HUD (由预制体/关卡接管)      │
 ├──────────────────────────────────────────────────────────┤
 │ 关卡控制层（叙事驱动）                                    │
 │   Level_01.gd            (关卡主控/状态调度/叙事编排)     │
@@ -37,12 +52,11 @@
 │   ├── Level_01_UIBuilder.gd      (Canvas UI 纯代码构建)  │
 │   └── InteractiveObject.gd       (交互物基类 Area2D)     │
 ├──────────────────────────────────────────────────────────┤
-│ 通用模块层                                               │
-│   SmoothCamera.gd/.tscn  (死区+lerp+lookahead 摄像机)   │
-│   ※ 玩家预制体子节点，关卡只配置 limit 参数              │
-├──────────────────────────────────────────────────────────┤
 │ 角色层                                                   │
 │   Player_Warrior (.tscn)   - CharacterBody2D             │
+│     └─ SmoothCamera (.tscn/.gd) - 平滑跟随摄像机(内置)    │
+│   Player_Warrior_Cyber (.tscn) - 赛博皮肤 + SmoothCamera  │
+│   Player_Warrior_Lingnan (.tscn)- 岭南皮肤 + SmoothCamera  │
 │   Enemy_Slime   (.tscn)    - CharacterBody2D             │
 │   TestRunnerCharacter      - SubViewport 预览用           │
 ├──────────────────────────────────────────────────────────┤
@@ -53,8 +67,9 @@
 ├──────────────────────────────────────────────────────────┤
 │ 基础设施层（Autoload）                                   │
 │   GlobalDefine   (枚举/碰撞层常量/事件名常量)              │
-│   EventBus       (跨模块唯一事件通信通道)                  │
+│   EventBus       (跨模块唯一事件通信通道, 全量tree_exited)  │
 │   GameManager    (player_ref/current_level/enemy_list)    │
+│   InputManager   (统一输入管理, 信号分发, block/unblock)   │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -65,6 +80,7 @@
 3. **事件总线唯一通信**：跨模块通信全部走 `EventBus.emit/subscribe`，严禁跨层直接 `get_node()`。
 4. **碰撞层语义化**：所有 `collision_layer/mask` 必须用 `GlobalDefine.Collision.*` 常量，禁止写数字。
 5. **数据驱动前置逻辑**：交互物之间的解锁条件（如"床交互≥4次解锁电脑"）由主控层布尔判定 + `is_active` 控制，不硬编码在 FSM 中。
+6. **摄像机归玩家**：SmoothCamera 作为子节点预置于每个玩家预制体内，不再由 LevelBase 或 MainEntry 动态创建。
 
 ---
 
@@ -123,7 +139,14 @@ EventBus.emit(event_name: String, data: Dictionary)
 EventBus.emit_deferred(event_name: String, data: Dictionary)
 ```
 
-> **v0.3.1 变更**：`subscribe` 内部自动清理逻辑已简化。节点退出场景树时（`tree_exited`），回调统一调用 `unsubscribe_all(node)` 清除该节点的所有事件订阅，不再区分单个事件/全部清理两条路径。`_on_subscriber_tree_exited(node, _event_name)` 第二个参数已改为占位符（不再使用）。
+**自动清理机制（v0.5.0 更新）**：
+
+```gdscript
+# subscribe() 时自动连接 node 的 tree_exited 信号 (CONNECT_ONE_SHOT)
+# 节点销毁时回调 _on_subscriber_tree_exited(node):
+#     → unsubscribe_all(node)  ← 一次性清除该节点的所有事件订阅
+# （旧版只清单个事件，已修复为全量清理）
+```
 
 **关卡关键事件 data 字典约定**：
 
@@ -154,6 +177,41 @@ get_nearest_enemy(pos) -> Node2D
 trigger_game_over() / toggle_pause() / is_self_test() / is_formal()
 ```
 
+### 3.4 `InputManager` API（v0.6.0 新增）
+
+```gdscript
+## 游戏操作输入信号（仅未屏蔽 + 未暂停 + 无 UI 焦点时发射）
+signal game_action(action: StringName, event: InputEvent)
+
+## 订阅者: PlayerBase(attack/dash/skill), Level_01(ui_accept)
+## 使用方式:
+##   InputManager.game_action.connect(_on_game_action)
+##   func _on_game_action(action: StringName, event: InputEvent): ...
+
+var is_input_blocked: bool   # 输入屏蔽标志（只读）
+var block_reason: String     # 屏蔽原因（调试用）
+
+block_input(reason: String, caller: Node)   # 请求屏蔽游戏输入
+unblock_input(reason: String)                # 取消屏蔽游戏输入
+```
+
+**输入分发规则**：
+
+| 动作键 | 分发方式 | 订阅者 |
+|--------|---------|--------|
+| `player_attack` | `game_action` 信号 | PlayerBase._on_game_action |
+| `player_dash` | `game_action` 信号 | PlayerBase._on_game_action |
+| `player_skill` | `game_action` 信号 | PlayerBase._on_game_action |
+| `ui_accept` | `game_action` 信号 | Level_01._on_game_action |
+| `ui_pause` (ESC) | **独占处理** | InputManager._handle_pause（不受守卫影响） |
+| `player_jump` | **保留轮询** | PlayerBase._input_jump_just_pressed（需连续状态） |
+| `ui_left/right/up/down` | **保留轮询** | PlayerBase._get_input_direction（需每帧向量） |
+
+**守卫逻辑**（以下条件任一满足则阻断 `game_action` 信号发射）：
+- `GameManager.is_paused == true`
+- `is_input_blocked == true`（外部调用 block_input）
+- UI 焦点在 Control 节点上
+
 ---
 
 ## 4. 关卡设计框架
@@ -164,7 +222,7 @@ trigger_game_over() / toggle_pause() / is_self_test() / is_formal()
 
 | 模块 | 文件模式 | 职责 | 依赖 |
 |------|---------|------|------|
-| **主控** | `Level_XX.gd` | 生命周期/输入分发/叙事编排/摄像机/玩家控制 | LevelBase, EventBus, GameManager |
+| **主控** | `Level_XX.gd` | 生命周期/输入分发/叙事编排/摄像机限制配置/InputManager联动 | LevelBase, EventBus, GameManager, InputManager |
 | **场景构建** | `Level_XX_SceneBuilder.gd` | 地形/交互物/出生点/Canvas 挂载 | 主控的 `_create_*` 方法 |
 | **状态机** | `Level_XX_FSM.gd` | 状态调度 + 交互分发 + 幂等性防线 | 主控的公共方法 |
 | **UI 构建** | `Level_XX_UIBuilder.gd` | CanvasLayer 下所有 UI 纯代码构建 | 主控的 UI 引用字段 |
@@ -190,18 +248,9 @@ UIBuilder    ──写入──▶ 主控的 UI 引用字段（_narrative_panel 
 交互物检测采用**双重保障**机制：
 
 1. **Area2D 信号**（`body_entered/exited`）—— 理想路径，帧精度
-2. **轮询检测**（`_poll_interactives_in_range`）—— 兜底路径，解决 `_ready` 时序与 `collision_layer` 不匹配
+2. **轮询检测**（`check_player_in_range`）—— 兜底路径，解决 `_ready` 时序与 `collision_layer` 不匹配
 
-```mermaid
-flowchart LR
-    A[_process 每帧] --> B[_poll_interactives_in_range]
-    B --> C{obj.is_active?}
-    C -- 是 --> D[_rect_overlaps_player]
-    D --> E[更新 is_player_in_range]
-    C -- 否 --> F[跳过]
-```
-
-输入触发流程：
+输入触发流程（v0.5.0 统一化后）：
 
 ```mermaid
 sequenceDiagram
@@ -211,7 +260,7 @@ sequenceDiagram
     participant E as EventBus
     participant FSM as Level_01_FSM
 
-    P->>I: ui_accept
+    P->>I: ui_accept (通过 InputManager.game_action 信号)
     I->>F: 遍历 _all_interactives
     F->>F: is_active && !completed && is_player_in_range
     F-->>I: 返回 nearby_obj
@@ -221,23 +270,28 @@ sequenceDiagram
     FSM->>FSM: match current_state + obj_id
 ```
 
+> **关键变更（v0.5.0）**：`InteractiveObject._process()` 不再检测 `ui_accept`。输入完全由 `Level_01._input()` 统一分发（通过 InputManager.game_action 信号），消除三路重复触发隐患。
+> **关键变更（v0.6.0）**：`ui_accept` 不再由 Level_01._input() 直接轮询，而是通过 InputManager.game_action 信号传递到 Level_01._on_game_action() 回调。
+
 #### 4.2.2 叙事面板生命周期
 
 ```
 _show_narrative(text)
+  ├── InputManager.block_input("叙事面板", self)   # v0.6.0: 阻断游戏操作
   ├── _is_interacting = true, _narrative_open = true
   ├── _freeze_player(true)
   ├── panel.show(), text = text
   ├── await 0.3s（防误触）
   ├── while _narrative_open && timeout:
-  │     等待 _narrative_enter_pressed（由 _input 设置）
+  │     等待 _narrative_enter_pressed（由 _on_game_action/ui_accept 设置）
   ├── panel.hide()
   ├── _freeze_player(false)
+  ├── InputManager.unblock_input("叙事面板")        # v0.6.0: 恢复游戏操作
   ├── _narrative_open = false, _is_interacting = false
   └── callback.call()（如有）
 ```
 
-> **关键**：`_narrative_enter_pressed` 标志由 `_input` 在 `_narrative_open` 分支设置，而非依赖 `Input.is_action_just_pressed`（后者在 await 间隔中不可靠）。
+> **关键**：`_narrative_enter_pressed` 标志由 `_on_game_action` 在 `ui_accept` 分支设置（v0.6.0 通过信号回调），而非依赖 `Input.is_action_just_pressed`（后者在 await 间隔中不可靠）。
 
 #### 4.2.3 交互物前置解锁
 
@@ -268,6 +322,7 @@ func _trigger_sleep_cycle():
 
 ```
 _trigger_sleep_cycle()
+  ├── InputManager.block_input("睡眠循环", self)   # v0.6.0: 阻断游戏操作
   ├── _freeze_player(true)
   ├── 渐黑动画 1s
   ├── await _show_narrative(sleep_text)
@@ -275,6 +330,7 @@ _trigger_sleep_cycle()
   ├── _freeze_player(true)  （叙事解冻后重新冻结，渐亮期间保持）
   ├── _sleep_fading = true  （防止 _process 误清交互锁）
   ├── 渐亮动画 1s
+  ├── InputManager.unblock_input("睡眠循环")        # v0.6.0: 恢复游戏操作
   └── 回调: _freeze_player(false), _safe_end_interaction(), bed.reset_completed()
 ```
 
@@ -282,21 +338,25 @@ _trigger_sleep_cycle()
 
 ### 4.3 数据流转
 
-#### 4.3.1 完整交互数据流
+#### 4.3.1 完整交互数据流（v0.6.0 更新）
 
 ```
 玩家按 Enter
-  └─▶ Level_01._input(event)
-        ├─ 叙事打开中 → _narrative_enter_pressed = true → return
-        ├─ IDE_CHAT → _render_next_chat_line() → return
-        ├─ 冻结/冷却中 → 防御性自愈检查 → return
-        └─ 常规路径:
-              └─▶ _find_nearby_interactive()
-                    └─ 遍历 _all_interactives: is_active && !completed && is_player_in_range
-              └─▶ EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED, {object_id})
-                    └─▶ _on_object_interacted(data)
-                          └─▶ _run_safely(func(): _fsm.handle_interaction(obj_id))
-                                └─▶ match current_state + obj_id
+  └─▶ InputManager._unhandled_input()
+        ├─ 守卫检查(pass) → _identify_game_action("ui_accept")
+        └─▶ _emit_action("ui_accept", event)
+              └─▶ game_action 信号发射
+                    └─▶ Level_01._on_game_action("ui_accept")
+                          ├─ 叙事打开? → _narrative_enter_pressed = true → return
+                          ├─ IDE_CHAT? → _render_next_chat_line() → return
+                          ├─ 冻结/冷却? → 防御性自愈检查 → return
+                          └─ 常规路径:
+                                └─▶ _find_nearny_interactive() 遍历 _all_interactives
+                                      └─▶ 找到 is_active && !completed && is_player_in_range
+                                └─▶ EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED, {object_id})
+                                      └─▶ Level_01._on_object_interacted(data)
+                                            └─▶ _run_safely(func(): _fsm.handle_interaction(obj_id))
+                                                  └─▶ match current_state + obj_id
 ```
 
 #### 4.3.2 二次幂等性防线
@@ -311,30 +371,38 @@ FSM 入口 obj_ref.completed（第二防线，handle_interaction 顶部检查）
 
 设计师在 FSM 中**必须**先调 `level._mark_interaction_completed(obj_id)` 再做副作用。
 
-### 4.4 SmoothCamera 通用摄像机
+### 4.4 SmoothCamera 通用摄像机（v2.0）
 
-**路径**：`res://PlayerModule/Formal/SmoothCamera.gd` + `SmoothCamera.tscn`
+**路径**：`res://PlayerModule/Formal/SmoothCamera.gd`
+**位置**：作为 Camera2D 子节点预置于每个玩家预制体内
 
-> **v0.3.1 架构变更**：SmoothCamera 从 `LevelModule/Common/` 迁移至 `PlayerModule/Formal/`，并作为 `Player_Warrior.tscn` 的子节点预制。关卡不再创建/升级 Camera2D，只负责通过 `_setup_camera_limits()` 配置 limit 参数。
+**架构变更（v0.5.0）**：
 
-**算法**：死区 + lerp + lookahead 混合
+| 旧架构 | 新架构 |
+|--------|--------|
+| `LevelModule/Common/SmoothCamera.gd` | `PlayerModule/Formal/SmoothCamera.gd` |
+| LevelBase._setup_camera() 动态创建 | 玩家 .tscn 内置, 无需动态创建 |
+| Level_01._setup_smooth_camera() 升级 | Level_01._setup_camera_limits() 只配参数 |
+| MainEntry._spawn_player() 创建裸 Camera2D | 已删除, 预制体自带 |
+| 单一 Player_Warrior 支持 | Warrior/Cyber/Lingnan 三外观均含 |
 
-```
-每帧 _physics_process（与玩家物理帧同步，避免渲染帧/物理帧错位导致颤动）:
-  1. 读取 _target.global_position（玩家）
-  2. 计算 _cam_offset = target_pos - cam_pos
-  3. X 轴 lookahead 决策（不设硬死区）:
-     - 估算玩家水平速度 player_vx = target_pos.x - _last_target_x
-     - 转向检测: player_vx 方向与残留 _lookahead_x 方向相反时立即清零（根除反向颤动）
-     - |player_vx| > 0.1 → 按 sign(vx) * lookahead_offset 平滑插值
-     - player_vx≈0 → lookahead 衰减为 0（lookahead 本身提供软死区效果）
-     - 硬死区会导致玩家反向穿越边界时产生"锁止→猛跳→锁止"振荡，故 X 轴不设死区
-  4. Y 轴死区:
-     - |offset.y| < deadzone → Y 轴不移动（垂直方向保留死区避免上下微抖）
-     - |offset.y| ≥ deadzone → Y 轴跟随（垂直方向不需要 lookahead）
-  5. lerp 插值: new_pos = cam_pos.lerp(target_with_lookahead, clamp(lerp_speed * delta, 0, 1))
-  6. clamp 到 limit 边界（FIXED_CENTER 模式，考虑视口半宽/半高）
-  7. 赋值 camera.global_position
+**算法：Y轴死区 + X轴软死区(lookahead) + lerp插值 + 转向清零防颤**
+
+```gdscript
+每帧 _physics_process:
+  1. 读取 target.global_position, 计算 _cam_offset
+  2. 转向检测: player_vx 与 _lookahead_x 方向相反 → _lookahead_x = 0
+     (防线1: 消除残留值对抗导致的单帧错跟)
+  3. lookahead 计算(仅由 player_vx 控制, 不受 offset 死区约束):
+     - abs(player_vx) > 0.1 → lerp 向目标方向增长
+     - 否则 → lerp 衰减到 0
+     (防线2: 消除 abs(offset)>deadzone 边界穿越导致的开关振荡)
+  4. Y 轴死区: abs(offset.y) < deadzone_size.y → 锁定 cam_pos.y
+     (垂直方向无 lookahead, 保留硬死区防上下微抖)
+  5. X 轴无硬死区: lookahead 本身提供软死区(player_vx≈0 时自然衰减)
+  6. lerp 插值: new_pos = cam_pos.lerp(target_with_lookahead, lerp_speed * delta)
+  7. clamp 到 limit_left/right/top/bottom (DRAG_CENTER 模式公式)
+  8. global_position = new_pos
 ```
 
 **预制体架构**：
@@ -369,13 +437,20 @@ Level_01._on_ready() → _setup_camera_limits()
   → cam.bind_target(player)  ← 立即对齐到玩家位置，避免开局抖动
 ```
 
-> **v0.3.1 修复**：旧架构中 `LevelBase._setup_camera()` 在 `_setup_player()` 之前执行，摄像机挂载位置不一致导致频闪。新架构将摄像机作为玩家预制体子节点，彻底消除时序问题。`LevelBase._setup_camera()` 现为空实现（pass）。
+**颤动根除记录（v0.5.0 迭代过程）**：
+
+| 问题 | 尝试方案 | 结果 | 最终方案 |
+|------|---------|------|---------|
+| 反向移动颤动 | 方案B: 转向清零_lookahead_x | 减轻但未根治 | 保留(防线1) |
+| 反向移动仍颤动 | 方案2: 删除X轴硬死区 | 减轻但未根治 | 保留 |
+| 仍颤动 | 分析发现lookahead开关注册条件含abs(offset)>deadzone | **根因定位** | 删除该条件 |
+| 最终 | lookahead只由player_vx控制, 无任何硬边界切换 | **根治** | 当前实现 |
 
 ---
 
 ## 5. 关卡系统核心接口
 
-### 5.1 `LevelBase` 基类（`res://LevelModule/Formal/LevelBase.gd`）
+### 5.1 `LevelBase` 基类
 
 **继承链**：`Node2D` → `LevelBase` → `Level_01`（子类）
 
@@ -392,16 +467,14 @@ Level_01._on_ready() → _setup_camera_limits()
 ```
 _ready()
 ├── _apply_config()          # 应用 LevelConfig.bg_color
-├── _setup_camera()          # 空实现（pass）— 摄像机由玩家预制体持有
-├── _setup_player()          # 自动 instantiate Player_Warrior.tscn（含 SmoothCamera 子节点）
+├── _setup_camera()          # pass (相机已移交 SmoothCamera, 见 §4.4)
+├── _setup_player()          # 若 player_ref 不存在则实例化 Player_Warrior.tscn
 ├── _setup_enemies()         # 遍历 enemy_spawn_points 调 _spawn_enemy_at()
 ├── _setup_triggers()        # 虚函数
 ├── GameManager.current_level = self
 ├── EventBus.emit(LEVEL_LOADED, {"level": self})
 └── _on_ready()              # 【子类入口】必须先 super._on_ready()
 ```
-
-> **v0.3.1 变更**：`_setup_camera()` 不再创建 Camera2D。摄像机作为 `Player_Warrior.tscn` 的子节点（`SmoothCamera.tscn` 实例）随玩家实例化。子类通过 `_setup_camera_limits()` 配置 limit 参数即可。
 
 **子类公共方法**（开箱即用）：
 
@@ -414,11 +487,11 @@ create_wall(pos: Vector2, size: Vector2, color: Color = gray) -> StaticBody2D
 # 2. 敌人实例化
 spawn_enemy(enemy_scene_path: String, spawn_pos: Vector2) -> Node2D
 
-# 3. 子类工具（建议复用 Level_01.gd 的私有方法实现）
+# 3. 子类工具
 get_or_create_child(node_name, type) -> Node
 create_static_body(name, pos, size, color) -> StaticBody2D
 create_interactive(name, obj_id, pos, size) -> InteractiveObject
-add_physics_blocker(parent, size) -> void   # 在 InteractiveObject 上挂不可见碰撞体
+add_physics_blocker(parent, size) -> void
 ```
 
 **虚函数（子类重写点）**：
@@ -429,9 +502,7 @@ _spawn_enemy_at(spawn_point) -> Node2D  # 标记点系统（当前未用，Level
 _setup_triggers()                   # 触发器（当前未用）
 ```
 
----
-
-### 5.2 `LevelConfig` 资源（关卡数值）
+### 5.2 `LevelConfig` 资源
 
 ```gdscript
 class_name LevelConfig extends Resource
@@ -452,7 +523,7 @@ class_name LevelConfig extends Resource
 @export var spawn_point: Vector2 = Vector2(100, 500)
 ```
 
-### 5.3 `Level01Data` 资源（叙事文案）
+### 5.3 `Level01Data` 资源
 
 ```gdscript
 class_name Level01Data extends Resource
@@ -526,7 +597,26 @@ signal player_entered
 signal player_exited
 ```
 
-> **关键设计**：交互物**不**自己处理 `ui_accept` 输入。`_input` 由 `Level_01` 统一捕获后通过 `EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED, {object_id})` 派发到 FSM。这一设计解决了"动态 `_ready` 创建的节点 `_input()` 不可靠"的问题。
+### 6.6 输入处理设计（v0.5.0 变更）
+
+```
+旧架构(v0.4.0及之前):
+  InteractiveObject._process() 检测 ui_accept → emit("interactive_object_triggered")
+  Level_01._input() 也检测 ui_accept → emit("interactive_object_triggered")
+  → 双重触发!
+
+新架构(v0.5.0+):
+  InteractiveObject._process(): 不再检测 ui_accept, 仅负责视觉提示和范围检测
+  Level_01._input(): 统一检测 ui_accept → _find_nearby_interactive() → emit
+  → 单一触发路径, 幂等性有保障
+
+v0.6.0 进一步演化:
+  Level_01._input() 不再直接轮询 ui_accept
+  改为 InputManager.game_action("ui_accept") 信号回调到 Level_01._on_game_action()
+  → 信号统一入口, block/unblock 可控
+```
+
+> **关键设计**：交互物**不**自己处理 `ui_accept` 输入。输入由 InputManager 统一分发 → Level_01 处理 → EventBus 派发到 FSM。这一设计解决了"动态 `_ready` 创建的节点 `_input()` 不可靠"的问题。
 
 ---
 
@@ -536,7 +626,7 @@ signal player_exited
 
 | 文件 | 职责 | 行数参考 |
 |---|---|---|
-| `Level_01.gd` | 主控/状态调度/输入/玩家控制/叙事编排/Glitch 终局 | ~670 |
+| `Level_01.gd` | 主控/状态调度/输入/玩家控制/叙事编排/Glitch 终局/InputManager联动 | ~700 |
 | `Level_01_SceneBuilder.gd` | 地形 + 交互物 + 出生点 + Canvas UI 挂载 | ~84 |
 | `Level_01_FSM.gd` | 7 态叙事状态机 + 交互处理 | ~118 |
 | `Level_01_UIBuilder.gd` | SleepOverlay / NarrativePanel / IdeUI / GlitchOverlay | ~205 |
@@ -553,8 +643,8 @@ enum LevelState {
     BEDROOM,            # 卧室：床（多次睡眠循环）+ 电脑（需前置解锁）
     IDE_CHAT,           # AI IDE 对话
     IDE_PREVIEW,        # SubViewport 预览 → 触发崩溃
-    PHONE_RINGING,       # 手机震动 + 接听
-    GLITCH_TRANSIT       # 终局：glitch 着色器 → emit LEVEL_COMPLETE
+    PHONE_RINGING,      # 手机震动 + 接听
+    GLITCH_TRANSIT      # 终局：glitch 着色器 → emit LEVEL_COMPLETE
 }
 ```
 
@@ -583,7 +673,7 @@ enum LevelState {
    GLITCH_TRANSIT ── 交互 bed ──▶ 终局链 → emit LEVEL_COMPLETE
 ```
 
-### 7.3 入口初始化（`Level_01._on_ready`）
+### 7.3 入口初始化（`Level_01._on_ready`，v0.6.0 更新）
 
 ```gdscript
 func _on_ready() -> void:
@@ -604,6 +694,7 @@ func _on_ready() -> void:
 
     _cache_ui_refs()              # 把 UI 子节点缓存到私有字段
     _restrict_player_mechanics()  # 关卡禁用跳跃/攻击/冲刺（叙事期）
+    _restore_player_mechanics()   # 立即恢复（can_* 开关交由 InputManager.block 控制）
 
     # 初始化交互物统一列表（SceneBuilder 已设置 is_active 初始值）
     _all_interactives = [_obstacle_box, _obstacle_clothes, _bed_node,
@@ -615,7 +706,20 @@ func _on_ready() -> void:
     set_process(true)             # 启用 _process：冷却递减 + 交互物轮询
 ```
 
-### 7.4 SceneBuilder 调用顺序
+### 7.4 InputManager block/unblock 联动表（v0.6.0）
+
+Level_01 中所有叙事/对话/状态切换点的 block/unblock 配对：
+
+| 状态切换 | block 原因 | unblock 原因 | 触发位置 |
+|---------|-----------|-------------|---------|
+| 进入叙事面板 | `"叙事面板"` | `"叙事面板"` | `_show_narrative()` 进/出 |
+| 进入睡眠循环 | `"睡眠循环"` | `"睡眠循环"` | `_trigger_sleep_cycle()` 进/两条退出路径 |
+| 进入 IDE 对话 | `"IDE对话"` | `"IDE对话"` | `_enter_ide_mode()` / `_on_preview_crashed()` |
+| 进入终局叙事 | `"终局叙事"` | `"终局叙事"` | `_trigger_climax_transition()` / GLITCH_TRANSIT |
+| 进入终局转场 | `"终局转场"` | *(永不解除)* | `_on_final_bed_trigger()` |
+| 防御性解除 | — | `"终局转场"` | `_emit_level_complete()` |
+
+### 7.5 SceneBuilder 调用顺序
 
 ```
 build_all()
@@ -625,7 +729,7 @@ build_all()
 └── _build_canvas_ui()      # CanvasLayerUI (layer=2) → UIBuilder.build_all()
 ```
 
-### 7.5 关卡 1 当前地图参数
+### 7.6 关卡 1 当前地图参数
 
 **地图尺寸**：1920×720（1.5 屏）
 
@@ -637,8 +741,6 @@ build_all()
 | camera_limit_right | 1920 |
 | camera_limit_top | -500 |
 | camera_limit_bottom | 1200 |
-
-> **v0.3.1 变更**：camera_limit_top 从 -100 调整为 -500，camera_limit_bottom 从 750 调整为 1200，以适配更大的垂直活动空间。
 
 | 元素 | 坐标 | 尺寸 | 所属区域 |
 |------|------|------|----------|
@@ -653,7 +755,7 @@ build_all()
 | Phone | (1660, 580) | 50×40 | 卧室 |
 | Bed | (1830, 570) | 160×60 | 卧室 |
 
-### 7.6 UIBuilder 生成的 Canvas 节点树
+### 7.7 UIBuilder 生成的 Canvas 节点树
 
 ```
 CanvasLayerUI (CanvasLayer, layer=2, PROCESS_MODE_ALWAYS)
@@ -671,28 +773,31 @@ CanvasLayerUI (CanvasLayer, layer=2, PROCESS_MODE_ALWAYS)
 └── GlitchOverlay       (ColorRect + ShaderMaterial)
 ```
 
-### 7.7 玩家控制工具
+### 7.8 玩家控制工具
 
 ```gdscript
 _restrict_player_mechanics()    # 关卡禁用 can_jump/dash/attack/skill
-_restore_player_mechanics()     # 恢复
+_restore_player_mechanics()     # 恢复 can_* 开关
 _freeze_player(true|false)      # 物理冻结 + 输入冻结 + 切到 IDLE + 同步交互物 monitoring
 ```
 
-### 7.8 关键流程 API
+> **v0.6.0 设计决策**：`_restrict_player_mechanics()` + `_restore_player_mechanics()` 在 `_on_ready()` 中成对调用，不再长期锁定 can_* 开关。实际的输入阻断由 `InputManager.block_input()` 在各叙事状态切换点动态控制。
+
+### 7.9 关键流程 API
 
 | API | 触发 | 用途 |
 |---|---|---|
 | `_setup_camera_limits()` | `_on_ready` | 查找玩家子节点 SmoothCamera，配置 limit 参数 + bind_target |
-| `_show_narrative(text)` | 任意叙事 | 弹出 NarrativePanel → 等待 Enter → 关闭 |
-| `_trigger_sleep_cycle()` | 床 | 渐黑 + 叙事 + 渐亮 + 解锁检测 |
+| `_show_narrative(text)` | 任意叙事 | 弹出 NarrativePanel → 等待 Enter → 关闭（含 block/unblock 联动） |
+| `_trigger_sleep_cycle()` | 床 | 渐黑 + 叙事 + 渐亮 + 解锁检测（含 block/unblock 联动） |
 | `_try_unlock_computer()` | 睡眠后 | sleep_count≥4 时解锁电脑 |
-| `_enter_ide_mode()` | 电脑 | 显示 IdeUI + 逐行渲染对话 |
-| `_start_ide_viewport_preview()` | 对话结束 | SubViewport 加载 MiniTestWorld.tscn |
-| `_on_preview_crashed()` | TestRunner 出界/超时 | 崩溃信息 + 启用手机 + 震动 |
+| `_enter_ide_mode()` | 电脑 | 显示 IdeUI + 逐行渲染对话（含 block 联动） |
+| `_start_ide_viewport_preview()` | 对话结束 | SubViewport 加载 MiniTestWorld.tscn（继承 IDE_CHAT 的 block） |
+| `_on_preview_crashed()` | TestRunner 出界/超时 | 崩溃信息 + 启用手机 + 震动（含 unblock 联动） |
 | `_start_phone_vibration()` | 终局前置 | 循环 Tween 让手机左右抖动 |
-| `_trigger_climax_transition()` | 手机 | 来电消息 + 独白 + glitch 渐强 |
+| `_trigger_climax_transition()` | 手机 | 来电消息 + 独白 + glitch 渐强（含 block/unblock 联动） |
 | `_start_glitch_shader_effect()` | 终局 | 2s 内 intensity 0→1 → emit LEVEL_COMPLETE |
+| `_emit_level_complete()` | 终局 | 防御性 unblock + LEVEL_COMPLETE 事件 |
 
 ---
 
@@ -717,7 +822,29 @@ player.can_attack = false
 player.can_skill = false
 ```
 
-> Level_01 全程禁用战斗，叙事结束后通常不再恢复。
+**v0.6.0 输入架构变更**：
+
+```
+旧架构:
+  PlayerBase._handle_input():
+    └─ _input_attack_just_pressed()  → 直接轮询 Input.is_action_just_pressed("player_attack")
+    └─ _input_dash_just_pressed()    → 直接轮询
+    └─ _input_skill_just_pressed()   → 直接轮询
+
+新架构(v0.6.0):
+  PlayerBase._ready():
+    └─ InputManager.game_action.connect(_on_game_action)  ← 订阅信号
+  PlayerBase._handle_input():
+    └─ pass  ← 攻击/冲刺/技能全部清空
+  PlayerBase._on_game_action(action, event):
+    └─ match action:
+         &"player_attack" → perform_attack()
+         &"player_dash"   → perform_dash()
+         &"player_skill"  → perform_skill()
+  # jump 和 direction 仍保留轮询（需连续状态/向量值）
+```
+
+> Level_01 全程禁用战斗，叙事结束后通常不再恢复。战斗能力由 InputManager.block_input() 在需要时阻断。
 
 ---
 
@@ -778,12 +905,14 @@ enemy.config: EnemyConfig
 ```
 关卡:        res://LevelModule/Formal/Level_01.tscn
 玩家:        res://PlayerModule/Formal/Player_Warrior.tscn
+赛博皮肤:     res://PlayerModule/Formal/Player_Warrior_Cyber.tscn
+岭南皮肤:     res://PlayerModule/Formal/Player_Warrior_Lingnan.tscn
 敌人:        res://EnemyModule/Formal/Enemy_Slime.tscn
-HUD:        res://UI/HUD.tscn
+HUD:         res://UI/HUD.tscn
 入口:        res://Global/MainEntry.tscn
-自测关卡:    res://LevelModule/SelfTest/LevelTest.tscn
-预览世界:    res://LevelModule/SelfTest/MiniTestWorld.tscn
-测试角色:    res://LevelModule/SelfTest/TestRunnerCharacter.tscn
+自测关卡:     res://LevelModule/SelfTest/LevelTest.tscn
+预览世界:     res://LevelModule/SelfTest/MiniTestWorld.tscn
+测试角色:     res://LevelModule/SelfTest/TestRunnerCharacter.tscn
 
 关卡配置:    res://DataConfig/Level/Level01Config.tres
 关卡叙事:    res://DataConfig/Level/Level01Data.tres
@@ -793,7 +922,8 @@ HUD:        res://UI/HUD.tscn
 
 交互物:      res://LevelModule/Formal/InteractiveObject.gd
 摄像机:      res://PlayerModule/Formal/SmoothCamera.gd + .tscn（玩家预制体子节点）
-Shader:     res://LevelModule/Formal/glitch_effect.gdshader
+Shader:      res://LevelModule/Formal/glitch_effect.gdshader
+输入管理:    res://Global/InputManager.gd  ★ v0.6.0 新增
 ```
 
 ### 12.2 美术资产（已导入但未全部使用）
@@ -805,21 +935,24 @@ Shader:     res://LevelModule/Formal/glitch_effect.gdshader
 
 ## 13. 数据流转机制（核心）
 
-### 13.1 玩家按下 Enter 触发交互的完整数据流
+### 13.1 玩家按下 Enter 触发交互的完整数据流（v0.6.0）
 
 ```
 玩家按 Enter
-  └─▶ Level_01._input(event)
-        ├─ 叙事打开? → _narrative_enter_pressed = true → return
-        ├─ IDE_CHAT? → _render_next_chat_line() → return
-        ├─ 冻结/冷却? → 防御性自愈检查 → return
-        └─ 常规路径:
-              └─▶ _find_nearby_interactive() 遍历 _all_interactives
-                    └─▶ 找到 is_active && !completed && is_player_in_range
-              └─▶ EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED, {object_id})
-                    └─▶ Level_01._on_object_interacted(data)
-                          └─▶ _run_safely(func(): _fsm.handle_interaction(obj_id))
-                                └─▶ match current_state + obj_id
+  └─▶ InputManager._unhandled_input()
+        └─▶ _identify_game_action("ui_accept") → _emit_action()
+              └─▶ game_action 信号发射
+                    └─▶ Level_01._on_game_action("ui_accept")
+                          ├─ 叙事打开? → _narrative_enter_pressed = true → return
+                          ├─ IDE_CHAT? → _render_next_chat_line() → return
+                          ├─ 冻结/冷却? → 防御性自愈检查 → return
+                          └─ 常规路径:
+                                └─▶ _find_nearby_interactive() 遍历 _all_interactives
+                                      └─▶ 找到 is_active && !completed && is_player_in_range
+                                └─▶ EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED, {object_id})
+                                      └─▶ Level_01._on_object_interacted(data)
+                                            └─▶ _run_safely(func(): _fsm.handle_interaction(obj_id))
+                                                  └─▶ match current_state + obj_id
 ```
 
 ### 13.2 二次幂等性防线
@@ -851,8 +984,8 @@ _handle_bed():
 ```
 LevelBase (基类)
   ├── _apply_config       → LevelConfig
-  ├── _setup_camera       → GameManager.player_ref
-  ├── _setup_player       → Player_Warrior.tscn
+  ├── _setup_camera       → pass（SmoothCamera 已内置于玩家预制体）
+  ├── _setup_player       → Player_Warrior.tscn（含 InputManager 信号订阅）
   ├── _setup_enemies      → InteractiveObject / Enemy_*.tscn
   └── EventBus  ←→ 全局
 
@@ -864,13 +997,21 @@ Level_01 (子类)
   │     ├── _setup_camera_limits → Player_Warrior.SmoothCamera (配置 limit)
   │     ├── _all_interactives 初始化
   │     ├── EventBus.subscribe(INTERACTIVE_OBJECT_TRIGGERED)
-  │     └── Level_01_FSM.new(self)
-  ├── _input
-  │     └── EventBus.emit(INTERACTIVE_OBJECT_TRIGGERED)
+  │     ├── Level_01_FSM.new(self)
+  │     └── InputManager block/unblock 联动点注册
+  ├── _on_game_action  ★ v0.6.0: 替代 _input 中的 ui_accept 处理
+  │     └── InputManager.game_action 回调
   ├── _show_narrative / _trigger_sleep_cycle / _enter_ide_mode
   │     └── Level01Data (文案)
+  │     └── InputManager.block/unblock 配对调用
   └── _start_glitch_shader_effect
         └── EventBus.emit(LEVEL_COMPLETE)
+
+PlayerBase (玩家基类)  ★ v0.6.0: 输入架构迁移
+  ├── _ready: InputManager.game_action.connect(_on_game_action)
+  ├── _handle_input: pass（攻击/冲刺/技能清空，jump/direction 保留轮询）
+  └── _on_game_action(action, event):
+        └─ match action → perform_attack / dash / skill
 
 SmoothCamera (玩家子组件)
   ├── extends Camera2D (Player_Warrior.tscn 子节点预制)
@@ -882,7 +1023,13 @@ SmoothCamera (玩家子组件)
 InteractiveObject
   ├── Area2D + body_entered/exited + check_player_in_range(轮询)
   ├── 渲染提示 Label
-  └── 与 Level_01._input 解耦（设计关键点）
+  └── 与 Level_01._on_game_action 解耦（设计关键点）
+
+InputManager (Autoload)  ★ v0.6.0 新增
+  ├── _unhandled_input: ESC独占 + 守卫检查 + 动作识别
+  ├── game_action 信号: attack/dash/skill/accept 分发
+  ├── block/unblock API: 外部可控输入屏蔽
+  └── 订阅者: PlayerBase, Level_01
 
 FSM
   ├── 引用 level（Level_01）
@@ -904,7 +1051,8 @@ FSM
 | 5 | 在 FSM 中定义状态枚举 + 交互分支 | 状态逻辑 |
 | 6 | 在 `_on_ready` 末尾初始化 `_all_interactives` | 交互物管理 |
 | 7 | 注册到 `MainEntry._load_formal_level()` | 入口集成 |
-| 8 | 创建自测场景并验证 | 质量保证 |
+| 8 | 在各叙事切换点添加 `InputManager.block/unblock` 配对 | 输入联动 (v0.6.0) |
+| 9 | 创建自测场景并验证 | 质量保证 |
 
 ### 15.2 命名规则
 
@@ -937,6 +1085,7 @@ FSM
 | 事件名常量化 | 必须用 `GlobalDefine.EventName.*`，禁止字符串字面量 |
 | `.uid` 同步 | 修改 `.gd` 文件后，检查 `.tscn` 中的 UID 引用是否与 `.uid` 文件一致 |
 | 通用模块复用 | `SmoothCamera.gd/.tscn` / `InteractiveObject.gd` 不复制，直接引用原路径 |
+| 输入归 InputManager | 新模块不直接轮询 attack/dash/skill，改订 `game_action` 信号 (v0.6.0) |
 
 ### 15.4 性能指标要求
 
@@ -964,6 +1113,8 @@ FSM
 | 事件清理 | 关卡结束时 `EventBus.unsubscribe_all(self)` 已调用 |
 | 交互锁自愈 | `_is_interacting` 在异常情况下被 `_process` 防御性清理 |
 | Linter 零警告 | 无 SHADOWED_VARIABLE / UNUSED_PARAMETER 等警告 |
+| **输入阻断 (v0.6.0)** | 叙事/对话/睡眠期间 attack/dash/skill 被阻断；退出后恢复 |
+| **ESC 独占 (v0.6.0)** | 即使在 block 状态下 ESC 仍能正常暂停/恢复游戏 |
 
 ---
 
@@ -1040,13 +1191,19 @@ match level.current_state:
 level._show_narrative("……这里是新关卡的起点。", func():
     print("玩家已读序章")
 )
+# _show_narrative 内部会自动处理 InputManager.block/unblock
 ```
 
 ### 17.4 让玩家失去能力（叙事期常见）
 
 ```gdscript
-# 进入卧室时禁用跳跃
+# 方式1: can_* 开关（不影响 InputManager 信号接收，但 perform_* 内部检查）
 level._restrict_player_mechanics()  # 同时禁 jump/dash/attack/skill
+
+# 方式2: InputManager block（推荐，v0.6.0，从信号源头阻断）
+InputManager.block_input("叙事期禁战", self)
+# ... 叙事结束 ...
+InputManager.unblock_input("叙事期禁战")
 ```
 
 ### 17.5 设置前置解锁条件
@@ -1095,6 +1252,30 @@ func _on_enemy_died(data: Dictionary) -> void:
         )
 ```
 
+### 17.9 在新模块中接入 InputManager（v0.6.0）
+
+```gdscript
+# 订阅游戏操作信号
+func _ready() -> void:
+    if not Engine.is_editor_hint():
+        InputManager.game_action.connect(_on_game_action)
+
+func _on_game_action(action: StringName, _event: InputEvent) -> void:
+    match action:
+        &"player_attack":
+            handle_attack()
+        &"player_dash":
+            handle_dash()
+        # ...
+
+# 临时阻断输入（如过场动画）
+func play_cutscene() -> void:
+    InputManager.block_input("过场动画", self)
+    # ... 动画播放 ...
+    await animation_finished
+    InputManager.unblock_input("过场动画")
+```
+
 ---
 
 ## 18. 功能边界与已知限制
@@ -1103,12 +1284,14 @@ func _on_enemy_died(data: Dictionary) -> void:
 
 - 7 态叙事状态机（LIVING_ROOM → GLITCH_TRANSIT）
 - InteractiveObject 交互物系统（带幂等性 + 重复交互 + 前置解锁）
-- SmoothCamera 通用摄像机（死区 + lerp + lookahead，玩家预制体子组件）
+- **SmoothCamera v2.0**（转向清零 + lookahead无硬边界 + Y轴死区 + 三外观预制体内置）
 - Canvas UI 纯代码构建（Narrative / Sleep / IDE / Glitch）
 - SubViewport 嵌入预览世界并跨场景通信（`prototype_crashed` 信号）
 - Glitch 终局着色器（色相分离 + 噪声 + 渐强）
 - EventBus 事件驱动通信（自动清理失效订阅）
 - 双运行模式（FORMAL / SELF_TEST）
+- **三外观支持**（Warrior / Cyber / Lingnan 均含 SmoothCamera）
+- **InputManager 统一输入管理**（信号分发 + block/unblock + ESC独占）★ v0.6.0
 - LevelConfig（数值）与 LevelData（叙事）分离
 - `_all_interactives` 统一管理（消除硬编码重复）
 
@@ -1118,14 +1301,25 @@ func _on_enemy_died(data: Dictionary) -> void:
 |---|---|---|
 | 多关卡切换 | `LEVEL_COMPLETE` 已 emit + 含 `next_level` | 在 `MainEntry` 监听并 `change_scene_to_file()` |
 | 玩家重生 | `LevelConfig.spawn_point` 已定义 | `Player_Base` 需要 `respawn()` |
-| 敌人标记点 | `enemy_spawn_points` 字段已存在 | 当前 `_spawn_enemy_at()` 返回 null |
-| 触发器/门/传送 | `_setup_triggers()` 虚函数 | 建议用 Area2D + `body_entered` |
-| 防御/Mana/经验/掉落 | 字段存在 | `Player_Base` 需扩展 |
+| **外观选择系统** | Cyber/Lingnan 预制体已就绪, SmoothCamera 已内置 | `MainEntry._spawn_player()` 需读取选中皮肤路径 |
 | BGM | 字段为 null | 接 `.ogg` 资源并 AudioStreamPlayer |
 | 伤害数字飘屏 | 无 | 需在 `PlayerBase` 攻击反馈里加 |
 | 环境声效交叉渐变 | `_fade_ambient_audio()` 占位接口 | 接入 AudioStreamPlayer 列表 |
 
-### 18.3 已知技术限制
+### 18.3 已解决的技术债务
+
+| 债务 | 严重度 | 解决方案 | 版本 |
+|------|--------|---------|------|
+| 相机6处重复创建互相冲突 | 高危 | 统一为预制体内置 SmoothCamera, 删除 MainEntry/LevelBase 动态创建 | v0.5.0 |
+| EventBus tree_exited只清单个事件 | 高危 | 改为 unsubscribe_all(node) 全量清理 | v0.5.0 |
+| 交互输入三路重复触发 | 高危 | InteractiveObject._process() 移除 Enter 检测, 统一收归 Level_01 | v0.5.0 |
+| MainEntry与Level双重加载/HUD | 高危 | 正式路径 return 不加载 HUD, 由关卡自行管理 | v0.5.0 |
+| 摄像机limit默认值短路 | 中危 | _ready() 安全默认值兜底 | v0.5.0 |
+| **反向移动相机颤动** | **严重** | 三道防线: 转向清零 + lookahead去硬边界 + X轴去死区 | v0.5.0 |
+| **输入分散轮询难维护** | 中危 | InputManager 统一信号分发, block/unblock 联动 | v0.6.0 |
+| **叙事期无法可靠阻断攻击** | 中危 | 7个状态切换点全量接入 block/unblock 配对 | v0.6.0 |
+
+### 18.4 已知技术限制
 
 - 敌人数量 > 50 时 `Player_Base._check_enemy_contact()` 可能掉帧（O(n) 每帧 Rect2）
 - 地形只支持矩形，斜面/曲线需要自写多边形 CollisionShape
@@ -1139,59 +1333,68 @@ func _on_enemy_died(data: Dictionary) -> void:
 ```
 项目根目录
 ├── project.godot                       # 引擎配置
-├── TECHNICAL_ARCHITECTURE_REPORT.md    # 本文档
-├── Global/                              # 3 个 Autoload + MainEntry
+├── TECHNICAL_ARCHITECTURE_REPORT.md    # 本文档 (v0.6.0)
+├── Global/
 │   ├── GlobalDefine.gd                  # 枚举 + Collision + EventName 常量
-│   ├── EventBus.gd                      # 跨模块事件总线
+│   ├── EventBus.gd                      # 跨模块事件总线 (v0.5.0: 全量tree_exited)
 │   ├── GameManager.gd                   # player_ref / enemy_list / 状态
-│   └── MainEntry.gd / .tscn             # 正式入口
+│   ├── InputManager.gd                  # ★ 统一输入管理 (v0.6.0: 信号分发/block联动)
+│   └── MainEntry.gd / .tscn             # 正式入口 (v0.5.0: 不创建Camera/HUD)
 ├── Tools/
 │   └── DamageCalculator.gd              # 静态伤害计算
 ├── UI/
-│   ├── TitleScreen.gd / .tscn           # 主菜单
+│   ├── TitleScreen.gd / .tscn           # 主菜单（含自测按钮入口）
 │   └── HUD.gd / .tscn                   # HUD
 ├── DataConfig/
 │   ├── Player/ WarriorConfig (.gd/.tres)
 │   ├── Enemy/  SlimeConfig   (.gd/.tres)
 │   ├── Skill/  SlashConfig   (.gd/.tres)
 │   └── Level/
-│       ├── LevelConfig.gd               # 关卡数值基类
-│       ├── Level01Config.tres
-│       ├── Level01Data.gd               # 关卡叙事基类
-│       └── Level01Data.tres
+│       ├── LevelConfig.gd / Level01Config.tres
+│       └── Level01Data.gd / Level01Data.tres
 ├── PlayerModule/
-│   ├── Formal/ PlayerBase.gd + Player_Warrior.gd/.tscn
-│   │            SmoothCamera.gd + SmoothCamera.tscn  # 摄像机（玩家子组件）
-│   └── SelfTest/ PlayerTest.gd/.tscn
+│   ├── Formal/
+│   │   ├── PlayerBase.gd                # 玩家基类 (v0.6.0: game_action 信号驱动)
+│   │   ├── Player_Warrior.gd / .tscn    # 战士 (+ SmoothCamera 子节点)
+│   │   ├── Player_Warrior_Cyber.gd / .tscn  # 赛博皮肤 (+ SmoothCamera)
+│   │   ├── Player_Warrior_Lingnan.gd / .tscn # 岭南皮肤 (+ SmoothCamera)
+│   │   └── SmoothCamera.gd / .tscn      # 平滑跟随摄像机 v2.0
+│   └── SelfTest/
+│       └── PlayerTest.gd / .tscn        # 玩家模块自测
 ├── EnemyModule/
-│   ├── Formal/ EnemyBase.gd + Enemy_Slime.gd/.tscn
-│   └── SelfTest/ EnemyTest.gd/.tscn
+│   ├── Formal/
+│   │   └── EnemyBase.gd + Enemy_Slime.gd/.tscn
+│   └── SelfTest/
+│       └── EnemyTest.gd / .tscn        # 敌人模块自测
 ├── LevelModule/
 │   ├── Formal/
-│   │   ├── LevelBase.gd                 # 关卡基类（核心 API）
-│   │   ├── InteractiveObject.gd         # 交互物基类（核心 API）
+│   │   ├── LevelBase.gd                 # 关卡基类 (_setup_camera=pass)
+│   │   ├── InteractiveObject.gd         # 交互物基类 (无Enter检测)
 │   │   ├── glitch_effect.gdshader       # 终局着色器
-│   │   ├── Level_01.gd                  # 关卡主控
-│   │   ├── Level_01_SceneBuilder.gd     # 场景构建器
-│   │   ├── Level_01_FSM.gd              # 状态机
-│   │   ├── Level_01_UIBuilder.gd        # UI 构建器
-│   │   └── Level_01.tscn                # 关卡场景（最小化）
+│   │   ├── Level_01.gd / .tscn          # 关卡主控 (v0.6.0: block_input 全联动)
+│   │   ├── Level_01_SceneBuilder.gd
+│   │   ├── Level_01_FSM.gd
+│   │   └── Level_01_UIBuilder.gd
 │   ├── Common/
 │   ├── SelfTest/
-│   │   ├── LevelTest.gd/.tscn
-│   │   ├── MiniTestWorld.gd/.tscn       # IDE 预览世界
-│   │   └── TestRunnerCharacter.gd/.tscn
-│   └── Background images/               # 4 张 JPG
-└── Assets/Sprites/                      # 玩家动画 6 张 PNG
+│   │   ├── LevelTest.gd / .tscn         # 关卡模块自测
+│   │   ├── MiniTestWorld.gd / .tscn     # IDE 预览微型世界（生产依赖）
+│   │   └── TestRunnerCharacter.gd/.tscn # 测试角色（生产依赖）
+│   └── Background images/               # JPG 背景
+└── Assets/Sprites/                      # 玩家动画 PNG
 ```
 
 ---
 
-**此报告已同步叙事驱动关卡架构（v0.3.1）。关卡设计时请严格遵循：**
+**此报告已同步至 v0.6.0（InputManager 全面接管 + 叙事联动 + 测试日志清理 + 文档合并）。关卡设计时请严格遵循：**
+
 1. **代码构建**地形/UI，不在 `.tscn` 拖拽
 2. **`.tres` 编辑**文案与数值，不改 `.gd` 写死字符串
 3. **事件总线**做跨模块通信，禁止 `get_node()` 跨层
 4. **碰撞层常量** `GlobalDefine.Collision.*`，禁止硬编码数字
 5. **新关卡 = 4 文件**（主控/SceneBuilder/FSM/UIBuilder）+ 2 资源（Config/Data）+ 1 场景
 6. **前置解锁**通过 `is_active` + 主控布尔判定，不硬编码在 FSM
-7. **交互物统一管理**通过 `_all_interactives` 数组，新增/移除交互物只改一处
+7. **交互物统一管理**通过 `_all_interactives` 数组
+8. **摄像机归玩家**: SmoothCamera 预置于玩家预制体, 不由关卡/入口创建
+9. **交互输入统一**: 只有 Level_01._on_game_action() 检测 Enter, 交互物只管视觉提示
+10. **输入归 InputManager**: attack/dash/skill/accept 走信号分发, 叙事期用 block/unblock 控制

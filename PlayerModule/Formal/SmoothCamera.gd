@@ -1,11 +1,22 @@
 # ============================================================
-# SmoothCamera.gd - 通用平滑跟随摄像机
-# 死区 + lerp + lookahead 混合算法
-# - 在死区内摄像机静止（避免抖动）
-# - 超出死区时按 lerp_speed 插值
-# - 按玩家水平运动方向预先偏移（lookahead）
-# - 位置 clamp 到 limit_left/right/top/bottom 范围
-# 适用于横版卷轴/类超级马里奥/空洞骑士风格的关卡
+# SmoothCamera.gd - 通用平滑跟随摄像机（v2.0）
+# 算法: Y轴死区 + X轴软死区(lookahead) + lerp插值 + 转向清零防颤
+#
+# 架构设计:
+#   - 本脚本作为 Camera2D 子节点预置于 Player_Warrior/Cyber/Lingnan 预制体中
+#   - _ready() 自动绑定目标(owner → GameManager.player_ref), 无需外部调用
+#   - set_as_top_level(true) 脱离父节点 transform 干扰
+#   - _physics_process 与 CharacterBody2D 物理帧同步, 避免渲染/物理错位
+#
+# 核心算法 (3道防线):
+#   1. 转向清零(第104-110行): player_vx反向时立即归零_lookahead_x,
+#      消除残留值与新方向对抗导致的单帧错跟
+#   2. lookahead只由速度控制(第112-120行): 删除abs(offset)>deadzone硬边界,
+#      避免 offset 反复穿越边界导致 lookahead 开关振荡
+#   3. Y轴保留硬死区(第122-124行): 垂直方向无 lookahead, 需要硬死区防抖
+#
+# 适用: 横版卷轴/类超级马里奥/空洞骑士风格的关卡
+# 路径: res://PlayerModule/Formal/SmoothCamera.gd (从 LevelModule/Common 迁移)
 # ============================================================
 extends Camera2D
 class_name SmoothCamera

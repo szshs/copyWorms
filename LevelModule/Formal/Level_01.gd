@@ -86,6 +86,8 @@ func _on_ready() -> void:
 
 	_cache_ui_refs()
 	_restrict_player_mechanics()
+	# 立即恢复：LIVING_ROOM 是正常探索状态，玩家需要完整操作能力
+	_restore_player_mechanics()
 	# 初始化交互物统一列表（SceneBuilder 已设置 phone/computer 的 is_active=false）
 	_all_interactives = [_obstacle_box, _obstacle_clothes, _bed_node, _computer_node, _phone_node, _notice_node, _thermos_node]
 	# 修正: 使用 GlobalDefine 常量替代硬编码字符串（B5 修复）
@@ -95,10 +97,24 @@ func _on_ready() -> void:
 	# 验证玩家 collision_layer（B8 修复）— 若玩家在 PLAYER 层缺失则修正
 	_ensure_player_collision_layer()
 
-	# 启用 _process：用于冷却递减 + 交互物轮询兜底（原本只在 IDE preview 阶段才启用）
+	InputManager.game_action.connect(_on_game_action)
+
+	# 加载 HUD（血条/状态/暂停面板）
+	_load_hud()
+
 	set_process(true)
 
 	print("[Level_01] 初始化完成 — 当前: LIVING_ROOM")
+
+
+func _load_hud() -> void:
+	var hud_path = "res://UI/HUD.tscn"
+	if ResourceLoader.exists(hud_path):
+		var hud = load(hud_path).instantiate()
+		add_child(hud)
+		print("[Level_01] HUD 加载成功")
+	else:
+		push_warning("[Level_01] HUD.tscn 未找到，跳过")
 
 
 # ---- 错误边界 ----
@@ -275,9 +291,31 @@ func _freeze_player(freeze: bool) -> void:
 
 ## 输入分发器：所有键盘事件统一入口
 ## 修复点：
-##   - 移除"先检查 _is_interacting 再分发"导致的"一旦陷入就死锁"问题
-##   - 改为各分支自治：IDE_CHAT/睡眠/叙事/终局 各自处理 Enter
-##   - 增加早退守卫（IDE_PREVIEW 期间冻结玩家）但 _is_interacting 不污染常规路径
+func _on_game_action(action: StringName, _event: InputEvent) -> void:
+	if action != &"ui_accept":
+		return
+	_handle_accept_input()
+
+func _handle_accept_input() -> void:
+	if current_state == LevelState.IDE_CHAT:
+		_render_next_chat_line()
+		return
+	if _narrative_open:
+		_narrative_enter_pressed = true
+		return
+	if _is_interacting or _interact_cooldown > 0.0:
+		if current_state != LevelState.IDE_PREVIEW and current_state != LevelState.IDE_CHAT:
+			if _interact_cooldown > 0.5:
+				_safe_end_interaction()
+		return
+	var obj = _find_nearby_interactive()
+	if obj:
+		_interact_cooldown = 0.3
+		EventBus.emit(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, {"object_id": obj.object_id})
+
+## 输入处理 — Enter 交互分发（阶段3: InputManager 信号驱动为主，_input 为兜底）
+##   - InputManager._unhandled_input() 先拦截 ui_accept → 发射 game_action 信号 → 走 _handle_accept_input
+##   - 若 InputManager 未拦截（不应发生），原始 _input() 兜底仍保留
 func _input(event: InputEvent) -> void:
 	if not event.is_action_pressed("ui_accept"):
 		return
@@ -414,6 +452,9 @@ func _match_and_clear_ref(node: InteractiveObject) -> void:
 # ---- 叙事面板（B6/B7 修复: 超时 + 错误边界）----
 
 func _show_narrative(text: String, callback: Callable = Callable()) -> void:
+	# 阶段3d: 叙事面板打开时全局屏蔽输入（阻断 attack/dash/skill）
+	InputManager.block_input("叙事面板", self)
+
 	# 防止嵌套打开: 若已有叙事面板打开则先关闭
 	if _narrative_open:
 		if _narrative_panel: _narrative_panel.hide()
@@ -444,6 +485,10 @@ func _show_narrative(text: String, callback: Callable = Callable()) -> void:
 	_narrative_open = false
 	_is_interacting = false
 	_interact_cooldown = 0.0
+
+	# 阶段3d: 叙事面板关闭时解除全局输入屏蔽
+	InputManager.unblock_input("叙事面板")
+
 	if callback.is_valid():
 		# 回调也加错误隔离: 若 callback 抛错不影响关卡
 		_run_safely(callback)
@@ -456,6 +501,8 @@ func _trigger_sleep_cycle() -> void:
 	_bed_node.completed = true
 	_is_interacting = true
 	_freeze_player(true)
+	# 阶段3d: 睡眠循环期间全局屏蔽输入
+	InputManager.block_input("睡眠循环", self)
 
 	var sleep_text = "……"
 	if not level_data.sleep_texts.is_empty():
@@ -487,12 +534,16 @@ func _trigger_sleep_cycle() -> void:
 			if _sleep_overlay: _sleep_overlay.hide()
 			_sleep_fading = false
 			_freeze_player(false)
+			# 阶段3d: 睡眠渐亮结束后解除输入屏蔽
+			InputManager.unblock_input("睡眠循环")
 			_safe_end_interaction()
 			_bed_node.reset_completed()
 		)
 	else:
 		_sleep_fading = false
 		_freeze_player(false)
+		# 阶段3d: 无渐变覆盖层时同步解除
+		InputManager.unblock_input("睡眠循环")
 		_safe_end_interaction()
 		_bed_node.reset_completed()
 
@@ -517,6 +568,8 @@ func _enter_ide_mode() -> void:
 	_is_interacting = true
 	current_state = LevelState.IDE_CHAT
 	_freeze_player(true)
+	# 阶段3d: IDE 对话期间全局屏蔽输入
+	InputManager.block_input("IDE对话", self)
 	if _ide_ui: _ide_ui.show()
 	current_chat_index = 0
 	if _chat_window: _chat_window.text = ""
@@ -549,6 +602,7 @@ func _start_ide_viewport_preview() -> void:
 	current_state = LevelState.IDE_PREVIEW
 	_ide_preview_timer = 0.0
 	set_process(true)
+	# 阶段3d: IDE_PREVIEW 继续保持屏蔽（从 IDE_CHAT 继承，无需重复 block）
 	if _chat_window: _chat_window.append_text("[color=green][SYSTEM] 正在启动 Local Test Viewport...[/color]\n")
 	var path = "res://LevelModule/SelfTest/MiniTestWorld.tscn"
 	if not ResourceLoader.exists(path) or not load(path):
@@ -571,6 +625,8 @@ func _on_preview_crashed() -> void:
 	if _phone_node: _phone_node.is_active = true
 	_start_phone_vibration()
 	_freeze_player(false)
+	# 阶段3d: IDE 崩溃退出，解除输入屏蔽（进入 PHONE_RINGING 正常探索状态）
+	InputManager.unblock_input("IDE对话")
 	# B4 修复: 显式清交互标志，让 PHONE_RINGING 阶段的 phone 交互可正常触发
 	_is_interacting = false
 	_interact_cooldown = 0.0
@@ -601,6 +657,8 @@ func _trigger_climax_transition() -> void:
 		_start_glitch_shader_effect(); return
 	_mark_interaction_completed("phone")
 	_freeze_player(true)
+	# 阶段3d: 终局叙事期间屏蔽输入（_show_narrative 内部也会 block，但此处提前确保）
+	InputManager.block_input("终局叙事", self)
 	# 1) 显示妈妈短信
 	var message = "【" + level_data.phone_sender + "】\n" + level_data.phone_content
 	_show_narrative(message, func():
@@ -615,6 +673,8 @@ func _trigger_climax_transition() -> void:
 				_bed_node.reset_completed()
 			current_state = LevelState.GLITCH_TRANSIT
 			_freeze_player(false)
+			# 阶段3d: GLITCH_TRANSIT 允许玩家移动+交互（等最终床触发）
+			InputManager.unblock_input("终局叙事")
 			_is_interacting = false
 			_interact_cooldown = 0.0
 			print("[Level_01] 进入 GLITCH_TRANSIT — 等待玩家与床最终交互")
@@ -625,6 +685,8 @@ func _on_final_bed_trigger() -> void:
 	# 玩家在 GLITCH_TRANSIT 状态再次与床交互 → 触发终局转场链
 	if _bed_node: _bed_node.mark_completed()
 	_freeze_player(true)
+	# 阶段3d: 终局转场全程屏蔽输入（渐黑→音效渐变→glitch，不可打断）
+	InputManager.block_input("终局转场", self)
 	# 1) 0.8s 遮罩渐黑
 	if _sleep_overlay:
 		_sleep_overlay.color.a = 0.0
@@ -660,6 +722,9 @@ func _start_glitch_shader_effect() -> void:
 	_emit_level_complete()
 
 func _emit_level_complete() -> void:
+	# P1 修复: 防御性解除输入屏蔽（即使当前因节点销毁而无害，
+	# 但若未来关卡切换改为节点复用则此行防止泄漏）
+	InputManager.unblock_input("终局转场")
 	# B10 修复: 发射事件前清自己的全部订阅,避免关卡切换时游离回调
 	EventBus.unsubscribe_all(self)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {

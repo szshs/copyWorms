@@ -59,6 +59,10 @@ func _ready() -> void:
 	collision_mask = GlobalDefine.Collision.TERRAIN
 	_apply_config()
 	_setup_collision()
+	# 阶段3: 订阅 InputManager 的游戏操作信号
+	# attack/dash/skill 由信号驱动(单次触发)，跳跃/移动保留轮询(需连续状态)
+	if not Engine.is_editor_hint():
+		InputManager.game_action.connect(_on_game_action)
 	_on_ready()
 
 func _apply_config() -> void:
@@ -113,10 +117,28 @@ func _update_timers(delta: float) -> void:
 				_change_state(GlobalDefine.PlayerState.FALL)
 
 func _handle_input() -> void:
-	if can_attack and _input_attack_just_pressed(): perform_attack()
-	if can_dash and _input_dash_just_pressed(): perform_dash()
-	if can_skill and _input_skill_just_pressed(): perform_skill()
-	if _input_pause_just_pressed(): GameManager.toggle_pause()
+	# attack/dash/skill 已迁移到 InputManager.game_action 信号
+	# (由 _on_game_action 回调处理)
+	# 保留: 跳跃按住检测(需 is_action_pressed 连续状态)
+	# ui_pause(ESC) 已迁移到 InputManager 独占处理
+	pass
+
+## 阶段3: InputManager 游戏操作信号回调
+## 处理 attack/dash/skill（跳跃保留在状态机的轮询中）
+func _on_game_action(action: StringName, _event: InputEvent) -> void:
+	# 受击/死亡/攻击/冲刺中不允许发起攻击
+	if is_attacking or is_dashing or current_state in [GlobalDefine.PlayerState.HURT, GlobalDefine.PlayerState.DEAD]:
+		return
+	match action:
+		&"player_attack":
+			if can_attack: perform_attack()
+		&"player_dash":
+			if can_dash: perform_dash()
+		&"player_skill":
+			if can_skill: perform_skill()
+		# ui_accept 不在此处理，由 Level_01 订阅
+		&"ui_accept":
+			pass
 
 func _apply_gravity(delta: float) -> void:
 	if is_dashing: return
@@ -182,6 +204,8 @@ func _take_contact_damage(enemy: Node2D) -> void:
 	current_health = maxi(current_health - atk, 0)
 	is_invincible = true
 	invincible_timer = 1.5
+	is_attacking = false
+	attack_timer = 0.0
 	var kb_dir = signf(global_position.x - enemy.global_position.x)
 	if kb_dir == 0:
 		kb_dir = 1.0
@@ -317,6 +341,8 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 	current_health = maxi(current_health - damage, 0)
 	is_invincible = true
 	invincible_timer = config.hurt_invincible_time if config else 1.0
+	is_attacking = false
+	attack_timer = 0.0
 	if knockback_dir != Vector2.ZERO:
 		velocity = Vector2(knockback_dir.x * (config.hurt_knockback if config else 300.0), -150.0)
 	EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": damage, "current_health": current_health})
@@ -336,15 +362,13 @@ func heal(amount: int) -> void:
 	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": self, "current_health": current_health, "max_health": max_health})
 
 # ---- 输入 ----
+# 阶段3: attack/dash/skill 已迁移至 InputManager.game_action 信号驱动
+# 以下仅保留 jump（需 is_action_pressed 连续状态）和方向键（需 get_vector 每帧向量）
 
 func _get_input_direction() -> Vector2:
 	return Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 
 func _input_jump_just_pressed() -> bool: return Input.is_action_just_pressed("player_jump")
-func _input_attack_just_pressed() -> bool: return Input.is_action_just_pressed("player_attack")
-func _input_dash_just_pressed() -> bool: return Input.is_action_just_pressed("player_dash")
-func _input_skill_just_pressed() -> bool: return Input.is_action_just_pressed("player_skill")
-func _input_pause_just_pressed() -> bool: return Input.is_action_just_pressed("ui_pause")
 
 # ---- 取值器 ----
 
