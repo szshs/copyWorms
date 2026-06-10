@@ -1,7 +1,23 @@
-# res://LevelModule/Formal/InteractiveObject.gd
-# 统一交互物基类 - 独立交互模块
-# 职责: 碰撞检测(body_entered) + 视觉反馈(提示标签) + 完成状态追踪
-# 输入处理已移至 Level_01 控制器，解决动态创建节点 _input() 不可靠问题
+# ============================================================
+# InteractiveObject.gd - 交互物基类 (Area2D → InteractiveObject)
+#
+# 职责:
+#   1. 碰撞检测: body_entered/exited 信号 + _process 轮询双重保障
+#   2. 视觉提示: 呼吸闪烁 Label（未完成=黄字, 完成=灰字）
+#   3. 状态追踪: completed(幂等性) / is_active(前置解锁) / allow_repeat
+#   4. 冻结管理: freeze_monitoring() 禁用/恢复 monitoring, 防 body_exited 误触发
+#
+# 输入处理设计(v0.4.0变更):
+#   本类 _process() 不再检测 ui_accept 输入。所有交互输入统一由:
+#     Level_01._input() → _find_nearby_interactive() → EventBus.emit()
+#   这解决了三路重复触发问题(原 InteractiveObject._process 也检测 Enter)。
+#   设计关键点: 动态创建节点的 _input() 在 Godot 中不可靠,
+#   统一收归 Level_01 控制器分发是更稳定的架构。
+#
+# 双重检测机制:
+#   主路径: Area2D body_entered/exited 信号 (帧精度)
+#   兜底路径: _process 中 check_player_in_range AABB 轮询 (解决 _ready 时序问题)
+# ============================================================
 extends Area2D
 class_name InteractiveObject
 
