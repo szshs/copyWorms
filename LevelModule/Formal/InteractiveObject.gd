@@ -59,14 +59,18 @@ func _process(_delta: float) -> void:
 	_prompt_label.visible = true
 	
 	if completed:
-		# 已完成 → 灰色静态提示
 		_prompt_label.text = "已完成 ✓"
 		_prompt_label.add_theme_color_override("font_color", Color(0.4, 0.5, 0.4, 0.8))
 	else:
-		# 可交互 → 黄色呼吸闪烁
 		_prompt_label.text = prompt_text
 		var alpha = 0.6 + 0.4 * abs(sin(Time.get_ticks_msec() * 0.004))
 		_prompt_label.add_theme_color_override("font_color", Color(1, 0.9, 0.2, alpha))
+
+	# 直接在这里检测 Enter 交互
+	if is_player_in_range and is_active and not completed:
+		if Input.is_action_just_pressed("ui_accept"):
+			print("[InteractiveObject] 交互触发: %s" % object_id)
+			EventBus.emit("interactive_object_triggered", {"object_id": object_id})
 
 
 # ---- 碰撞检测 ----

@@ -42,8 +42,6 @@ var _phone_vibrate_tween: Tween = null
 
 func _on_ready() -> void:
 	super._on_ready()
-	set_process_input(true)
-	set_process_unhandled_input(true)
 
 	if not level_config:
 		level_config = load("res://DataConfig/Level/Level01Config.tres") as LevelConfig
@@ -59,6 +57,16 @@ func _on_ready() -> void:
 	_phone_node.is_active = false
 	EventBus.subscribe("interactive_object_triggered", self, "_on_object_interacted")
 	_fsm = Level_01_FSM.new(self)
+
+	# Timer 替代 _process 来管理冷却
+	var cd_timer = Timer.new()
+	cd_timer.name = "InteractCooldown"
+	cd_timer.wait_time = 0.1
+	cd_timer.autostart = true
+	cd_timer.timeout.connect(func():
+		if _interact_cooldown > 0.0: _interact_cooldown -= 0.1
+	)
+	add_child(cd_timer)
 
 	print("[Level_01] 初始化完成 — 当前: LIVING_ROOM")
 
@@ -175,30 +183,24 @@ func _freeze_player(freeze: bool) -> void:
 
 # ---- 输入处理 ----
 
-func _input(event: InputEvent) -> void:
-	if not event.is_action_pressed("ui_accept"): return
-
-	if current_state == LevelState.IDE_CHAT:
-		_render_next_chat_line()
-		get_viewport().set_input_as_handled()
-		return
-
-	if _is_interacting or _interact_cooldown > 0.0: return
-
-	var nearby_obj = _find_nearby_interactive()
-	if nearby_obj:
-		_interact_cooldown = 0.3
-		EventBus.emit("interactive_object_triggered", {"object_id": nearby_obj.object_id})
-		get_viewport().set_input_as_handled()
-
 func _find_nearby_interactive() -> InteractiveObject:
 	for obj in [_obstacle_box, _obstacle_clothes, _bed_node, _computer_node, _phone_node]:
 		if is_instance_valid(obj) and obj.is_active and not obj.completed and obj.is_player_in_range:
 			return obj
 	return null
 
-func _process(delta: float) -> void:
-	if _interact_cooldown > 0.0: _interact_cooldown -= delta
+func _on_interact_input() -> void:
+	if current_state == LevelState.IDE_CHAT:
+		_render_next_chat_line()
+		return
+
+	if _is_interacting or _interact_cooldown > 0.0:
+		return
+
+	var nearby_obj = _find_nearby_interactive()
+	if nearby_obj:
+		_interact_cooldown = 0.3
+		EventBus.emit("interactive_object_triggered", {"object_id": nearby_obj.object_id})
 
 
 # ---- FSM 调度 ----
