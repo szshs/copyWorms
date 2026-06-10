@@ -109,12 +109,14 @@ func _on_body_entered(body: Node2D) -> void:
 	# B8 修复: 强化玩家识别 — 即使 collision_layer 位运算失败也尝试按 group/name 兜底
 	if _is_player(body):
 		is_player_in_range = true
+		player_entered.emit()
 		print("[InteractiveObject] 玩家进入 %s 范围%s" % [object_id, " [已完成]" if completed else ""])
 
 
 func _on_body_exited(body: Node2D) -> void:
 	if _is_player(body):
 		is_player_in_range = false
+		player_exited.emit()
 		print("[InteractiveObject] 玩家离开 %s 范围" % object_id)
 
 
@@ -143,8 +145,10 @@ func check_player_in_range(player: Node2D) -> void:
 	if in_range != is_player_in_range:
 		is_player_in_range = in_range
 		if in_range:
+			player_entered.emit()
 			print("[InteractiveObject] 玩家进入 %s 范围%s (轮询检测)" % [object_id, " [已完成]" if completed else ""])
 		else:
+			player_exited.emit()
 			print("[InteractiveObject] 玩家离开 %s 范围 (轮询检测)" % object_id)
 
 ## 距离判定：玩家中心与交互物中心的距离是否在触发半径内

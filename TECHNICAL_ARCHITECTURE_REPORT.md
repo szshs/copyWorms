@@ -587,14 +587,14 @@ mark_completed()    # 标记完成（幂等性）
 reset_completed()   # 仅 allow_repeat=true 才生效
 set_active(bool)    # 启用/禁用并隐藏提示
 freeze_monitoring(frozen: bool)  # 冻结/解冻时控制 monitoring，防止 body_exited 误触发
-check_player_in_range(player: Node2D)  # 轮询式玩家检测（AABB）
+check_player_in_range(player: Node2D)  # 轮询式玩家检测（距离判定: 中心距 ≤ 半径和+容差）
 ```
 
 ### 6.5 信号
 
 ```gdscript
-signal player_entered
-signal player_exited
+signal player_entered  # 已声明（保留供外部订阅，内部用 is_player_in_range 布尔值）
+signal player_exited    # 已声明（保留供外部订阅，内部用 is_player_in_range 布尔值）
 ```
 
 ### 6.6 输入处理设计（v0.5.0 变更）
@@ -613,7 +613,8 @@ signal player_exited
 v0.6.0 进一步演化:
   Level_01._input() 不再直接轮询 ui_accept
   改为 InputManager.game_action("ui_accept") 信号回调到 Level_01._on_game_action()
-  → 信号统一入口, block/unblock 可控
+  _input() 降级为纯兜底（仅 InputManager 未拦截时触发），且必须检查 block_input 守卫
+  → 信号统一入口, block/unblock 可控, 无守卫绕过风险
 ```
 
 > **关键设计**：交互物**不**自己处理 `ui_accept` 输入。输入由 InputManager 统一分发 → Level_01 处理 → EventBus 派发到 FSM。这一设计解决了"动态 `_ready` 创建的节点 `_input()` 不可靠"的问题。
@@ -1235,9 +1236,14 @@ if mini_world.has_signal("some_event"):
 # 在 _start_glitch_shader_effect() 末尾
 EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {
     "level": self,
-    "next_level": "res://LevelModule/Formal/Level_02.tscn"
+    # TODO: Level_02 尚未创建，当前 emit 后由 MainEntry 或 GameManager 接管
+    "next_level": ""
 })
 ```
+
+> **注意**: 当前 `next_level` 指向空字符串（Level_02.tscn 尚未创建）。
+> 关卡切换的实际跳转逻辑需在 `MainEntry` 或 `GameManager` 中监听 `LEVEL_COMPLETE` 事件并实现。
+> 参见 §15.2 待办事项中的多关卡切换条目。
 
 ### 17.8 监听敌人死亡以推进剧情
 
