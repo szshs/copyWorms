@@ -98,6 +98,10 @@ func _on_start_game() -> void:
 	GameManager.run_mode = GlobalDefine.RunMode.FORMAL
 	get_tree().change_scene_to_file("res://Global/MainEntry.tscn")
 
+func _on_quit() -> void:
+	print("[TitleScreen] >>> 退出按钮被点击 <<<")
+	get_tree().quit()
+
 func _on_test_player() -> void:
 	print("[TitleScreen] >>> 玩家自测按钮被点击 <<<")
 	GameManager.run_mode = GlobalDefine.RunMode.SELF_TEST
@@ -112,7 +116,3 @@ func _on_test_level() -> void:
 	print("[TitleScreen] >>> 关卡自测按钮被点击 <<<")
 	GameManager.run_mode = GlobalDefine.RunMode.SELF_TEST
 	get_tree().change_scene_to_file("res://LevelModule/SelfTest/LevelTest.tscn")
-
-func _on_quit() -> void:
-	print("[TitleScreen] >>> 退出按钮被点击 <<<")
-	get_tree().quit()

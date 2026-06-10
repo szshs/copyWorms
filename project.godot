@@ -22,6 +22,7 @@ config/icon="res://Assets/Sprites/icon.svg"
 GlobalDefine="*res://Global/GlobalDefine.gd"
 EventBus="*res://Global/EventBus.gd"
 GameManager="*res://Global/GameManager.gd"
+InputManager="*res://Global/InputManager.gd"
 
 [display]
 
