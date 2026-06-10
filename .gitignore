@@ -13,3 +13,10 @@
 
 # Godot 编辑器二进制文件（体积过大，不纳入版本控制）
 godot-editor/
+
+# CloudBase 规则（自动生成，与 Godot 项目无关）
+.codebuddy/rules/tcb/
+
+.godot-mcp/
+
+.codebuddy/
