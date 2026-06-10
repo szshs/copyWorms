@@ -44,7 +44,6 @@ var _interact_cooldown: float = 0.0
 var _is_interacting: bool = false
 var _fsm: Level_01_FSM = null
 var _phone_vibrate_tween: Tween = null
-var _smooth_camera: SmoothCamera = null
 
 # 所有交互物引用的统一访问方法（消除 4 处硬编码数组重复）
 var _all_interactives: Array[InteractiveObject] = []
@@ -81,8 +80,9 @@ func _on_ready() -> void:
 	var builder = Level_01_SceneBuilder.new(self)
 	builder.build_all()
 
-	# 把基类创建的 LevelCamera 升级为 SmoothCamera（死区+lerp+lookahead）
-	_setup_smooth_camera()
+	# SmoothCamera 已在 Player_Warrior.tscn 里预制为子节点，
+	# 这里只需要把 level_config 的 limit 参数传给玩家身上的 SmoothCamera
+	_setup_camera_limits()
 
 	_cache_ui_refs()
 	_restrict_player_mechanics()
@@ -92,20 +92,11 @@ func _on_ready() -> void:
 	EventBus.subscribe(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, self, "_on_object_interacted")
 	_fsm = Level_01_FSM.new(self)
 
-<<<<<<< HEAD
-	# Timer 替代 _process 来管理冷却
-	var cd_timer = Timer.new()
-	cd_timer.name = "InteractCooldown"
-	cd_timer.wait_time = 0.1
-	cd_timer.autostart = true
-	cd_timer.timeout.connect(func():
-		if _interact_cooldown > 0.0: _interact_cooldown -= 0.1
-	)
-	add_child(cd_timer)
-=======
 	# 验证玩家 collision_layer（B8 修复）— 若玩家在 PLAYER 层缺失则修正
 	_ensure_player_collision_layer()
->>>>>>> 53974aff6aace2fd978920fab9bbf19515e490b7
+
+	# 启用 _process：用于冷却递减 + 交互物轮询兜底（原本只在 IDE preview 阶段才启用）
+	set_process(true)
 
 	print("[Level_01] 初始化完成 — 当前: LIVING_ROOM")
 
@@ -176,42 +167,23 @@ func _create_static_body(node_name: String, pos: Vector2, size: Vector2, col: Co
 	return body
 
 ## 把基类 LevelBase 在 _setup_camera() 创建的 LevelCamera 升级为 SmoothCamera，
-## 启用死区 + lerp + lookahead 混合跟随算法
-## 修复: LevelBase._setup_camera 在 _setup_player 之前运行，
-## 此时 player_ref 尚不存在，摄像机被挂到 Level_01 节点而非 player 下，
-## 因此需要在两个位置搜索
-func _setup_smooth_camera() -> void:
+## 把 level_config 的 limit 参数传给玩家预制的 SmoothCamera
+## 架构改进：摄像机组件由玩家场景持有（PlayerModule），关卡只负责配置参数
+func _setup_camera_limits() -> void:
+	if not level_config:
+		return
 	var player = GameManager.player_ref
 	if not player or not is_instance_valid(player):
 		return
-	# 先在 player 下找，再在 level 自身下找
-	var cam = player.get_node_or_null("LevelCamera")
+	var cam = player.get_node_or_null("SmoothCamera") as SmoothCamera
 	if not cam:
-		cam = get_node_or_null("LevelCamera")
-	if not cam:
-		push_warning("[Level_01] 未找到 LevelCamera 节点，SmoothCamera 升级跳过")
 		return
-	# 若摄像机挂在 player 下，reparent 到 level 以避免父节点移动干扰 global_position 控制
-	if cam.get_parent() == player:
-		player.remove_child(cam)
-		add_child(cam)
-	# 通过 set_script 把普通 Camera2D 升级为带 SmoothCamera 脚本的节点
-	cam.set_script(load("res://LevelModule/Common/SmoothCamera.gd"))
-	# 关键修复: set_script 在节点 _ready 之后调用不会重跑 _ready,
-	# 必须手动启用 _process,否则 SmoothCamera 永远不工作
-	cam.set_process(true)
-	# 确保摄像机成为当前摄像机（否则不会渲染）
-	cam.make_current()
-	_smooth_camera = cam as SmoothCamera
-	if _smooth_camera and level_config:
-		_smooth_camera.limit_left = level_config.camera_limit_left
-		_smooth_camera.limit_right = level_config.camera_limit_right
-		_smooth_camera.limit_top = level_config.camera_limit_top
-		_smooth_camera.limit_bottom = level_config.camera_limit_bottom
-		_smooth_camera.bind_target(player)
-		print("[Level_01] SmoothCamera 已激活 (lerp=%.1f, deadzone=%s, lookahead=%.1f)" % [
-			_smooth_camera.lerp_speed, _smooth_camera.deadzone_size, _smooth_camera.lookahead_offset
-		])
+	cam.limit_left = level_config.camera_limit_left
+	cam.limit_right = level_config.camera_limit_right
+	cam.limit_top = level_config.camera_limit_top
+	cam.limit_bottom = level_config.camera_limit_bottom
+	cam.bind_target(player)
+	print("[Level_01] SmoothCamera 已配置 (limit_left=%d, limit_right=%d)" % [cam.limit_left, cam.limit_right])
 
 func _create_interactive(node_name: String, obj_id: String, pos: Vector2, size: Vector2) -> InteractiveObject:
 	var obj = InteractiveObject.new()
@@ -301,8 +273,6 @@ func _freeze_player(freeze: bool) -> void:
 
 # ---- 输入处理（B2/B3/B4 核心修复）----
 
-<<<<<<< HEAD
-=======
 ## 输入分发器：所有键盘事件统一入口
 ## 修复点：
 ##   - 移除"先检查 _is_interacting 再分发"导致的"一旦陷入就死锁"问题
@@ -341,7 +311,6 @@ func _input(event: InputEvent) -> void:
 		EventBus.emit(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, {"object_id": nearby_obj.object_id})
 		get_viewport().set_input_as_handled()
 
->>>>>>> 53974aff6aace2fd978920fab9bbf19515e490b7
 func _find_nearby_interactive() -> InteractiveObject:
 	# 优先用 is_player_in_range (由 body_entered 或 _poll 维护)
 	for obj in _all_interactives:
@@ -368,20 +337,6 @@ func _find_nearby_interactive() -> InteractiveObject:
 		print("[Level_01] Fallback 距离检测命中: %s (距离 %.1f)" % [best.object_id, best_dist])
 	return best
 
-<<<<<<< HEAD
-func _on_interact_input() -> void:
-	if current_state == LevelState.IDE_CHAT:
-		_render_next_chat_line()
-		return
-
-	if _is_interacting or _interact_cooldown > 0.0:
-		return
-
-	var nearby_obj = _find_nearby_interactive()
-	if nearby_obj:
-		_interact_cooldown = 0.3
-		EventBus.emit("interactive_object_triggered", {"object_id": nearby_obj.object_id})
-=======
 func _process(delta: float) -> void:
 	if _interact_cooldown > 0.0: _interact_cooldown -= delta
 	# IDE 预览 8 秒超时（玩家在 SubViewport 中超过 8 秒无崩溃/出界则强制终止）
@@ -408,7 +363,6 @@ func _poll_interactives_in_range() -> void:
 	for obj in _all_interactives:
 		if is_instance_valid(obj):
 			obj.check_player_in_range(player)
->>>>>>> 53974aff6aace2fd978920fab9bbf19515e490b7
 
 
 # ---- FSM 调度 ----
