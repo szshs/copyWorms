@@ -1,0 +1,86 @@
+[gd_resource type="Resource" script_class="Level02Data" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://DataConfig/Level/Level02Data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+attic_intro_text = "暖洋洋的光透过满洲窗洒进阁楼，空气里有淡淡的凉茶药香。
+
+这里是……爷爷家的阁楼？我回来了？
+
+不对……这是 CodeBuddy 为我编译的西关老街。这里的一土一寸，一砖一瓦，都还保留着我和爷爷的记忆。"
+window_text_l2 = "五彩的满洲窗。夕阳透过红黄蓝绿的玻璃，在地板上拼出一块块温暖的光斑。
+
+小时候我总爱趴在这扇窗前看楼下的老街。爷爷会在楼下喊：『阿明，落嚟饮糖水啦——』
+
+……窗外的老街还在。至少在这里，它还在。"
+attic_door_text = "吱呀作响的木趟栊门。推开它，就是记忆里的西关老街。"
+rattan_chair_monologue = "爷爷的旧藤椅，扶手被岁月磨得发亮。
+
+每天黄昏，爷爷就坐在这里摇着葵扇，给街坊们讲古。我蹲在旁边数着石板路上的蚂蚁。
+
+藤椅还在轻轻摇晃，好像他刚刚才离开。"
+street_enemy_spawn_points = Array[Vector2]([Vector2(1500, 540), Vector2(2100, 540), Vector2(2800, 540)])
+cliff_first_sight_text = "老街在这里断裂了。
+
+对岸是爷爷的凉茶铺，炉火还亮着，一个熟悉的剪影在柜台后忙碌着。
+
+『爷爷——！』我喊出声，可声音掉进了深渊里。这道裂缝……跳不过去。但我必须过去。"
+cliff_safe_spawn = Vector2(3340, 550)
+interference_fall_threshold = 1
+dream_phone_echo_sender = "来自：妈妈"
+dream_phone_echo_text = "阿明，医生说你爷爷在今天凌晨走了……
+
+不——不要在这里出现！这是我的梦，这里的爷爷还在！
+
+为什么连梦里都不放过我！"
+wake_hold_required = 1.5
+wake_up_monologue = "……又是这个天花板。
+
+心脏还在狂跳。手机在枕边震个不停，屏幕的红光刺得眼睛生疼。
+
+梦里的裂缝、黑影、还有那条短信……我躲不掉了。"
+computer_locked_text = "屏幕还停留在崩溃日志界面。
+
+不……现在不是碰电脑的时候。先看看手机，它已经震了一整夜。"
+bed_locked_text = "床上的被子还残留着噩梦的冷汗。
+
+现在睡回去，等着我的只有那道跳不过去的裂缝、和满街的黑影。
+
+不行。在回去之前，我得先改变那个梦的规则。"
+reality_phone_sender = "来自：妈妈"
+reality_phone_content = "阿明，明天就是你爷爷的头七了。家里人都不怪你没赶回来，爷爷走前还在念叨：『阿明读书辛苦，唔好嘈醒佢。』
+
+老街后日就要围蔽动工了。妈妈知道你心里苦，但有些事，躲是躲不掉的。你要保重自己。"
+reality_phone_monologue = "头七……连最后一面都没见到。
+
+爷爷到最后都在护着我。而我连他的梦，都守不住——梦里的我跳不过那道裂缝，打不过那些黑影，连一句『再见』都说不出口。
+
+……不对。那是 CodeBuddy 编译出来的梦境。是程序，就有配置；是配置，就可以改。
+
+这一次，我不要再当一个被动挨打的废物。"
+ide_speakers = Array[String](["System", "CodeBuddy", "Ming", "CodeBuddy", "Ming", "CodeBuddy", "CodeBuddy", "System"])
+ide_texts = Array[String](["Reconnecting to localhost:8080... CodeBuddy Terminal v1.4.2 resumed.", "欢迎回来，阿明。检测到项目『Xiguan_Dream』于上次会话中异常崩溃：现实信号注入导致环境撕裂，生成了未授权的敌对实体。", "我在梦里跳不过那道裂缝，也打不过那些黑影。CodeBuddy，我要改掉这个梦的规则。", "可行。『Xiguan_Dream』的运行参数存储于配置文件 Xiguan_Dream.ini。修改后需要重新编译才能生效。警告：篡改梦境基础配置属于非常规操作，可能导致记忆数据与现实认知进一步偏离。是否继续？", "继续。这一次，我要亲手把规则改写。我要跳过那道裂缝，我要见爷爷最后一面。", "已为您打开配置编辑器。请修改以下三项参数：1) 玩家伤害减免；2) 基础跳跃高度；3) 外部信号注入许可。", "提示：将 Allow_External_Signal 设为 false 后，现实端的一切干扰信号（包括通讯消息）都将无法进入梦境。这意味着……梦境将成为完全封闭的世界。", "Configuration editor ready. Awaiting input..."])
+config_item_ids = Array[String](["player_damage_reduction", "base_jump_height", "allow_external_signal"])
+config_item_labels = Array[String](["Player_Damage_Reduction  （玩家伤害减免）", "Base_Jump_Height  （跳跃能力增强）", "Allow_External_Signal  （外部信号注入许可）"])
+config_initial_values = Array[String](["false", "10", "true"])
+config_target_values = Array[String](["true", "99", "false"])
+config_initial_display = Array[String](["false", "关", "true"])
+config_target_display = Array[String](["true", "开", "false"])
+config_success_feedbacks = Array[String](["// 黑影的爪牙再也伤不到我。", "// 99 级跳跃高度——那道裂缝，我跳得过去了。", "// 把现实关在门外。这个梦，只属于我和爷爷。"])
+recompilation_lines = Array[String](["[SYSTEM] Recompiling project: Xiguan_Dream ...", "[BUILD] Loading 西关历史地貌数据集 ... OK", "[BUILD] Patching player_module: damage_reduction = true ... OK", "[BUILD] Patching physics_module: base_jump_height = 99 ... OK", "[BUILD] Sealing external signal gateway ... OK", "[BUILD] Rebuilding 凉茶铺 / 石板路 / 满洲窗 ... OK", "[WARN] 检测到记忆偏差风险：+47%。已忽略。", "[SYSTEM] Compilation successful. Dream version: 2.0"])
+compile_success_text = "编译完成。
+
+『西关老街 2.0』已生成。这一次，没有跳不过的裂缝，没有打不倒的黑影，也没有任何来自现实的打扰。
+
+床头的旧台灯忽然亮了一下，像是某种邀请。"
+bed_unlocked_text = "回去吧。爷爷还在对岸等我。"
+sfx_phone_vibrate_path = "res://Assets/Audio/sfx_phone_vibrate.ogg"
+sfx_electric_noise_path = "res://Assets/Audio/sfx_electric_noise.ogg"
+bgm_dream_warm_path = "res://Assets/Audio/bgm_dream_warm.ogg"
+dream_rebuilt_text = "西关梦境 v2.0 重构完毕。
+
+意识正在下沉……下沉……
+
+按【Enter】闭上眼睛。"
+next_level_path = "res://LevelModule/Formal/Level_03.tscn"

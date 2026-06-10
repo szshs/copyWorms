@@ -16,6 +16,11 @@ var enemy_list: Array[Node2D] = []
 var is_paused: bool = false
 var is_game_over: bool = false
 
+# 跨关卡梦境运行时配置（关卡2"配置篡改"谜题写入，关卡3读取应用）
+# 例: { "player_damage_reduction": true, "base_jump_height": 99,
+#       "allow_external_signal": false, "dream_version": "2.0" }
+var dream_runtime_flags: Dictionary = {}
+
 # ---- 生命周期 ----
 
 func _ready() -> void:
