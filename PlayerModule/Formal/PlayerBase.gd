@@ -14,6 +14,10 @@ var can_dash: bool = true
 var can_attack: bool = true
 var can_skill: bool = true
 
+# 运行时移速倍率（关卡可临时调节，如"沉重化"; 默认1.0零影响）
+# 不直接修改共享 PlayerConfig.tres
+var runtime_move_speed_multiplier: float = 1.0
+
 # 状态变量
 var current_state: int = GlobalDefine.PlayerState.IDLE
 var current_health: int = 100
@@ -372,7 +376,7 @@ func _input_jump_just_pressed() -> bool: return Input.is_action_just_pressed("pl
 
 # ---- 取值器 ----
 
-func _get_move_speed() -> float: return config.move_speed if config else 300.0
+func _get_move_speed() -> float: return (config.move_speed if config else 300.0) * runtime_move_speed_multiplier
 func _get_dash_speed() -> float: return config.dash_speed if config else 800.0
 func _get_gravity() -> float: return config.gravity if config else 1200.0
 
