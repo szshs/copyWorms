@@ -1,7 +1,7 @@
 # ============================================================
 # Level_02_SceneBuilder.gd - 关卡2场景构建器
 # 单场景双空间容器架构:
-#   DreamWorldRoot  — 梦境: 阁楼(0-900) / 老街(900-3400) / 断崖(3400-4800)
+#   DreamWorldRoot  — 梦境: 阁楼(0-900) / 老街(900-5900) / 断崖(5900-6370)
 #   RealityRoomRoot — 现实房间: 复用关卡1布局参数（宽1920, 地面Y=620), 初始隐藏
 # 另构建: 交互物 / 触发器 / 出生点 / CanvasLayerUI
 # 只创建节点并写入主控字段，不处理流程
@@ -24,7 +24,7 @@ func build_all() -> void:
 	_build_canvas_ui()
 
 # ============================================================
-# 梦境世界（4800px 宽）
+# 梦境世界（6700px 宽）
 # ============================================================
 
 func _build_dream_world() -> void:
@@ -48,10 +48,10 @@ func _build_dream_world() -> void:
 	attic_glow.position = Vector2(0, 0)
 	dream.add_child(attic_glow)
 
-	# ---- B 老街 (900-3400) ----
-	dream.add_child(level._create_static_body("StreetGround", Vector2(2150, 620), Vector2(2500, 40), Color(0.42, 0.36, 0.3)))
-	# 骑楼背景柱（装饰，无碰撞）
-	for i in range(5):
+	# ---- B 老街 (900-5900, 2x 延伸) ----
+	dream.add_child(level._create_static_body("StreetGround", Vector2(3400, 620), Vector2(5000, 40), Color(0.42, 0.36, 0.3)))
+	# 骑楼背景柱（装饰，无碰撞）— 保持 450px 间距，数量翻倍维持密度
+	for i in range(11):
 		var pillar = ColorRect.new()
 		pillar.name = "ArcadePillar_%d" % i
 		pillar.color = Color(0.5, 0.4, 0.3, 0.45)
@@ -59,43 +59,43 @@ func _build_dream_world() -> void:
 		pillar.position = Vector2(1100 + i * 450, 240)
 		dream.add_child(pillar)
 
-	# ---- C 断崖 (3400-4800) ----
-	# 左岸平台（3400-3450 截止）
-	dream.add_child(level._create_static_body("CliffLeftGround", Vector2(3420, 660), Vector2(140, 120), Color(0.35, 0.3, 0.26)))
-	# 对岸视觉平台（不可达，无碰撞，纯背景）
+	# ---- C 断崖 (5900-6370, 1/3 缩窄) ----
+	# 左岸平台（5900-5960 截止，不变）
+	dream.add_child(level._create_static_body("CliffLeftGround", Vector2(5920, 660), Vector2(140, 120), Color(0.35, 0.3, 0.26)))
+	# 对岸视觉平台（不可达，无碰撞，纯背景）— 深渊缩至 1/3，对岸拉近
 	var far_shore = ColorRect.new()
 	far_shore.name = "FarShoreVisual"
 	far_shore.color = Color(0.4, 0.32, 0.26, 0.85)
 	far_shore.size = Vector2(300, 140)
-	far_shore.position = Vector2(4500, 600)
+	far_shore.position = Vector2(6327, 600)
 	dream.add_child(far_shore)
 	# 对岸凉茶铺剪影（装饰）
 	var tea_shop = ColorRect.new()
 	tea_shop.name = "TeaShopSilhouette"
 	tea_shop.color = Color(0.3, 0.22, 0.15, 0.9)
 	tea_shop.size = Vector2(180, 160)
-	tea_shop.position = Vector2(4560, 440)
+	tea_shop.position = Vector2(6387, 440)
 	dream.add_child(tea_shop)
 	# 凉茶铺暖光
 	var shop_glow = ColorRect.new()
 	shop_glow.name = "TeaShopGlow"
 	shop_glow.color = Color(1.0, 0.7, 0.3, 0.35)
 	shop_glow.size = Vector2(60, 50)
-	shop_glow.position = Vector2(4620, 520)
+	shop_glow.position = Vector2(6447, 520)
 	dream.add_child(shop_glow)
 	# 爷爷剪影
 	var grandpa = ColorRect.new()
 	grandpa.name = "GrandpaSilhouette"
 	grandpa.color = Color(0.12, 0.1, 0.08, 0.95)
 	grandpa.size = Vector2(36, 70)
-	grandpa.position = Vector2(4640, 530)
+	grandpa.position = Vector2(6467, 530)
 	dream.add_child(grandpa)
-	# 深渊视觉（黑色渐变区域，无碰撞）
+	# 深渊视觉（黑色渐变区域，无碰撞）— 宽度 1010→337
 	var abyss = ColorRect.new()
 	abyss.name = "AbyssVisual"
 	abyss.color = Color(0.02, 0.02, 0.05, 0.92)
-	abyss.size = Vector2(1010, 400)
-	abyss.position = Vector2(3490, 680)
+	abyss.size = Vector2(337, 400)
+	abyss.position = Vector2(5990, 680)
 	dream.add_child(abyss)
 
 # ============================================================
@@ -163,7 +163,7 @@ func _build_interactives() -> void:
 	container.add_child(level._attic_door_node)
 
 	# 3. 旧藤椅（老街，带物理阻挡的低矮障碍）
-	level._rattan_chair_node = level._create_interactive("RattanChair", "rattan_chair", Vector2(1900, 575), Vector2(80, 50))
+	level._rattan_chair_node = level._create_interactive("RattanChair", "rattan_chair", Vector2(2200, 575), Vector2(80, 50))
 	var chair_indicator = level._rattan_chair_node.get_node_or_null("Indicator")
 	if chair_indicator:
 		chair_indicator.color = Color(0.6, 0.45, 0.25, 0.5)
@@ -206,12 +206,12 @@ func _build_triggers() -> void:
 	level._street_entry_trigger.body_entered.connect(level._on_street_entry_body_entered)
 
 	# 2. 断崖接近触发（一次性: 进入 DREAM_CLIFF_LOOP + 首见独白）
-	level._cliff_approach_trigger = _create_trigger_zone("CliffApproachTrigger", Vector2(3300, 460), Vector2(80, 360))
+	level._cliff_approach_trigger = _create_trigger_zone("CliffApproachTrigger", Vector2(5800, 460), Vector2(80, 360))
 	container.add_child(level._cliff_approach_trigger)
 	level._cliff_approach_trigger.body_entered.connect(level._on_cliff_approach_body_entered)
 
 	# 3. 坠落深渊触发（可重复: 黑屏重置）
-	level._fall_pit_trigger = _create_trigger_zone("FallPitTrigger", Vector2(4000, 810), Vector2(1100, 260))
+	level._fall_pit_trigger = _create_trigger_zone("FallPitTrigger", Vector2(6157, 810), Vector2(367, 260))
 	container.add_child(level._fall_pit_trigger)
 	level._fall_pit_trigger.body_entered.connect(level._on_fall_pit_body_entered)
 
