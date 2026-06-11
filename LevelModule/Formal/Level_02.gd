@@ -325,7 +325,18 @@ func _restore_player_mechanics() -> void:
 	player.can_dash = true
 	player.can_attack = true
 	player.can_skill = true
+	# 关卡2设计约束：禁用二段跳（梦境规则限制；坠落循环是核心机制，二段跳可绕过深渊）
+	# 在关卡模块内拦截，不修改 PlayerBase 核心代码
+	player.can_double_jump = false
 	player.runtime_move_speed_multiplier = 1.0
+
+## 关卡级技能限制守卫：每帧强制维持 can_double_jump=false
+## 防止任何外部路径意外重新启用被禁技能
+func _enforce_level_restrictions() -> void:
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player): return
+	if player.can_double_jump:
+		player.can_double_jump = false
 
 ## 干扰期"沉重化": 禁跳/禁冲刺/禁技能/移速降低（保留攻击表达围攻压力）
 func _apply_interference_restrictions() -> void:
@@ -450,6 +461,9 @@ func _find_nearby_interactive() -> InteractiveObject:
 func _process(delta: float) -> void:
 	if _interact_cooldown > 0.0:
 		_interact_cooldown -= delta
+
+	# 关卡级技能限制守卫：确保被禁技能不会被任何外部路径意外恢复
+	_enforce_level_restrictions()
 
 	_poll_interactives_in_range()
 
@@ -701,7 +715,7 @@ func _trigger_fall_reset() -> void:
 
 	var player = GameManager.player_ref
 	if player and is_instance_valid(player):
-		var spawn_pos = _cliff_safe_spawn.position if _cliff_safe_spawn else Vector2(3340, 550)
+		var spawn_pos = _cliff_safe_spawn.position if _cliff_safe_spawn else Vector2(5840, 550)
 		player.global_position = spawn_pos
 		player.velocity = Vector2.ZERO
 
@@ -787,7 +801,7 @@ func _on_shadow_spawn_timer_timeout() -> void:
 		return
 	# 在玩家两侧 400-600px 随机刷新, clamp 在老街/断崖范围
 	var side = 1.0 if randf() > 0.5 else -1.0
-	var spawn_x = clampf(player.global_position.x + side * randf_range(400.0, 600.0), 980.0, 3380.0)
+	var spawn_x = clampf(player.global_position.x + side * randf_range(400.0, 600.0), 980.0, 5880.0)
 	var config = load("res://DataConfig/Enemy/ShadowConfig.tres") as EnemyConfig
 	var shadow = _spawn_enemy_with_config(_enemy_slime_scene, Vector2(spawn_x, 540), config)
 	if shadow:
