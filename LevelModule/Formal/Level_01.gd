@@ -266,8 +266,18 @@ func _restore_player_mechanics() -> void:
 	if not player: return
 	player.can_jump = true
 	player.can_dash = true
-	player.can_attack = true
+	# 关卡1设计约束：禁用攻击（本关无敌人，无需攻击；按键也不会触发）
+	# 在关卡模块内拦截，不修改 PlayerBase 核心代码
+	player.can_attack = false
 	player.can_skill = true
+
+## 关卡级技能限制守卫：每帧强制维持 can_attack=false
+## 防止任何外部路径（如未来新增的状态恢复）意外重新启用被禁技能
+func _enforce_level_restrictions() -> void:
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player): return
+	if player.can_attack:
+		player.can_attack = false
 
 func _freeze_player(freeze: bool) -> void:
 	var player = GameManager.player_ref
@@ -358,6 +368,8 @@ func _find_nearby_interactive() -> InteractiveObject:
 
 func _process(delta: float) -> void:
 	if _interact_cooldown > 0.0: _interact_cooldown -= delta
+	# 关卡级技能限制守卫：确保被禁技能不会被任何外部路径意外恢复
+	_enforce_level_restrictions()
 	# IDE 预览 8 秒超时（玩家在 SubViewport 中超过 8 秒无崩溃/出界则强制终止）
 	if current_state == LevelState.IDE_PREVIEW:
 		_ide_preview_timer += delta
