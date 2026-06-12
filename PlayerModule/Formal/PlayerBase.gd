@@ -46,6 +46,7 @@ var dash_timer: float = 0.0
 var is_attacking: bool = false
 var attack_timer: float = 0.0
 var has_hit_this_attack: bool = false
+var _attack_started_in_air: bool = false
 
 # 闪烁
 var _blink_timer: float = 0.0
@@ -112,6 +113,7 @@ func _update_timers(delta: float) -> void:
 		if attack_timer <= 0:
 			is_attacking = false
 			has_hit_this_attack = false
+			_attack_started_in_air = false
 			if is_on_floor():
 				if abs(_get_input_direction().x) > 0.1:
 					_change_state(GlobalDefine.PlayerState.RUN)
@@ -146,6 +148,8 @@ func _on_game_action(action: StringName, _event: InputEvent) -> void:
 
 func _apply_gravity(delta: float) -> void:
 	if is_dashing: return
+	# 空中攻击时悬浮，不施加重力
+	if is_attacking and _attack_started_in_air and not is_on_floor(): return
 	var grav = config.gravity if config else 1200.0
 	if current_state == GlobalDefine.PlayerState.JUMP and not is_on_floor():
 		if is_jump_held and jump_hold_time < max_jump_hold_time:
@@ -210,6 +214,10 @@ func _take_contact_damage(enemy: Node2D) -> void:
 	invincible_timer = 1.5
 	is_attacking = false
 	attack_timer = 0.0
+	_attack_started_in_air = false
+	is_dashing = false
+	dash_timer = 0.0
+	attack_cooldown_timer = 0.0
 	var kb_dir = signf(global_position.x - enemy.global_position.x)
 	if kb_dir == 0:
 		kb_dir = 1.0
@@ -282,11 +290,20 @@ func _handle_fall(delta: float) -> void:
 		_perform_double_jump()
 
 func _handle_attack_state(delta: float) -> void:
-	if is_on_floor():
-		velocity.x = move_toward(velocity.x, 0, _get_move_speed() * 5 * delta)
-	else:
+	if _attack_started_in_air:
+		# 空中攻击：保持横向操控，悬浮
 		velocity.x = move_toward(velocity.x, _get_input_direction().x * _get_move_speed(), _get_move_speed() * 3 * delta)
-		velocity.y += (config.gravity if config else 1200.0) * delta
+		if not is_on_floor():
+			velocity.y = 0.0
+	elif is_on_floor():
+		# 地面攻击：行走时保留一半水平速度，站立时减速到0
+		var target_x = 0.0
+		if abs(velocity.x) > 10.0:
+			target_x = signf(velocity.x) * _get_move_speed() * 0.5
+		velocity.x = move_toward(velocity.x, target_x, _get_move_speed() * 5 * delta)
+	else:
+		# 地面攻击但走出悬崖：正常下落
+		velocity.x = move_toward(velocity.x, _get_input_direction().x * _get_move_speed(), _get_move_speed() * 3 * delta)
 
 func _handle_hurt(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0, _get_move_speed() * 5 * delta)
@@ -319,6 +336,10 @@ func perform_attack() -> void:
 	has_hit_this_attack = false
 	attack_timer = 0.25
 	attack_cooldown_timer = config.attack_cooldown if config else 0.4
+	_attack_started_in_air = not is_on_floor()
+	if _attack_started_in_air:
+		velocity.y = 0.0
+		attack_timer = 0.35
 	_change_state(GlobalDefine.PlayerState.ATTACK)
 	_on_attack()
 
@@ -347,6 +368,10 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 	invincible_timer = config.hurt_invincible_time if config else 1.0
 	is_attacking = false
 	attack_timer = 0.0
+	_attack_started_in_air = false
+	is_dashing = false
+	dash_timer = 0.0
+	attack_cooldown_timer = 0.0
 	if knockback_dir != Vector2.ZERO:
 		velocity = Vector2(knockback_dir.x * (config.hurt_knockback if config else 300.0), -150.0)
 	EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": damage, "current_health": current_health})
