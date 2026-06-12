@@ -31,6 +31,14 @@ var _chat_window: RichTextLabel = null
 var _viewport_container: SubViewportContainer = null
 var _mini_viewport: SubViewport = null
 var _glitch_overlay: ColorRect = null
+var _code_scroll_panel: Panel = null
+var _code_scroll_text: RichTextLabel = null
+
+# 代码滚动状态
+var _code_scroll_active: bool = false
+var _code_scroll_timer: float = 0.0
+var _code_scroll_line_index: int = 0
+var _code_scroll_speed: float = 0.12  # 每行间隔秒数
 
 var _obstacle_box: InteractiveObject = null
 var _obstacle_clothes: InteractiveObject = null
@@ -64,6 +72,95 @@ var _ide_preview_timer: float = 0.0
 const FINAL_BLACKOUT_DURATION: float = 0.8
 const FINAL_AMBIENT_FADE_DURATION: float = 2.5
 const FINAL_GLITCH_DURATION: float = 2.0
+
+# 代码滚动内容：从项目源码提取的代码片段，模拟 AI 实时编写
+const CODE_SCROLL_LINES: Array[String] = [
+	"# Xiguan_Dream v0.1 — 由 CodeBuddy 编译生成",
+	"# 模块: 西关历史地貌重建引擎",
+	"",
+	"class_name XiguanDreamEngine",
+	"extends Node2D",
+	"",
+	"enum DistrictState { INTACT, DEMOLISHED, RECONSTRUCTED }",
+	"var current_state: int = DistrictState.RECONSTRUCTED",
+	"var heritage_score: float = 0.0",
+	"var building_registry: Dictionary = {}",
+	"",
+	"@export var arcade_pillar_spacing: float = 450.0",
+	"@export var manchu_window_opacity: float = 0.85",
+	"@export var stone_road_width: float = 5000.0",
+	'@export var district_name: String = "西关老街"',
+	"@export var camera_limit_right: int = 9200",
+	"@export var spawn_point: Vector2 = Vector2(140, 550)",
+	"",
+	"func _rebuild_street(from: float, to: float) -> void:",
+	"\tvar length = to - from",
+	"\tvar ground = _create_static_body(\"StreetGround\",",
+	"\t\tVector2((from + to) / 2, 620), Vector2(length, 40),",
+	"\t\tColor(0.42, 0.36, 0.3))",
+	"\tadd_child(ground)",
+	"\tvar pillar_count = int(length / arcade_pillar_spacing)",
+	"\tfor i in range(pillar_count):",
+	"\t\tvar pillar = ColorRect.new()",
+	"\t\tpillar.color = Color(0.5, 0.4, 0.3, 0.45)",
+	"\t\tpillar.size = Vector2(40, 360)",
+	"\t\tpillar.position = Vector2(from + 200 + i * arcade_pillar_spacing, 240)",
+	"\t\tadd_child(pillar)",
+	"\tprint(\"[XiguanDream] 老街重建完成: %.0fpx\" % length)",
+	"",
+	"func _compile_manchu_window(pos: Vector2) -> void:",
+	"\tvar window = InteractiveObject.new()",
+	"\twindow.object_id = \"manchu_window\"",
+	"\twindow.position = pos",
+	"\tvar colors = [Color(0.9, 0.2, 0.2), Color(0.2, 0.7, 0.2),",
+	"\t\tColor(0.2, 0.3, 0.9), Color(0.9, 0.8, 0.1)]",
+	"\tfor c in colors:",
+	"\t\tvar shard = ColorRect.new()",
+	"\t\tshard.color = Color(c.r, c.g, c.b, manchu_window_opacity)",
+	"\t\twindow.add_child(shard)",
+	"",
+	"func _spawn_shadow_enemy(spawn_pos: Vector2) -> Node2D:",
+	"\tvar side = 1.0 if randf() > 0.5 else -1.0",
+	"\tvar offset = side * randf_range(400.0, 600.0)",
+	"\tvar x = clampf(spawn_pos.x + offset, 980.0, 8380.0)",
+	"\tvar enemy = _enemy_slime_scene.instantiate()",
+	"\tenemy.global_position = Vector2(x, 540)",
+	"\tenemy.modulate = Color(0, 0, 0, 0.9)",
+	"\treturn enemy",
+	"",
+	"func _apply_heritage_filter() -> void:",
+	"\tmatch current_state:",
+	"\t\tDistrictState.INTACT:",
+	"\t\t\tmodulate = Color(1.0, 0.95, 0.85)",
+	"\t\tDistrictState.DEMOLISHED:",
+	"\t\t\tmodulate = Color(0.4, 0.4, 0.45)",
+	"\t\tDistrictState.RECONSTRUCTED:",
+	"\t\t\tmodulate = Color(0.9, 0.85, 0.75)",
+	"",
+	"func _set_config_value(id: String, value: String) -> void:",
+	'\tmatch id:',
+	'\t\t"player_damage_reduction": config_flags[id] = (value == "true")',
+	'\t\t"base_jump_height": config_flags[id] = int(value)',
+	'\t\t"allow_external_signal": config_flags[id] = (value == "true")',
+	"",
+	"func _update_blink(delta: float) -> void:",
+	"\tif not is_invincible: return",
+	"\t_blink_timer += delta",
+	"\tif _blink_timer >= 0.08:",
+	"\t\t_blink_timer = 0.0",
+	"\t\t_blink_visible = !_blink_visible",
+	"\t\tif _sprite_node: _sprite_node.visible = _blink_visible",
+	"",
+	"func _clamp_camera_to_district() -> void:",
+	"\tvar cam = get_node_or_null(\"SmoothCamera\")",
+	"\tif cam:",
+	"\t\tcam.limit_left = -50",
+	"\t\tcam.limit_right = camera_limit_right",
+	"\t\tcam.limit_top = -500",
+	"\t\tcam.limit_bottom = 1200",
+	"",
+	"# === 编译完成 ===",
+]
 
 
 # ---- 生命周期 ----
@@ -328,8 +425,23 @@ func _handle_accept_input() -> void:
 ## 输入处理 — Enter 交互分发
 ##   主路径: InputManager._unhandled_input() 拦截 ui_accept → game_action 信号 → _on_game_action → _handle_accept_input
 ##   _input() 兜底: 仅当 InputManager 未拦截时执行（理论上不应触发），且受 block_input 守卫保护
+##   例外（输入死锁修复）：叙事面板关闭、IDE对话翻页必须在 block_input 守卫之前处理
+##   （_show_narrative / _enter_ide_mode 调用 block_input 屏蔽游戏交互，
+##    但 Enter 关闭面板/翻页本身不应被阻断，否则输入死锁）
 func _input(event: InputEvent) -> void:
 	if not event.is_action_pressed("ui_accept"):
+		return
+
+	# 叙事面板关闭：必须在 block_input 守卫之前处理，否则输入死锁
+	if _narrative_open:
+		_narrative_enter_pressed = true
+		get_viewport().set_input_as_handled()
+		return
+
+	# IDE 对话翻页：同上，block_input 不应阻断 Enter 翻页本身
+	if current_state == LevelState.IDE_CHAT:
+		_render_next_chat_line()
+		get_viewport().set_input_as_handled()
 		return
 
 	# 兜底路径：必须遵守 block_input 守卫（与 _handle_accept_input 一致）
@@ -386,6 +498,12 @@ func _process(delta: float) -> void:
 	if _is_interacting and current_state not in [LevelState.IDE_CHAT, LevelState.IDE_PREVIEW, LevelState.GLITCH_TRANSIT]:
 		if not _narrative_open and not _sleep_fading:
 			_safe_end_interaction()
+	# 代码滚动：IDE 对话"编译"阶段，右侧面板自动滚屏输出伪代码
+	if _code_scroll_active:
+		_code_scroll_timer += delta
+		if _code_scroll_timer >= _code_scroll_speed:
+			_code_scroll_timer -= _code_scroll_speed
+			_advance_code_scroll()
 
 
 ## 主动轮询所有交互物的玩家接近状态（绕过 body_entered 信号触发失败）
@@ -587,6 +705,73 @@ func _render_next_chat_line() -> void:
 		_: format_text = text + "\n"
 	if _chat_window: _chat_window.append_text(format_text)
 	current_chat_index += 1
+	# 当 CodeBuddy 输出"正在调取西关历史地貌…正在编译代码…"时，启动右侧代码滚动面板
+	# 仅此行触发，用"正在编译"精确匹配（"编译请求"/"编译重构"等不含此前缀）
+	if speaker in ["CodeBuddy", "AI"] and "正在编译" in text:
+		_start_code_scroll()
+
+# ---- 代码滚动面板 ----
+
+func _start_code_scroll() -> void:
+	_code_scroll_active = true
+	_code_scroll_timer = 0.0
+	_code_scroll_line_index = 0
+	if _code_scroll_panel: _code_scroll_panel.show()
+	if _code_scroll_text:
+		_code_scroll_text.text = ""
+		_code_scroll_text.visible = true
+	# 隐藏预览面板标签（如果存在），让代码面板独占右侧
+	var ide = _ide_ui
+	if ide:
+		var preview_tab = ide.get_node_or_null("PreviewTab")
+		if preview_tab: preview_tab.visible = false
+	print("[Level_01] 代码滚动面板启动")
+
+func _advance_code_scroll() -> void:
+	if _code_scroll_line_index >= CODE_SCROLL_LINES.size():
+		_code_scroll_active = false
+		return
+	var line = CODE_SCROLL_LINES[_code_scroll_line_index]
+	_code_scroll_line_index += 1
+	if not _code_scroll_text: return
+	# 语法高亮着色
+	var colored_line: String = _colorize_code_line(line)
+	_code_scroll_text.append_text(colored_line + "\n")
+
+func _colorize_code_line(line: String) -> String:
+	# 空行直接返回
+	if line.strip_edges() == "": return ""
+	# 注释行：暗绿
+	if line.strip_edges().begins_with("#"):
+		return "[color=#6a9955]%s[/color]" % line
+	# 关键字高亮
+	var keywords := ["func ", "var ", "enum ", "class_name ", "extends ", "match ", "for ", "if ", "while ", "return ", "await ", "const ", "@export "]
+	var result: String = line
+	# 先转义 BBCode 特殊字符
+	result = result.replace("[", "")
+	result = result.replace("]", "")
+	# 用 \t 替换制表符（RichTextLabel 不处理 tab）
+	result = result.replace("\t", "    ")
+	# 对关键字着色
+	for kw in keywords:
+		if kw in result:
+			var colored_kw = "[color=#569cd6]%s[/color]" % kw.rstrip(" ")
+			result = result.replace(kw, colored_kw + " ")
+			break
+	# 字符串着色（双引号内）
+	var quote_regex = RegEx.new()
+	quote_regex.compile('"[^"]*"')
+	for m in quote_regex.search_all(result):
+		var s = m.get_string()
+		result = result.replace(s, "[color=#ce9178]%s[/color]" % s)
+	return result
+
+func _stop_code_scroll() -> void:
+	_code_scroll_active = false
+	if _code_scroll_panel: _code_scroll_panel.hide()
+	if _code_scroll_text:
+		_code_scroll_text.visible = false
+		_code_scroll_text.text = ""
 
 func _start_ide_viewport_preview() -> void:
 	# B4 修复: 玩家保持冻结（IDE_PREVIEW 状态期间玩家依然冻结）
@@ -616,6 +801,7 @@ func _on_preview_crashed() -> void:
 	if _mini_viewport:
 		for child in _mini_viewport.get_children(): child.queue_free()
 	if _ide_ui: _ide_ui.hide()
+	_stop_code_scroll()
 	current_state = LevelState.PHONE_RINGING
 	if _phone_node: _phone_node.is_active = true
 	_start_phone_vibration()
@@ -724,6 +910,5 @@ func _emit_level_complete() -> void:
 	EventBus.unsubscribe_all(self)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {
 		"level": self,
-		# TODO: Level_02 尚未创建，由 MainEntry/GameManager 监听 LEVEL_COMPLETE 后接管
-		"next_level": ""
+		"next_level": "res://LevelModule/Formal/Level_02.tscn"
 	})

@@ -128,6 +128,52 @@ func _build_ide_ui() -> void:
 	ide.add_child(chat)
 	level._chat_window = chat
 
+	# 代码滚动面板（IDE 对话"正在编译"阶段显示，替代预览面板位置）
+	var code_panel = Panel.new()
+	code_panel.name = "CodeScrollPanel"
+	code_panel.visible = false
+	code_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	code_panel.anchor_left = 0.52
+	code_panel.offset_left = 15
+	code_panel.offset_top = 55
+	code_panel.offset_right = -20
+	code_panel.offset_bottom = -25
+
+	var code_style = StyleBoxFlat.new()
+	code_style.bg_color = Color(0.04, 0.05, 0.08, 0.95)
+	code_style.border_width_left = 2
+	code_style.border_width_right = 2
+	code_style.border_width_top = 2
+	code_style.border_width_bottom = 2
+	code_style.border_color = Color(0.15, 0.55, 0.3)
+	code_style.set_corner_radius_all(6)
+	code_panel.add_theme_stylebox_override("panel", code_style)
+	ide.add_child(code_panel)
+
+	var code_tab = Label.new()
+	code_tab.name = "CodeTab"
+	code_tab.text = "  Xiguan_Dream.gd  ●  "
+	code_tab.add_theme_font_size_override("font_size", 12)
+	code_tab.add_theme_color_override("font_color", Color(0.3, 0.8, 0.45))
+	code_tab.position = Vector2(678, 42)
+	ide.add_child(code_tab)
+
+	var code_text = RichTextLabel.new()
+	code_text.name = "CodeScrollText"
+	code_text.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	code_text.anchor_left = 0.52
+	code_text.offset_left = 25
+	code_text.offset_top = 68
+	code_text.offset_right = -30
+	code_text.offset_bottom = -35
+	code_text.bbcode_enabled = true
+	code_text.scroll_following = true
+	code_text.add_theme_font_size_override("normal_font_size", 13)
+	code_text.add_theme_color_override("default_color", Color(0.55, 0.9, 0.6))
+	ide.add_child(code_text)
+	level._code_scroll_panel = code_panel
+	level._code_scroll_text = code_text
+
 	# 预览面板
 	var preview_panel = Panel.new()
 	preview_panel.name = "PreviewPanel"
