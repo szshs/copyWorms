@@ -71,9 +71,12 @@ func _update_animation() -> void:
 	if target_anim != _last_anim:
 		_last_anim = target_anim
 		if _anim_sprite.sprite_frames.has_animation(target_anim):
+			if target_anim == "attack_in_air":
+				_anim_sprite.sprite_frames.set_animation_speed("attack_in_air", 18.0)
 			_anim_sprite.play(target_anim)
 			_anim_sprite.frame = 0
-	if target_anim == "jump" and current_state == GlobalDefine.PlayerState.FALL:
+	# jump/fall 帧锁定只在播放 jump 动画时生效，不覆盖攻击等动画
+	if _anim_sprite.animation == "jump" and current_state == GlobalDefine.PlayerState.FALL:
 		if velocity.y < 400:
 			_anim_sprite.frame = 4
 			_anim_sprite.pause()
@@ -82,6 +85,10 @@ func _update_animation() -> void:
 
 func _get_anim_for_state() -> String:
 	var anim = _anim_map.get(current_state, "idle")
+	# 空中攻击时使用独立动画（基于攻击发起时的状态）
+	if current_state == GlobalDefine.PlayerState.ATTACK and _attack_started_in_air:
+		if _anim_sprite.sprite_frames.has_animation("attack_in_air"):
+			return "attack_in_air"
 	return anim if _anim_sprite.sprite_frames.has_animation(anim) else "idle"
 
 # ---- 朝向 ----
