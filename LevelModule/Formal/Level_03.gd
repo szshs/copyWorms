@@ -99,20 +99,20 @@ var _fsm: Level_03_FSM = null
 # 生命周期
 # ============================================================
 
-## 覆写 _setup_player: 凉茶铺阶段使用岭南皮肤
+## 覆写 _setup_player: 凉茶铺阶段使用基础战士（Lingnan场景不可用，见下方注释）
+## 注: Player_Warrior_Lingnan.tscn 根节点缺少 script 绑定 + Sprite 无 SpriteFrames，
+##     导致 can_double_jump 报错 + 人物不可见，且该文件不允许修改，故改用 Player_Warrior
 func _setup_player() -> void:
 	if GameManager.player_ref and is_instance_valid(GameManager.player_ref):
 		return  # 玩家已存在
-	var player_path = "res://PlayerModule/Formal/Player_Warrior_Lingnan.tscn"
-	if not ResourceLoader.exists(player_path):
-		player_path = "res://PlayerModule/Formal/Player_Warrior.tscn"  # 降级
+	var player_path = "res://PlayerModule/Formal/Player_Warrior.tscn"
 	if ResourceLoader.exists(player_path):
 		var player = load(player_path).instantiate()
 		var spawn_pos = level_config.spawn_point if level_config else Vector2(600, 550)
 		player.position = spawn_pos
 		add_child(player)
 		GameManager.register_player(player)
-		print("[Level_03] 玩家创建成功 (岭南皮肤)")
+		print("[Level_03] 玩家创建成功")
 
 func _on_ready() -> void:
 	super._on_ready()

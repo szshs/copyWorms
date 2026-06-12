@@ -4,7 +4,6 @@
 [ext_resource type="Script" path="res://PlayerModule/Formal/SmoothCamera.gd" id="cam_script"]
 
 [node name="Player_Warrior_Lingnan" type="CharacterBody2D"]
-script = ExtResource("1_main")
 
 [node name="SmoothCamera" type="Camera2D" parent="."]
 script = ExtResource("cam_script")
