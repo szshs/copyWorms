@@ -1,0 +1,10 @@
+[gd_scene load_steps=4 format=3 uid="uid://level_03_scene"]
+
+[ext_resource type="Script" path="res://LevelModule/Formal/Level_03.gd" id="1_script"]
+[ext_resource type="Resource" path="res://DataConfig/Level/Level03Config.tres" id="2_config"]
+[ext_resource type="Resource" path="res://DataConfig/Level/Level03Data.tres" id="3_data"]
+
+[node name="Level_03" type="Node2D"]
+script = ExtResource("1_script")
+level_config = ExtResource("2_config")
+level_data = ExtResource("3_data")
