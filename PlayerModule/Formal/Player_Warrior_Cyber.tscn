@@ -4,8 +4,9 @@
 [ext_resource type="Texture2D" uid="uid://bvauchg6wjfpm" path="res://Assets/Sprites/player_cyber Ani/赛博人物待机.png" id="2_idle"]
 [ext_resource type="Texture2D" uid="uid://dscbkxfaq0ooi" path="res://Assets/Sprites/player_cyber Ani/赛博人物行走.png" id="3_walk"]
 [ext_resource type="Texture2D" uid="uid://bdttgdpkwl1st" path="res://Assets/Sprites/player_cyber Ani/赛博人物跳跃.png" id="4_jump"]
+[ext_resource type="Texture2D" uid="uid://bwny7kgveeer5" path="res://Assets/Sprites/player_cyber Ani/赛博人物空中攻击.png" id="4_qyya4"]
 [ext_resource type="Texture2D" uid="uid://dog52n55w6hod" path="res://Assets/Sprites/player_cyber Ani/赛博人物攻击.png" id="5_attack"]
-[ext_resource type="Script" uid="uid://smooth_camera_script" path="res://PlayerModule/Formal/SmoothCamera.gd" id="cam_script"]
+[ext_resource type="Script" uid="uid://np73qk11obav" path="res://PlayerModule/Formal/SmoothCamera.gd" id="cam_script"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_uvyaf"]
 atlas = ExtResource("5_attack")
@@ -26,6 +27,26 @@ region = Rect2(256, 128, 128, 128)
 [sub_resource type="AtlasTexture" id="AtlasTexture_g7cmo"]
 atlas = ExtResource("5_attack")
 region = Rect2(384, 128, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hfd4j"]
+atlas = ExtResource("4_qyya4")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_owtq6"]
+atlas = ExtResource("4_qyya4")
+region = Rect2(128, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rxhwv"]
+atlas = ExtResource("4_qyya4")
+region = Rect2(0, 128, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_twota"]
+atlas = ExtResource("4_qyya4")
+region = Rect2(384, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sxmjw"]
+atlas = ExtResource("4_qyya4")
+region = Rect2(256, 0, 128, 128)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_8slf2"]
 atlas = ExtResource("2_idle")
@@ -227,6 +248,26 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": SubResource("AtlasTexture_hfd4j")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_owtq6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rxhwv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_twota")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sxmjw")
+}],
+"loop": true,
+"name": &"attack_in_air",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": SubResource("AtlasTexture_8slf2")
 }, {
 "duration": 1.0,
@@ -376,10 +417,9 @@ animations = [{
 [node name="Player_Warrior_Cyber" type="CharacterBody2D" unique_id=693168299]
 script = ExtResource("1_main")
 
-[node name="SmoothCamera" type="Camera2D" parent="."]
+[node name="SmoothCamera" type="Camera2D" parent="." unique_id=1739548418]
 script = ExtResource("cam_script")
-position_smoothing_enabled = false
 
 [node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1920920761]
 sprite_frames = SubResource("SpriteFrames_cyber")
-animation = &"attack"
+animation = &"attack_in_air"
