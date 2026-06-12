@@ -664,8 +664,8 @@ func _spawn_street_enemies() -> void:
 		spawn_points = level_data.street_enemy_spawn_points
 	else:
 		spawn_points = [Vector2(1500, 540), Vector2(2100, 540), Vector2(2800, 540)]
-	# 性能约束: 常驻老街敌人 ≤ 3
-	var count = mini(spawn_points.size(), 3)
+	# 性能约束: 常驻老街敌人 ≤ 5（走廊 3x 后人数同步扩展）
+	var count = mini(spawn_points.size(), 5)
 	for i in range(count):
 		var enemy = _spawn_enemy_with_config(_enemy_slime_scene, spawn_points[i], config)
 		if enemy:
@@ -715,7 +715,7 @@ func _trigger_fall_reset() -> void:
 
 	var player = GameManager.player_ref
 	if player and is_instance_valid(player):
-		var spawn_pos = _cliff_safe_spawn.position if _cliff_safe_spawn else Vector2(5840, 550)
+		var spawn_pos = _cliff_safe_spawn.position if _cliff_safe_spawn else Vector2(8340, 550)
 		player.global_position = spawn_pos
 		player.velocity = Vector2.ZERO
 
@@ -801,7 +801,7 @@ func _on_shadow_spawn_timer_timeout() -> void:
 		return
 	# 在玩家两侧 400-600px 随机刷新, clamp 在老街/断崖范围
 	var side = 1.0 if randf() > 0.5 else -1.0
-	var spawn_x = clampf(player.global_position.x + side * randf_range(400.0, 600.0), 980.0, 5880.0)
+	var spawn_x = clampf(player.global_position.x + side * randf_range(400.0, 600.0), 980.0, 8380.0)
 	var config = load("res://DataConfig/Enemy/ShadowConfig.tres") as EnemyConfig
 	var shadow = _spawn_enemy_with_config(_enemy_slime_scene, Vector2(spawn_x, 540), config)
 	if shadow:
