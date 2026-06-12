@@ -42,6 +42,10 @@ var _target: Node2D = null
 var _last_target_x: float = 0.0
 var _lookahead_x: float = 0.0
 
+# ---- 震屏 ----
+var _shake_strength: float = 0.0
+var _shake_decay: float = 10.0
+
 
 func _ready() -> void:
 	# 设为 top_level：脱离父节点 transform 干扰，让 global_position 真正表示世界坐标
@@ -74,6 +78,13 @@ func _ready() -> void:
 
 ## 自动绑定跟随目标，不依赖外部调用 bind_target
 ## 查找顺序: owner(实例化时的父节点) → GameManager.player_ref
+## 触发震屏
+## strength: 初始偏移像素, duration: 持续时间(秒)
+func shake(strength: float = 6.0, duration: float = 0.2) -> void:
+	_shake_strength = strength
+	_shake_decay = strength / maxf(duration, 0.01)
+
+
 func _auto_bind_target() -> void:
 	var candidate: Node2D = null
 	# 1) owner 是最可靠的：SmoothCamera 作为 Player_Warrior 子节点预制时，
@@ -151,4 +162,10 @@ func _physics_process(delta: float) -> void:
 		new_pos.y = clamp(new_pos.y, limit_top + vp_size.y * 0.5, limit_bottom - vp_size.y * 0.5)
 
 	global_position = new_pos
+
+	# ---- 4) 震屏偏移 ----
+	if _shake_strength > 0.1:
+		global_position += Vector2(randf_range(-1, 1), randf_range(-1, 1)) * _shake_strength
+		_shake_strength = maxf(_shake_strength - _shake_decay * delta, 0.0)
+
 	_last_target_x = target_pos.x

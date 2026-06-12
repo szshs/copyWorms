@@ -18,6 +18,8 @@ func _on_ready() -> void:
 		config = load("res://DataConfig/Player/WarriorConfig.tres") as PlayerConfig
 		_apply_config()
 	can_double_jump = true
+	# 订阅命中事件，生成刀光特效
+	EventBus.subscribe(GlobalDefine.EventName.PLAYER_ATTACK_HIT, self, "_on_player_attack_hit")
 
 	# 创建占位视觉（后续子类替换为 AnimatedSprite2D）
 	var sprite = ColorRect.new()
@@ -25,6 +27,7 @@ func _on_ready() -> void:
 	sprite.color = _get_placeholder_color()
 	sprite.size = _get_placeholder_size()
 	sprite.position = -sprite.size / 2
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(sprite)
 	_sprite_node = sprite
 
@@ -136,6 +139,7 @@ func _spawn_attack_effect() -> void:
 	_attack_effect_node.name = "AttackEffect"
 	_attack_effect_node.size = Vector2(55, 10)
 	_attack_effect_node.color = Color(1, 1, 1, 0.9)
+	_attack_effect_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var facing = 1.0 if is_facing_right else -1.0
 	_attack_effect_node.position = global_position + Vector2(facing * 35, -15)
 	parent.add_child(_attack_effect_node)
@@ -183,3 +187,31 @@ func _on_skill() -> void:
 func _on_die() -> void:
 	super._on_die()
 	GameManager.trigger_game_over()
+
+# ---- 刀光特效 ----
+
+func _on_player_attack_hit(data: Dictionary) -> void:
+	var target = data.get("target", null)
+	if not target or not is_instance_valid(target):
+		return
+	_spawn_slash_effect(target, data.get("is_crit", false))
+
+func _spawn_slash_effect(target: Node2D, is_crit: bool = false) -> void:
+	var parent = get_parent()
+	if not parent:
+		return
+	# 攻击方向: 玩家 → 敌人
+	var attack_dir = (target.global_position - global_position).normalized()
+	if attack_dir == Vector2.ZERO:
+		attack_dir = Vector2(1.0 if is_facing_right else -1.0, 0.0)
+	var fx := Sprite2D.new()
+	fx.set_script(load("res://Tools/SlashEffect.gd"))
+	fx.global_position = target.global_position + Vector2(0, -8)  # 稍偏上，命中中心
+	fx.rotation = attack_dir.angle() + randf_range(-0.15, 0.15)
+	if is_crit:
+		fx.set_meta("size_multiplier", 1.5)
+	parent.add_child(fx)
+	# 震屏
+	var cam = get_node_or_null("SmoothCamera")
+	if cam and cam.has_method("shake"):
+		cam.shake(8.0 if is_crit else 4.0, 0.15)

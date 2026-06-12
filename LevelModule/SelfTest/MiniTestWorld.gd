@@ -34,6 +34,7 @@ func _add_platform(name_str: String, pos: Vector2, size: Vector2, col: Color) ->
 	color_rect.color = col
 	color_rect.size = size
 	color_rect.position = -size / 2
+	color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(color_rect)
 	
 	add_child(body)

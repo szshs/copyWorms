@@ -81,6 +81,7 @@ func _show_end_placeholder() -> void:
 	var bg = ColorRect.new()
 	bg.color = Color(0, 0, 0, 1)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(bg)
 	var label = Label.new()
 	label.text = "—— 未完待续 ——\n\n后续关卡正在制作中"
@@ -132,6 +133,7 @@ func _create_ground(pos: Vector2, size: Vector2) -> void:
 	rect.color = Color(0.35, 0.35, 0.4)
 	rect.size = size
 	rect.position = -size / 2
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(rect)
 	add_child(body)
 

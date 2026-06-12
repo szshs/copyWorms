@@ -57,6 +57,7 @@ func _setup_visual() -> void:
 	sprite.color = _get_placeholder_color()
 	sprite.size = _get_placeholder_size()
 	sprite.position = -sprite.size / 2
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(sprite)
 
 	# 残血闪烁边框（独立节点，浮在模型上方，初始隐藏）
@@ -65,6 +66,7 @@ func _setup_visual() -> void:
 	_low_hp_blink.color = Color(1, 0, 0, 0)  # 红色，初始透明
 	_low_hp_blink.size = _get_placeholder_size() + Vector2(6, 6)
 	_low_hp_blink.position = -_low_hp_blink.size / 2
+	_low_hp_blink.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_low_hp_blink)
 
 func _setup_collision() -> void:

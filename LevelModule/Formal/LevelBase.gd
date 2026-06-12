@@ -112,6 +112,7 @@ func create_ground(pos: Vector2, size: Vector2, color: Color = Color(0.4, 0.4, 0
 	rect.color = color
 	rect.size = size
 	rect.position = -size / 2
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(rect)
 
 	add_child(body)

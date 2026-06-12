@@ -32,6 +32,7 @@ func _build_ui() -> void:
 	bar_bg.name = "BarBackground"
 	bar_bg.size = Vector2(280, 36)
 	bar_bg.color = Color(0.15, 0.15, 0.15, 0.9)
+	bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_container.add_child(bar_bg)
 
 	# 填充条（用 ColorRect 手动控制宽度）
@@ -39,6 +40,7 @@ func _build_ui() -> void:
 	bar_fill.name = "BarFill"
 	bar_fill.size = Vector2(280, 36)
 	bar_fill.color = Color(0.85, 0.15, 0.15, 0.95)
+	bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_container.add_child(bar_fill)
 	health_bar = bar_fill  # 赋值给变量，后续更新用
 
