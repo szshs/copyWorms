@@ -7,7 +7,7 @@
 #   1. 全局快捷键(ESC暂停) — 独占处理, 不受 pause 影响
 #   2. 游戏操作信号分发(attack/dash/skill/accept) — 通过 game_action 信号
 #   3. 输入屏蔽 — 暂停/对话/叙事时自动阻断所有游戏操作
-#   4. UI 焦点检测 — 焦点在 Control 上时不发射游戏操作信号
+#   4. 使用 _unhandled_input — GUI 控件消费事件时自动不触发
 #
 # 不接管(保留原有轮询):
 #   - player_jump: 变高跳需要 is_action_pressed 连续状态
@@ -80,6 +80,8 @@ func _should_block_game_input() -> bool:
 func _is_ui_focused() -> bool:
 	var focused = get_viewport().gui_get_focus_owner()
 	return focused != null and focused is Control
+
+
 
 # ================================================================
 #  信号发射

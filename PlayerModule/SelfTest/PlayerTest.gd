@@ -46,6 +46,7 @@ func _create_platform(pos: Vector2, size: Vector2, color: Color) -> void:
 	rect.color = color
 	rect.size = size
 	rect.position = -size / 2
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(rect)
 	add_child(body)
 
@@ -66,7 +67,7 @@ func _create_player_instance(skin_idx: int, pos: Vector2) -> Player_Warrior:
 	var player: Player_Warrior = null
 	if ResourceLoader.exists(skin["path"]):
 		player = load(skin["path"]).instantiate() as Player_Warrior
-	else:
+	if not player:
 		player = Player_Warrior.new()
 	player.config = load("res://DataConfig/Player/WarriorConfig.tres") as PlayerConfig
 	player.position = pos

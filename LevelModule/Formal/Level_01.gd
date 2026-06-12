@@ -179,6 +179,7 @@ func _create_static_body(node_name: String, pos: Vector2, size: Vector2, col: Co
 	color_rect.color = col
 	color_rect.size = size
 	color_rect.position = -size / 2
+	color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(color_rect)
 	return body
 
@@ -220,6 +221,7 @@ func _create_interactive(node_name: String, obj_id: String, pos: Vector2, size: 
 	indicator.color = Color(0.5, 0.5, 0.5, 0.3)
 	indicator.size = size
 	indicator.position = -size / 2
+	indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	obj.add_child(indicator)
 	return obj
 

@@ -46,6 +46,7 @@ func _build_dream_world() -> void:
 	attic_glow.color = Color(1.0, 0.75, 0.4, 0.12)
 	attic_glow.size = Vector2(900, 600)
 	attic_glow.position = Vector2(0, 0)
+	attic_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dream.add_child(attic_glow)
 
 	# ---- B 老街 (900-5900, 2x 延伸) ----
@@ -57,6 +58,7 @@ func _build_dream_world() -> void:
 		pillar.color = Color(0.5, 0.4, 0.3, 0.45)
 		pillar.size = Vector2(40, 360)
 		pillar.position = Vector2(1100 + i * 450, 240)
+		pillar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		dream.add_child(pillar)
 
 	# ---- C 断崖 (5900-6370, 1/3 缩窄) ----
@@ -68,6 +70,7 @@ func _build_dream_world() -> void:
 	far_shore.color = Color(0.4, 0.32, 0.26, 0.85)
 	far_shore.size = Vector2(300, 140)
 	far_shore.position = Vector2(6327, 600)
+	far_shore.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dream.add_child(far_shore)
 	# 对岸凉茶铺剪影（装饰）
 	var tea_shop = ColorRect.new()
@@ -75,6 +78,7 @@ func _build_dream_world() -> void:
 	tea_shop.color = Color(0.3, 0.22, 0.15, 0.9)
 	tea_shop.size = Vector2(180, 160)
 	tea_shop.position = Vector2(6387, 440)
+	tea_shop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dream.add_child(tea_shop)
 	# 凉茶铺暖光
 	var shop_glow = ColorRect.new()
@@ -82,6 +86,7 @@ func _build_dream_world() -> void:
 	shop_glow.color = Color(1.0, 0.7, 0.3, 0.35)
 	shop_glow.size = Vector2(60, 50)
 	shop_glow.position = Vector2(6447, 520)
+	shop_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dream.add_child(shop_glow)
 	# 爷爷剪影
 	var grandpa = ColorRect.new()
@@ -89,6 +94,7 @@ func _build_dream_world() -> void:
 	grandpa.color = Color(0.12, 0.1, 0.08, 0.95)
 	grandpa.size = Vector2(36, 70)
 	grandpa.position = Vector2(6467, 530)
+	grandpa.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dream.add_child(grandpa)
 	# 深渊视觉（黑色渐变区域，无碰撞）— 宽度 1010→337
 	var abyss = ColorRect.new()
@@ -96,6 +102,7 @@ func _build_dream_world() -> void:
 	abyss.color = Color(0.02, 0.02, 0.05, 0.92)
 	abyss.size = Vector2(337, 400)
 	abyss.position = Vector2(5990, 680)
+	abyss.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dream.add_child(abyss)
 
 # ============================================================
@@ -117,12 +124,14 @@ func _build_reality_room() -> void:
 	trash.color = Color(0.25, 0.28, 0.22, 0.9)
 	trash.size = Vector2(70, 60)
 	trash.position = Vector2(500, 540)
+	trash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reality.add_child(trash)
 	var trash_spill = ColorRect.new()
 	trash_spill.name = "TrashSpill"
 	trash_spill.color = Color(0.2, 0.22, 0.18, 0.7)
 	trash_spill.size = Vector2(130, 14)
 	trash_spill.position = Vector2(470, 588)
+	trash_spill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reality.add_child(trash_spill)
 
 	# 空速食碗（装饰）
@@ -131,6 +140,7 @@ func _build_reality_room() -> void:
 	noodle.color = Color(0.5, 0.45, 0.38, 0.85)
 	noodle.size = Vector2(36, 18)
 	noodle.position = Vector2(900, 584)
+	noodle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reality.add_child(noodle)
 
 	# 整体灰暗化

@@ -295,6 +295,10 @@ func _handle_attack_state(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, _get_input_direction().x * _get_move_speed(), _get_move_speed() * 3 * delta)
 		if not is_on_floor():
 			velocity.y = 0.0
+			# 空中攻击期间允许二段跳
+			if can_jump and can_double_jump and not has_double_jumped and _input_jump_just_pressed():
+				_perform_double_jump()
+				return
 	elif is_on_floor():
 		# 地面攻击：行走时保留一半水平速度，站立时减速到0
 		var target_x = 0.0
