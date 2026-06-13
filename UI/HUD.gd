@@ -84,6 +84,7 @@ func _build_ui() -> void:
 	back_btn.position = Vector2(1120, 20)
 	back_btn.size = Vector2(140, 36)
 	back_btn.add_theme_font_size_override("font_size", 14)
+	back_btn.focus_mode = Control.FOCUS_NONE
 	back_btn.pressed.connect(_on_back_pressed)
 	add_child(back_btn)
 
@@ -111,6 +112,7 @@ func _build_ui() -> void:
 	resume_btn.position = Vector2(540, 340)
 	resume_btn.size = Vector2(200, 44)
 	resume_btn.add_theme_font_size_override("font_size", 16)
+	resume_btn.focus_mode = Control.FOCUS_NONE
 	resume_btn.pressed.connect(_on_resume_pressed)
 	pause_panel.add_child(resume_btn)
 
@@ -119,6 +121,7 @@ func _build_ui() -> void:
 	back_btn2.position = Vector2(540, 400)
 	back_btn2.size = Vector2(200, 44)
 	back_btn2.add_theme_font_size_override("font_size", 16)
+	back_btn2.focus_mode = Control.FOCUS_NONE
 	back_btn2.pressed.connect(_on_back_pressed)
 	pause_panel.add_child(back_btn2)
 
@@ -146,6 +149,7 @@ func _build_ui() -> void:
 	restart_btn.position = Vector2(540, 340)
 	restart_btn.size = Vector2(200, 44)
 	restart_btn.add_theme_font_size_override("font_size", 16)
+	restart_btn.focus_mode = Control.FOCUS_NONE
 	restart_btn.pressed.connect(_on_restart_pressed)
 	game_over_panel.add_child(restart_btn)
 
@@ -154,6 +158,7 @@ func _build_ui() -> void:
 	back_btn3.position = Vector2(540, 400)
 	back_btn3.size = Vector2(200, 44)
 	back_btn3.add_theme_font_size_override("font_size", 16)
+	back_btn3.focus_mode = Control.FOCUS_NONE
 	back_btn3.pressed.connect(_on_back_pressed)
 	game_over_panel.add_child(back_btn3)
 
