@@ -11,6 +11,7 @@ var state_label: Label
 var mode_label: Label
 var pause_panel: Panel
 var game_over_panel: Panel
+var _keybind_dim: Panel = null
 
 func _ready() -> void:
 	# 关键：暂停时 HUD 必须继续运行，否则按钮无法响应
@@ -114,9 +115,17 @@ func _build_ui() -> void:
 	resume_btn.pressed.connect(_on_resume_pressed)
 	pause_panel.add_child(resume_btn)
 
+	var keybind_btn = Button.new()
+	keybind_btn.text = "按键设置"
+	keybind_btn.position = Vector2(540, 400)
+	keybind_btn.size = Vector2(200, 44)
+	keybind_btn.add_theme_font_size_override("font_size", 16)
+	keybind_btn.pressed.connect(_on_keybind_settings_pressed)
+	pause_panel.add_child(keybind_btn)
+
 	var back_btn2 = Button.new()
 	back_btn2.text = "返回主界面"
-	back_btn2.position = Vector2(540, 400)
+	back_btn2.position = Vector2(540, 460)
 	back_btn2.size = Vector2(200, 44)
 	back_btn2.add_theme_font_size_override("font_size", 16)
 	back_btn2.pressed.connect(_on_back_pressed)
@@ -215,3 +224,31 @@ func _on_restart_pressed() -> void:
 func _on_back_pressed() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://UI/TitleScreen.tscn")
+
+func _on_keybind_settings_pressed() -> void:
+	pause_panel.hide()
+	# 用和暂停面板完全一样的方式创建变暗遮罩（Panel.new + StyleBoxFlat）
+	_keybind_dim = Panel.new()
+	_keybind_dim.name = "KeybindDimPanel"
+	_keybind_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var dim_style := StyleBoxFlat.new()
+	dim_style.bg_color = Color(0, 0, 0, 0.6)
+	_keybind_dim.add_theme_stylebox_override("panel", dim_style)
+	add_child(_keybind_dim)
+	# 创建按键设置界面
+	var scene: PackedScene = load("res://UI/KeybindSettingsScreen.tscn")
+	if scene:
+		var screen: Control = scene.instantiate()
+		screen.closed.connect(_on_keybind_screen_closed)
+		add_child(screen)
+	else:
+		push_error("[HUD] 无法加载按键设置界面")
+		_keybind_dim.queue_free()
+		_keybind_dim = null
+		pause_panel.show()
+
+func _on_keybind_screen_closed() -> void:
+	if _keybind_dim:
+		_keybind_dim.queue_free()
+		_keybind_dim = null
+	pause_panel.show()

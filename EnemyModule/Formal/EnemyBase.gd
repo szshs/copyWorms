@@ -191,17 +191,24 @@ func _ai_chase(delta: float) -> void:
 		_change_state(GlobalDefine.EnemyState.IDLE)
 		return
 
-	var dir = signf(target.global_position.x - global_position.x)
-	var speed = config.move_speed if config else 100.0
-	var multiplier = config.chase_speed_multiplier if config else 1.8
-	velocity.x = dir * speed * multiplier
+	var dist = global_position.distance_to(target.global_position)
+	var attack_range = config.attack_range if config else 40.0
+
+	if dist <= attack_range:
+		# 到达攻击范围，减速停下
+		velocity.x = move_toward(velocity.x, 0, 300 * delta)
+		if _can_attack_target():
+			_change_state(GlobalDefine.EnemyState.ATTACK)
+			return
+	else:
+		var dir = signf(target.global_position.x - global_position.x)
+		var speed = config.move_speed if config else 100.0
+		var multiplier = config.chase_speed_multiplier if config else 1.8
+		velocity.x = dir * speed * multiplier
 
 	if not _can_detect_target():
 		_change_state(GlobalDefine.EnemyState.IDLE)
 		return
-
-	if _can_attack_target():
-		_change_state(GlobalDefine.EnemyState.ATTACK)
 
 func _ai_attack(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0, 300 * delta)

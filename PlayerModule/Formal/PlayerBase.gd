@@ -48,6 +48,11 @@ var attack_timer: float = 0.0
 var has_hit_this_attack: bool = false
 var _attack_started_in_air: bool = false
 
+# 攻击前摇
+var _attack_windup_pending: bool = false
+var _attack_windup_timer: float = 0.0
+const ATTACK_WINDUP_TIME: float = 0.1
+
 # 闪烁
 var _blink_timer: float = 0.0
 var _blink_visible: bool = true
@@ -108,6 +113,12 @@ func _update_timers(delta: float) -> void:
 	if is_dashing:
 		dash_timer -= delta
 		if dash_timer <= 0: is_dashing = false
+	# 攻击前摇倒计时
+	if _attack_windup_pending:
+		_attack_windup_timer -= delta
+		if _attack_windup_timer <= 0:
+			_attack_windup_pending = false
+			_on_attack()
 	if is_attacking:
 		attack_timer -= delta
 		if attack_timer <= 0:
@@ -132,8 +143,14 @@ func _handle_input() -> void:
 ## 阶段3: InputManager 游戏操作信号回调
 ## 处理 attack/dash/skill（跳跃保留在状态机的轮询中）
 func _on_game_action(action: StringName, _event: InputEvent) -> void:
-	# 受击/死亡/攻击/冲刺中不允许发起攻击
-	if is_attacking or is_dashing or current_state in [GlobalDefine.PlayerState.HURT, GlobalDefine.PlayerState.DEAD]:
+	# 死亡状态不响应任何操作
+	if current_state == GlobalDefine.PlayerState.DEAD:
+		return
+	# 受击状态：hit 动画可被任意操作取消（子类 _has_hit_anim 控制是否启用）
+	if current_state == GlobalDefine.PlayerState.HURT and _can_cancel_hurt():
+		_cancel_hurt()
+	# 攻击/冲刺中不允许发起攻击
+	if is_attacking or is_dashing:
 		return
 	match action:
 		&"player_attack":
@@ -177,6 +194,7 @@ func _handle_state(delta: float) -> void:
 
 func _update_facing() -> void:
 	if is_dashing: return
+	if current_state == GlobalDefine.PlayerState.HURT: return
 	if velocity.x > 10: is_facing_right = true; scale.x = 1
 	elif velocity.x < -10: is_facing_right = false; scale.x = -1
 
@@ -215,6 +233,7 @@ func _take_contact_damage(enemy: Node2D) -> void:
 	is_attacking = false
 	attack_timer = 0.0
 	_attack_started_in_air = false
+	_attack_windup_pending = false
 	is_dashing = false
 	dash_timer = 0.0
 	attack_cooldown_timer = 0.0
@@ -222,12 +241,29 @@ func _take_contact_damage(enemy: Node2D) -> void:
 	if kb_dir == 0:
 		kb_dir = 1.0
 	velocity = Vector2(kb_dir * 300.0, -200.0)
+	# 受击时推开周围敌人，防止无敌结束后立刻再次被贴身
+	_push_nearby_enemies(120.0)
 	EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": atk, "current_health": current_health})
 	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": self, "current_health": current_health, "max_health": max_health})
 	if current_health <= 0:
 		die()
 	else:
 		_change_state(GlobalDefine.PlayerState.HURT)
+
+## 受击时推开周围敌人，防止贴身连击
+func _push_nearby_enemies(push_force: float) -> void:
+	for enemy in GameManager.get_enemies():
+		if not is_instance_valid(enemy):
+			continue
+		var dist = global_position.distance_to(enemy.global_position)
+		if dist < 80.0:
+			var push_dir = signf(enemy.global_position.x - global_position.x)
+			if push_dir == 0:
+				push_dir = 1.0
+			enemy.velocity.x = push_dir * push_force
+			enemy.velocity.y = -80.0
+			if enemy.has_method("set") and "stun_timer" in enemy:
+				enemy.stun_timer = 0.3
 
 func _change_state(new_state: int) -> void:
 	if current_state == GlobalDefine.PlayerState.DEAD: return
@@ -311,8 +347,28 @@ func _handle_attack_state(delta: float) -> void:
 
 func _handle_hurt(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0, _get_move_speed() * 5 * delta)
+	# hit 动画可被跳跃取消
+	if _can_cancel_hurt() and can_jump and _input_jump_just_pressed():
+		_cancel_hurt()
+		_perform_jump()
+		return
+	# 正常恢复
 	if is_on_floor() and abs(velocity.x) < 10:
 		_change_state(GlobalDefine.PlayerState.IDLE)
+
+## 判断受击状态是否可被操作取消（子类可覆盖）
+func _can_cancel_hurt() -> bool:
+	return true
+
+## 取消受击状态，恢复为可操作状态（保留无敌时间，防止立刻再次被击中）
+func _cancel_hurt() -> void:
+	if is_on_floor():
+		if abs(_get_input_direction().x) > 0.1:
+			_change_state(GlobalDefine.PlayerState.RUN)
+		else:
+			_change_state(GlobalDefine.PlayerState.IDLE)
+	else:
+		_change_state(GlobalDefine.PlayerState.FALL)
 
 func _handle_dead(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0, 500 * delta)
@@ -338,14 +394,16 @@ func perform_attack() -> void:
 		return
 	is_attacking = true
 	has_hit_this_attack = false
-	attack_timer = 0.25
+	attack_timer = 0.25 + ATTACK_WINDUP_TIME
 	attack_cooldown_timer = config.attack_cooldown if config else 0.4
 	_attack_started_in_air = not is_on_floor()
 	if _attack_started_in_air:
 		velocity.y = 0.0
-		attack_timer = 0.35
+		attack_timer = 0.35 + ATTACK_WINDUP_TIME
 	_change_state(GlobalDefine.PlayerState.ATTACK)
-	_on_attack()
+	# 前摇延迟：动画立即播放，0.1s 后才打出伤害
+	_attack_windup_pending = true
+	_attack_windup_timer = ATTACK_WINDUP_TIME
 
 func perform_dash() -> void:
 	if dash_cooldown_timer > 0 or is_dashing:
@@ -373,11 +431,14 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 	is_attacking = false
 	attack_timer = 0.0
 	_attack_started_in_air = false
+	_attack_windup_pending = false
 	is_dashing = false
 	dash_timer = 0.0
 	attack_cooldown_timer = 0.0
 	if knockback_dir != Vector2.ZERO:
 		velocity = Vector2(knockback_dir.x * (config.hurt_knockback if config else 300.0), -150.0)
+	# 受击时推开周围敌人，防止贴身连击
+	_push_nearby_enemies(120.0)
 	EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": damage, "current_health": current_health})
 	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": self, "current_health": current_health, "max_health": max_health})
 	if current_health <= 0:

@@ -45,6 +45,7 @@ func _build_safe_haven() -> void:
 	banyan_trunk.color = Color(0.3, 0.2, 0.12, 0.95)
 	banyan_trunk.size = Vector2(60, 200)
 	banyan_trunk.position = Vector2(270, 400)
+	banyan_trunk.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	haven.add_child(banyan_trunk)
 
 	var banyan_crown = ColorRect.new()
@@ -52,6 +53,7 @@ func _build_safe_haven() -> void:
 	banyan_crown.color = Color(0.2, 0.45, 0.15, 0.7)
 	banyan_crown.size = Vector2(200, 140)
 	banyan_crown.position = Vector2(200, 280)
+	banyan_crown.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	haven.add_child(banyan_crown)
 
 	# 凉茶铺柜台
@@ -60,6 +62,7 @@ func _build_safe_haven() -> void:
 	counter.color = Color(0.4, 0.25, 0.15, 0.95)
 	counter.size = Vector2(250, 60)
 	counter.position = Vector2(650, 530)
+	counter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	haven.add_child(counter)
 	# 柜台物理阻挡
 	haven.add_child(level._create_static_body("CounterBlock", Vector2(775, 590), Vector2(250, 60), Color(0.4, 0.25, 0.15)))
@@ -70,6 +73,7 @@ func _build_safe_haven() -> void:
 	stove_fire.color = Color(1.0, 0.5, 0.15, 0.9)
 	stove_fire.size = Vector2(40, 30)
 	stove_fire.position = Vector2(680, 500)
+	stove_fire.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	haven.add_child(stove_fire)
 
 	# 满洲窗（装饰，右侧墙上方）
@@ -78,6 +82,7 @@ func _build_safe_haven() -> void:
 	window_rect.color = Color(0.9, 0.2, 0.2, 0.6)
 	window_rect.size = Vector2(50, 70)
 	window_rect.position = Vector2(1050, 300)
+	window_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	haven.add_child(window_rect)
 
 	# 全局暖光覆盖（过曝感）
@@ -87,6 +92,7 @@ func _build_safe_haven() -> void:
 	warm_glow.size = Vector2(1200, 600)
 	warm_glow.position = Vector2(0, 0)
 	warm_glow.z_index = -1
+	warm_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	haven.add_child(warm_glow)
 
 	# 凉茶铺屋顶
@@ -95,6 +101,7 @@ func _build_safe_haven() -> void:
 	roof.color = Color(0.35, 0.22, 0.12, 0.9)
 	roof.size = Vector2(350, 80)
 	roof.position = Vector2(600, 240)
+	roof.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	haven.add_child(roof)
 
 
@@ -124,6 +131,7 @@ func _build_cyber_city() -> void:
 			neon.color = Color(0.1, 0.3, 0.9, 0.7)  # 蓝
 		neon.size = Vector2(120, 8)
 		neon.position = Vector2(400 + i * 580, 200 + (i % 3) * 80)
+		neon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cyber.add_child(neon)
 
 	# ---- 金属管道（粗壮黑色管道从地底破出）----
@@ -133,6 +141,7 @@ func _build_cyber_city() -> void:
 		pipe.color = Color(0.08, 0.08, 0.12, 0.95)
 		pipe.size = Vector2(20, 250 + (i % 3) * 50)
 		pipe.position = Vector2(800 + i * 1400, 370)
+		pipe.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cyber.add_child(pipe)
 
 	# ---- 集装箱楼房（堆叠的方块）----
@@ -142,6 +151,7 @@ func _build_cyber_city() -> void:
 		container.color = Color(0.1, 0.1, 0.15, 0.85)
 		container.size = Vector2(120 + (i % 3) * 40, 180 + (i % 4) * 60)
 		container.position = Vector2(300 + i * 780, 300 - (i % 3) * 40)
+		container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cyber.add_child(container)
 
 	# ---- 趟栊门畸形缝合（集装箱上的老门装饰）----
@@ -151,6 +161,7 @@ func _build_cyber_city() -> void:
 		door.color = Color(0.4, 0.3, 0.2, 0.5)  # 旧木色半透明
 		door.size = Vector2(40, 100)
 		door.position = Vector2(1200 + i * 1800, 420)
+		door.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cyber.add_child(door)
 
 	# ---- 全息广告（巨大刺眼文字区域，无碰撞）----
@@ -159,6 +170,7 @@ func _build_cyber_city() -> void:
 	hologram_1.color = Color(0.9, 0.1, 0.3, 0.35)
 	hologram_1.size = Vector2(400, 120)
 	hologram_1.position = Vector2(3000, 150)
+	hologram_1.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cyber.add_child(hologram_1)
 
 	var hologram_2 = ColorRect.new()
@@ -166,6 +178,7 @@ func _build_cyber_city() -> void:
 	hologram_2.color = Color(0.1, 0.3, 0.9, 0.35)
 	hologram_2.size = Vector2(350, 100)
 	hologram_2.position = Vector2(6500, 180)
+	hologram_2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cyber.add_child(hologram_2)
 
 	var hologram_3 = ColorRect.new()
@@ -173,6 +186,7 @@ func _build_cyber_city() -> void:
 	hologram_3.color = Color(0.0, 1.0, 0.25, 0.25)
 	hologram_3.size = Vector2(300, 90)
 	hologram_3.position = Vector2(9500, 200)
+	hologram_3.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cyber.add_child(hologram_3)
 
 	# ---- 光团区域装饰（赛博最深处的废墟）----
@@ -182,6 +196,7 @@ func _build_cyber_city() -> void:
 	ruins_1.color = Color(0.12, 0.12, 0.18, 0.8)
 	ruins_1.size = Vector2(300, 150)
 	ruins_1.position = Vector2(8250, 380)
+	ruins_1.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cyber.add_child(ruins_1)
 
 	# 光团2周围：更大废墟
@@ -190,6 +205,7 @@ func _build_cyber_city() -> void:
 	ruins_2.color = Color(0.12, 0.12, 0.18, 0.8)
 	ruins_2.size = Vector2(350, 180)
 	ruins_2.position = Vector2(10650, 360)
+	ruins_2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cyber.add_child(ruins_2)
 
 	# ---- 全息监控眼（凉茶铺废墟上方，异化后出现）----
@@ -198,6 +214,7 @@ func _build_cyber_city() -> void:
 	eye.color = Color(1.0, 0.0, 0.0, 0.0)  # 初始不可见
 	eye.size = Vector2(80, 80)
 	eye.position = Vector2(360, 350)
+	eye.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cyber.add_child(eye)
 
 	# 初始隐藏
