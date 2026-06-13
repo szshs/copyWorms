@@ -1,14 +1,13 @@
-[gd_resource type="Resource" script_class="LevelConfig" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="LevelConfig" load_steps=2 format=3 uid="uid://level03_config"]
 
-[ext_resource type="Script" path="res://DataConfig/Level/LevelConfig.gd" id="1_cfg"]
+[ext_resource type="Script" path="res://DataConfig/Level/LevelConfig.gd" id="1_script"]
 
 [resource]
-script = ExtResource("1_cfg")
+script = ExtResource("1_script")
 level_name = "赛博蜃景与真实回声"
-level_id = "level_03"
-bg_color = Color(0.04, 0.04, 0.08, 1)
 camera_limit_left = -50
-camera_limit_right = 12200
+camera_limit_right = 15600
 camera_limit_top = -500
 camera_limit_bottom = 1200
 spawn_point = Vector2(400, 550)
+bg_color = Color(0.12, 0.1, 0.08, 1)
