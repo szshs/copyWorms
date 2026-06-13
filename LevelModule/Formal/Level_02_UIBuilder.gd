@@ -50,6 +50,7 @@ func _build_narrative_panel() -> void:
 	panel.visible = false
 	panel.size = Vector2(1280, 200)
 	panel.position = Vector2(0, 520)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0, 0, 0, 0.85)
@@ -64,6 +65,7 @@ func _build_narrative_panel() -> void:
 	label.fit_content = true
 	label.add_theme_font_size_override("normal_font_size", 18)
 	label.add_theme_color_override("default_color", Color(0.9, 0.85, 0.75))
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(label)
 	level._narrative_text = label
 
@@ -92,6 +94,7 @@ func _build_red_warning_overlay() -> void:
 	hint.add_theme_color_override("font_color", Color(1, 0.85, 0.85, 0.95))
 	hint.position = Vector2(440, 70)
 	hint.size = Vector2(400, 40)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(hint)
 	level._wake_hint_label = hint
 
@@ -103,6 +106,7 @@ func _build_phone_message_overlay() -> void:
 	panel.visible = false
 	panel.size = Vector2(380, 180)
 	panel.position = Vector2(870, 30)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.05, 0.05, 0.08, 0.92)
@@ -245,6 +249,7 @@ func _build_ide_ui() -> void:
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Color(0.5, 0.6, 0.7))
 	hint.position = Vector2(1080, 678)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ide.add_child(hint)
 
 	canvas.add_child(ide)

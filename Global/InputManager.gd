@@ -7,7 +7,7 @@
 #   1. 全局快捷键(ESC暂停) — 独占处理, 不受 pause 影响
 #   2. 游戏操作信号分发(attack/dash/skill/accept) — 通过 game_action 信号
 #   3. 输入屏蔽 — 暂停/对话/叙事时自动阻断所有游戏操作
-#   4. 使用 _unhandled_input — GUI 控件消费事件时自动不触发
+#   4. 使用 _input + CanvasLayer GUI 检测 — 鼠标在 HUD 按钮上时不触发游戏操作
 #
 # 不接管(保留原有轮询):
 #   - player_jump: 变高跳需要 is_action_pressed 连续状态
@@ -36,6 +36,9 @@ var block_reason: String = ""
 ## 屏蔽引用计数（栈式: block++, unblock--; 为0时才真正解除）
 var _block_count: int = 0
 
+## 暂停切换允许标志（按键设置界面打开时禁止）
+var _pause_allowed: bool = true
+
 ## 本帧捕获的动作（用于外部查询）
 var captured_this_frame: StringName = &""
 
@@ -46,16 +49,22 @@ func _ready() -> void:
 #  核心输入处理
 # ================================================================
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	# ---- 全局快捷键（始终响应，不受守卫影响）----
 	
 	if event.is_action_pressed("ui_pause"):
-		_handle_pause()
+		if _pause_allowed:
+			_handle_pause()
 		return
 	
 	# ---- 守卫检查 ----
 	if _should_block_game_input():
 		return
+	
+	# ---- 鼠标事件：鼠标在可交互 GUI 控件上时不分发游戏操作 ----
+	if event is InputEventMouseButton:
+		if _is_mouse_over_interactive_gui(event as InputEventMouse):
+			return
 	
 	# ---- 游戏操作键识别与分发 ----
 	var action := _identify_game_action(event)
@@ -80,6 +89,55 @@ func _should_block_game_input() -> bool:
 func _is_ui_focused() -> bool:
 	var focused = get_viewport().gui_get_focus_owner()
 	return focused != null and focused is Control
+
+## 检测鼠标是否在可交互的 GUI 控件上（mouse_filter != IGNORE）
+## 策略: 只检查"真正的 UI 区域"，跳过 Node2D 场景中的装饰性 Control
+##   - CanvasLayer 子树: HUD 按钮、暂停面板等（可能嵌套在 Node2D 场景根内）
+##   - Control 场景根: TitleScreen 等纯 UI 场景
+##   - 不检查 Node2D 下的 Control: 关卡地形 ColorRect 等装饰节点
+func _is_mouse_over_interactive_gui(event: InputEventMouse) -> bool:
+	var vp = get_viewport()
+	if not vp:
+		return false
+	var mouse_pos = event.global_position
+	for child in vp.get_children():
+		if child is Control:
+			# Control 场景根 (TitleScreen) → 检查整个子树
+			if _find_interactive_control_at_pos(child, mouse_pos):
+				return true
+		elif child is CanvasLayer:
+			# 直接 CanvasLayer 子节点 → 检查整个子树
+			if _find_interactive_control_at_pos(child, mouse_pos):
+				return true
+		else:
+			# Node2D 场景根 → 只穿透查找嵌套的 CanvasLayer，不检查其下的 Control
+			if _find_canvas_layer_gui_at_pos(child, mouse_pos):
+				return true
+	return false
+
+## 在节点子树中查找鼠标位置下的可交互 Control（完整递归）
+func _find_interactive_control_at_pos(node: Node, pos: Vector2) -> bool:
+	if node is Control:
+		var ctrl = node as Control
+		if ctrl.visible and ctrl.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			if ctrl.get_global_rect().has_point(pos):
+				return true
+	for child in node.get_children():
+		if _find_interactive_control_at_pos(child, pos):
+			return true
+	return false
+
+## 在 Node2D 场景根中穿透查找 CanvasLayer，找到后检查其子树的交互控件
+## 关键: 跳过 Node2D 下的 Control（地形 ColorRect），只进入 CanvasLayer 子树
+func _find_canvas_layer_gui_at_pos(node: Node, pos: Vector2) -> bool:
+	for child in node.get_children():
+		if child is CanvasLayer:
+			if _find_interactive_control_at_pos(child, pos):
+				return true
+		# 继续递归查找更深层的 CanvasLayer
+		if _find_canvas_layer_gui_at_pos(child, pos):
+			return true
+	return false
 
 
 
@@ -142,3 +200,7 @@ func unblock_input(_reason: String = "") -> void:
 		is_input_blocked = false
 		block_reason = ""
 		_block_count = 0
+
+## 设置是否允许暂停切换（按键设置界面打开时设为 false，关闭时恢复 true）
+func set_pause_allowed(allowed: bool) -> void:
+	_pause_allowed = allowed
