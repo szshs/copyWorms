@@ -9,6 +9,10 @@ var _anim_sprite: AnimatedSprite2D = null
 var _last_anim: String = ""
 var _anim_map: Dictionary = {}
 
+# 子类标记：是否有专属 hit / defeated 动画
+var _has_hit_anim: bool = false
+var _has_defeated_anim: bool = false
+
 # 攻击特效（战士特有）
 var _attack_effect_node: ColorRect = null
 
@@ -78,6 +82,11 @@ func _update_animation() -> void:
 				_anim_sprite.sprite_frames.set_animation_speed("attack_in_air", 18.0)
 			_anim_sprite.play(target_anim)
 			_anim_sprite.frame = 0
+	# defeated 动画播完即停（不循环）
+	if target_anim == "defeated" and _anim_sprite.is_playing():
+		if not _anim_sprite.sprite_frames.get_animation_loop("defeated"):
+			if _anim_sprite.frame >= _anim_sprite.sprite_frames.get_frame_count("defeated") - 1:
+				_anim_sprite.pause()
 	# jump/fall 帧锁定只在播放 jump 动画时生效，不覆盖攻击等动画
 	if _anim_sprite.animation == "jump" and current_state == GlobalDefine.PlayerState.FALL:
 		if velocity.y < 400:
@@ -98,6 +107,7 @@ func _get_anim_for_state() -> String:
 
 func _update_facing_override() -> void:
 	if is_dashing: return
+	if current_state == GlobalDefine.PlayerState.HURT: return
 	if velocity.x > 10:
 		scale.x = 1; is_facing_right = true
 		if _anim_sprite: _anim_sprite.flip_h = false
@@ -113,7 +123,7 @@ func _on_attack() -> void:
 		return
 	has_hit_this_attack = true
 
-	_spawn_attack_effect()
+	# _spawn_attack_effect()  # 白色方块演示特效已隐藏
 	var attack_dir := _get_attack_direction()
 	var attack_center = global_position + attack_dir * 40
 	var attack_range = config.attack_range if config else 80.0
