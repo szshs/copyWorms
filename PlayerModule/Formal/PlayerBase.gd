@@ -24,6 +24,7 @@ var current_health: int = 100
 var max_health: int = 100
 var is_invincible: bool = false
 var is_facing_right: bool = true
+var _is_super_armor: bool = false  # 霸体：受击不击退不中断
 var can_double_jump: bool = false
 var has_double_jumped: bool = false
 
@@ -228,6 +229,15 @@ func _take_contact_damage(enemy: Node2D) -> void:
 	if enemy.has_method("_get_placeholder_color") and enemy.config:
 		atk = enemy.config.attack_damage
 	current_health = maxi(current_health - atk, 0)
+	# 霸体：只扣血，不击退不中断，但仍需无敌帧防止连续受伤
+	if _is_super_armor:
+		is_invincible = true
+		invincible_timer = config.hurt_invincible_time if config else 1.0
+		EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": atk, "current_health": current_health})
+		EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": self, "current_health": current_health, "max_health": max_health})
+		if current_health <= 0:
+			die()
+		return
 	is_invincible = true
 	invincible_timer = 1.5
 	is_attacking = false
@@ -426,6 +436,15 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 	if is_invincible or current_state == GlobalDefine.PlayerState.DEAD:
 		return
 	current_health = maxi(current_health - damage, 0)
+	# 霸体：只扣血，不击退不中断不进入HURT，但仍需无敌帧防止连续受伤
+	if _is_super_armor:
+		is_invincible = true
+		invincible_timer = config.hurt_invincible_time if config else 1.0
+		EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": damage, "current_health": current_health})
+		EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": self, "current_health": current_health, "max_health": max_health})
+		if current_health <= 0:
+			die()
+		return
 	is_invincible = true
 	invincible_timer = config.hurt_invincible_time if config else 1.0
 	is_attacking = false

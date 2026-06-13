@@ -20,6 +20,7 @@ var is_dead: bool = false
 var attack_cooldown_timer: float = 0.0
 var patrol_wait_timer: float = 0.0
 var stun_timer: float = 0.0
+var _post_attack_pause: float = 0.0  # 攻击后停止追踪的短暂暂停
 
 # 巡逻相关
 var patrol_start_pos: Vector2 = Vector2.ZERO
@@ -100,6 +101,8 @@ func _update_timers(delta: float) -> void:
 		patrol_wait_timer -= delta
 	if stun_timer > 0:
 		stun_timer -= delta
+	if _post_attack_pause > 0:
+		_post_attack_pause -= delta
 
 func _apply_gravity(delta: float) -> void:
 	if stun_timer > 0:
@@ -191,6 +194,11 @@ func _ai_chase(delta: float) -> void:
 		_change_state(GlobalDefine.EnemyState.IDLE)
 		return
 
+	# 攻击后暂停：只减速，不追踪
+	if _post_attack_pause > 0:
+		velocity.x = move_toward(velocity.x, 0, 400 * delta)
+		return
+
 	var dist = global_position.distance_to(target.global_position)
 	var attack_range = config.attack_range if config else 40.0
 
@@ -215,6 +223,11 @@ func _ai_attack(delta: float) -> void:
 	if attack_cooldown_timer <= 0 and target and is_instance_valid(target):
 		_perform_attack()
 		attack_cooldown_timer = config.attack_cooldown if config else 1.5
+		# 攻击后暂停追踪0.3秒 + 微后退制造间距
+		_post_attack_pause = 0.7
+		if target:
+			var retreat_dir = -signf(target.global_position.x - global_position.x)
+			velocity.x = retreat_dir * 220.0
 	_change_state(GlobalDefine.EnemyState.CHASE)
 
 func _ai_hurt(delta: float) -> void:

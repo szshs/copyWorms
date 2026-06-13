@@ -254,7 +254,7 @@ func _build_interactives() -> void:
 	warning_1.add_theme_color_override("font_color", Color(1, 0.2, 0.2, 0.9))
 	warning_1.position = Vector2(-80, -75)
 	warning_1.size = Vector2(160, 18)
-	level._memory_echo_1_node.add_child(warning_1)
+	warning_1.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# 3. 异常数据光团2（赛博城最深处，初始禁用）
 	var echo2_pos = level.level_data.memory_echo_2_pos if level.level_data else Vector2(10800, 550)
@@ -272,7 +272,7 @@ func _build_interactives() -> void:
 	warning_2.add_theme_color_override("font_color", Color(1, 0.2, 0.2, 0.9))
 	warning_2.position = Vector2(-80, -75)
 	warning_2.size = Vector2(160, 18)
-	level._memory_echo_2_node.add_child(warning_2)
+	warning_2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 # ============================================================

@@ -86,7 +86,7 @@ func _safe_call(node: Node, method: String, data: Dictionary) -> bool:
 	# GDScript 不支持 try/catch，但可通过 has_method + 主动验证降低风险
 	# 这里依赖 GDScript 内置的错误处理, 任何抛错都会被 Godot 引擎捕获
 	# 我们用 call_deferred 方式降低回调对 emit 流程的副作用
-	node.call(method, data)
+	node.call_deferred(method, data)
 	return true
 
 ## 延迟发射（下一帧处理）
