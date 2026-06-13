@@ -68,6 +68,7 @@ func get_enemies() -> Array[Node2D]:
 
 ## 获取离某点最近的敌人
 func get_nearest_enemy(pos: Vector2) -> Node2D:
+	enemy_list = enemy_list.filter(func(e): return is_instance_valid(e))
 	var nearest: Node2D = null
 	var min_dist: float = INF
 	for enemy in enemy_list:

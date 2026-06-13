@@ -11,6 +11,7 @@ var state_label: Label
 var mode_label: Label
 var pause_panel: Panel
 var game_over_panel: Panel
+var _keybind_dim: Panel = null
 
 func _ready() -> void:
 	# 关键：暂停时 HUD 必须继续运行，否则按钮无法响应
@@ -25,6 +26,7 @@ func _build_ui() -> void:
 	bar_container.name = "HealthBarContainer"
 	bar_container.position = Vector2(20, 20)
 	bar_container.size = Vector2(280, 36)
+	bar_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bar_container)
 
 	# 背景
@@ -54,6 +56,7 @@ func _build_ui() -> void:
 	health_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	health_label.add_theme_font_size_override("font_size", 16)
 	health_label.add_theme_color_override("font_color", Color.WHITE)
+	health_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_container.add_child(health_label)
 
 	# 把 health_bar 变量重新指向 bar_fill 用于后续更新
@@ -66,6 +69,7 @@ func _build_ui() -> void:
 	state_label.text = "待机"
 	state_label.add_theme_font_size_override("font_size", 14)
 	state_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	state_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(state_label)
 
 	# === 模式标签 ===
@@ -75,6 +79,7 @@ func _build_ui() -> void:
 	mode_label.text = "[模式]"
 	mode_label.add_theme_font_size_override("font_size", 12)
 	mode_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(mode_label)
 
 	# === 返回主界面按钮（右上角） ===
@@ -92,6 +97,7 @@ func _build_ui() -> void:
 	pause_panel = Panel.new()
 	pause_panel.name = "PausePanel"
 	pause_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pause_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_panel.hide()
 	var pause_style = StyleBoxFlat.new()
 	pause_style.bg_color = Color(0, 0, 0, 0.6)
@@ -103,6 +109,7 @@ func _build_ui() -> void:
 	pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_label.add_theme_font_size_override("font_size", 28)
 	pause_label.add_theme_color_override("font_color", Color.WHITE)
+	pause_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_label.position = Vector2(440, 270)
 	pause_label.size = Vector2(400, 50)
 	pause_panel.add_child(pause_label)
@@ -116,9 +123,17 @@ func _build_ui() -> void:
 	resume_btn.pressed.connect(_on_resume_pressed)
 	pause_panel.add_child(resume_btn)
 
+	var keybind_btn = Button.new()
+	keybind_btn.text = "按键设置"
+	keybind_btn.position = Vector2(540, 400)
+	keybind_btn.size = Vector2(200, 44)
+	keybind_btn.add_theme_font_size_override("font_size", 16)
+	keybind_btn.pressed.connect(_on_keybind_settings_pressed)
+	pause_panel.add_child(keybind_btn)
+
 	var back_btn2 = Button.new()
 	back_btn2.text = "返回主界面"
-	back_btn2.position = Vector2(540, 400)
+	back_btn2.position = Vector2(540, 460)
 	back_btn2.size = Vector2(200, 44)
 	back_btn2.add_theme_font_size_override("font_size", 16)
 	back_btn2.focus_mode = Control.FOCUS_NONE
@@ -129,6 +144,7 @@ func _build_ui() -> void:
 	game_over_panel = Panel.new()
 	game_over_panel.name = "GameOverPanel"
 	game_over_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	game_over_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	game_over_panel.hide()
 	var go_style = StyleBoxFlat.new()
 	go_style.bg_color = Color(0, 0, 0, 0.7)
@@ -140,6 +156,7 @@ func _build_ui() -> void:
 	go_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	go_label.add_theme_font_size_override("font_size", 40)
 	go_label.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
+	go_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	go_label.position = Vector2(390, 240)
 	go_label.size = Vector2(500, 60)
 	game_over_panel.add_child(go_label)
@@ -220,3 +237,32 @@ func _on_restart_pressed() -> void:
 func _on_back_pressed() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://UI/TitleScreen.tscn")
+
+func _on_keybind_settings_pressed() -> void:
+	pause_panel.hide()
+	# 用和暂停面板完全一样的方式创建变暗遮罩（Panel.new + StyleBoxFlat）
+	_keybind_dim = Panel.new()
+	_keybind_dim.name = "KeybindDimPanel"
+	_keybind_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_keybind_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var dim_style := StyleBoxFlat.new()
+	dim_style.bg_color = Color(0, 0, 0, 0.6)
+	_keybind_dim.add_theme_stylebox_override("panel", dim_style)
+	add_child(_keybind_dim)
+	# 创建按键设置界面
+	var scene: PackedScene = load("res://UI/KeybindSettingsScreen.tscn")
+	if scene:
+		var screen: Control = scene.instantiate()
+		screen.closed.connect(_on_keybind_screen_closed)
+		add_child(screen)
+	else:
+		push_error("[HUD] 无法加载按键设置界面")
+		_keybind_dim.queue_free()
+		_keybind_dim = null
+		pause_panel.show()
+
+func _on_keybind_screen_closed() -> void:
+	if _keybind_dim:
+		_keybind_dim.queue_free()
+		_keybind_dim = null
+	pause_panel.show()

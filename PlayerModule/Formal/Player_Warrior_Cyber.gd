@@ -13,9 +13,11 @@ func _on_ready():
 		GlobalDefine.PlayerState.DASH:   "idle",
 		GlobalDefine.PlayerState.ATTACK: "attack",
 		GlobalDefine.PlayerState.SKILL:  "attack",
-		GlobalDefine.PlayerState.HURT:   "idle",
-		GlobalDefine.PlayerState.DEAD:   "idle",
+		GlobalDefine.PlayerState.HURT:   "hit",
+		GlobalDefine.PlayerState.DEAD:   "defeated",
 	}
+	_has_hit_anim = true
+	_has_defeated_anim = true
 
 func _on_attack() -> void:
 	_hit_pending = true
