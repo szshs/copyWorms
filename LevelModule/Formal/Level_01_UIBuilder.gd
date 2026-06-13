@@ -34,6 +34,7 @@ func _build_narrative_panel() -> void:
 	panel.visible = false
 	panel.size = Vector2(1280, 200)
 	panel.position = Vector2(0, 520)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0, 0, 0, 0.85)
@@ -48,6 +49,7 @@ func _build_narrative_panel() -> void:
 	label.fit_content = true
 	label.add_theme_font_size_override("normal_font_size", 18)
 	label.add_theme_color_override("default_color", Color(0.9, 0.85, 0.75))
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(label)
 	level._narrative_text = label
 

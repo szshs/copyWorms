@@ -48,6 +48,7 @@ func _build_narrative_panel() -> void:
 	panel.visible = false
 	panel.size = Vector2(1280, 200)
 	panel.position = Vector2(0, 520)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0, 0, 0, 0.85)
@@ -62,6 +63,7 @@ func _build_narrative_panel() -> void:
 	label.fit_content = true
 	label.add_theme_font_size_override("normal_font_size", 18)
 	label.add_theme_color_override("default_color", Color(0.9, 0.85, 0.75))
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(label)
 	level._narrative_text = label
 
@@ -98,6 +100,7 @@ func _build_code_rain_overlay() -> void:
 		code_line.add_theme_color_override("font_color", Color(0, 1.0, 0.25, 0.12))
 		code_line.position = Vector2(randi_range(50, 900), i * 60)
 		code_line.size = Vector2(400, 16)
+		code_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		code_layer.add_child(code_line)
 
 ## 生成伪代码行（与关卡1的 CODE_SCROLL_LINES 风格一致）
@@ -177,6 +180,7 @@ func _build_ending_prompt() -> void:
 	label.add_theme_color_override("font_color", Color(0, 1.0, 0.25, 0.95))
 	label.position = Vector2(240, 240)
 	label.size = Vector2(800, 240)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	prompt.add_child(label)
 	level._ending_label = label
 
