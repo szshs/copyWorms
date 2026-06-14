@@ -12,3 +12,4 @@ camera_limit_right = 6192
 camera_limit_top = -500
 camera_limit_bottom = 1200
 spawn_point = Vector2(140, 550)
+player_scene_path = "res://PlayerModule/Formal/Player_Warrior_Lingnan.tscn"
