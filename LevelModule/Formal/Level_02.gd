@@ -151,10 +151,10 @@ func _on_ready() -> void:
 		level_data = load("res://DataConfig/Level/Level02Data.tres") as Level02Data
 	wake_hold_required = level_data.wake_hold_required if level_data else 1.5
 
-	# 预加载敌人场景（避免干扰期频繁 load）
-	var slime_path = "res://EnemyModule/Formal/Enemy_Slime.tscn"
-	if ResourceLoader.exists(slime_path):
-		_enemy_slime_scene = load(slime_path)
+	# 预加载敌人场景（岭南风格怪物）
+	var enemy_path = "res://EnemyModule/Formal/Enemy_LanternGhost.tscn"
+	if ResourceLoader.exists(enemy_path):
+		_enemy_slime_scene = load(enemy_path)
 
 	var builder = Level_02_SceneBuilder.new(self)
 	builder.build_all()
@@ -459,6 +459,14 @@ func _process(delta: float) -> void:
 
 	# 关卡级技能限制守卫：确保被禁技能不会被任何外部路径意外恢复
 	_enforce_level_restrictions()
+
+	# 输入安全守卫：非交互状态下确保输入未被误锁
+	if not _is_interacting and not _transition_running and not _fall_reset_running and not _narrative_open:
+		if InputManager.is_input_blocked:
+			InputManager._block_count = 0
+			InputManager.is_input_blocked = false
+			InputManager.block_reason = ""
+			push_warning("[Level_02] 输入被误锁，已强制解除")
 
 	_poll_interactives_in_range()
 

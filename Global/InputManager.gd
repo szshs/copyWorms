@@ -119,7 +119,7 @@ func _is_mouse_over_interactive_gui(event: InputEventMouse) -> bool:
 func _find_interactive_control_at_pos(node: Node, pos: Vector2) -> bool:
 	if node is Control:
 		var ctrl = node as Control
-		if ctrl.visible and ctrl.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+		if ctrl.is_visible_in_tree() and ctrl.mouse_filter != Control.MOUSE_FILTER_IGNORE:
 			if ctrl.get_global_rect().has_point(pos):
 				return true
 	for child in node.get_children():

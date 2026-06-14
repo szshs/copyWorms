@@ -19,3 +19,6 @@ class_name LevelConfig
 
 @export_group("重生点")
 @export var spawn_point: Vector2 = Vector2(100, 500)
+
+@export_group("玩家")
+@export var player_scene_path: String = "res://PlayerModule/Formal/Player_Warrior.tscn"
