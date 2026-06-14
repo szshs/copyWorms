@@ -53,8 +53,8 @@ func _ready() -> void:
 	set_as_top_level(true)
 	# 禁用 Camera2D 自身的平滑（避免与本脚本的 lerp 双重插值导致抖动）
 	position_smoothing_enabled = false
-	# 使用 DRAG_CENTER（默认值 0）：相机随节点移动但 position_smoothing 控制平滑
-	# 这与下方 clamp 公式配合正确。之前用 FIXED_TOP_LEFT(1) 会导致画面偏移半屏
+	# 使用 DRAG_CENTER：相机 position 表示视口中心的世界坐标
+	# X轴自然居中玩家，Y轴通过 limit_bottom 约束视口底部
 	if anchor_mode != Camera2D.ANCHOR_MODE_DRAG_CENTER:
 		anchor_mode = Camera2D.ANCHOR_MODE_DRAG_CENTER
 	# 强制 make_current：确保本相机为主相机
@@ -153,7 +153,7 @@ func _physics_process(delta: float) -> void:
 	var new_pos: Vector2 = cam_pos.lerp(target_with_lookahead, t)
 
 	# ---- 3) clamp 到 limit 边界 ----
-	# FIXED_CENTER 模式：position = 视口中心的世界坐标
+	# DRAG_CENTER 模式：position = 视口中心的世界坐标
 	# limit 值表示视口边缘可达的世界坐标极限
 	var vp_size: Vector2 = get_viewport_rect().size
 	if limit_left < limit_right:
