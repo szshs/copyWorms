@@ -13,7 +13,18 @@ var _skin_list: Array = [
 	{ "name": "岭南",  "path": "res://PlayerModule/Formal/Player_Warrior_Lingnan.tscn" },
 ]
 var _switch_btn: Button = null
+var _refresh_enemy_btn: Button = null
+var _switch_enemy_btn: Button = null
 var _player_camera: Camera2D = null
+
+# 怪物类型列表
+var _enemy_index: int = 0
+var _enemy_list: Array = [
+	{ "name": "史莱姆",    "scene": "res://EnemyModule/Formal/Enemy_Slime.tscn",     "config": "res://DataConfig/Enemy/SlimeConfig.tres" },
+	{ "name": "赛博狼人",  "scene": "res://EnemyModule/Formal/Enemy_CyberWolf.tscn",  "config": "res://DataConfig/Enemy/CleanerConfig.tres" },
+	{ "name": "赛博冲撞兽", "scene": "res://EnemyModule/Formal/Enemy_CyberBull.tscn", "config": "res://DataConfig/Enemy/CyberBullConfig.tres" },
+]
+var _spawned_enemies: Array = []  # 当前场景中的怪物实例
 
 func _ready() -> void:
 	GameManager.run_mode = GlobalDefine.RunMode.SELF_TEST
@@ -23,7 +34,7 @@ func _ready() -> void:
 	_spawn_player()
 	_spawn_test_enemies()
 	_load_hud()
-	_build_skin_switch_button()
+	_build_debug_buttons()
 
 func _build_terrain() -> void:
 	_create_platform(Vector2(640, 620), Vector2(1280, 80), Color(0.35, 0.35, 0.4))
@@ -76,15 +87,26 @@ func _create_player_instance(skin_idx: int, pos: Vector2) -> Player_Warrior:
 	return player
 
 func _spawn_test_enemies() -> void:
-	var enemy = Enemy_Slime.new()
-	enemy.config = load("res://DataConfig/Enemy/SlimeConfig.tres") as EnemyConfig
-	enemy.position = Vector2(600, 588)
-	add_child(enemy)
+	# 清理旧怪物
+	for e in _spawned_enemies:
+		if is_instance_valid(e):
+			e.queue_free()
+	_spawned_enemies.clear()
 
-	var enemy2 = Enemy_Slime.new()
-	enemy2.config = load("res://DataConfig/Enemy/SlimeConfig.tres") as EnemyConfig
-	enemy2.position = Vector2(900, 588)
-	add_child(enemy2)
+	var enemy_data = _enemy_list[_enemy_index]
+	var config: EnemyConfig = load(enemy_data["config"]) as EnemyConfig
+
+	var positions = [Vector2(600, 588), Vector2(900, 588)]
+	for pos in positions:
+		var enemy: EnemyBase = null
+		if ResourceLoader.exists(enemy_data["scene"]):
+			enemy = load(enemy_data["scene"]).instantiate() as EnemyBase
+		if not enemy:
+			continue
+		enemy.config = config
+		enemy.position = pos
+		add_child(enemy)
+		_spawned_enemies.append(enemy)
 
 func _load_hud() -> void:
 	var hud_path = "res://UI/HUD.tscn"
@@ -92,20 +114,41 @@ func _load_hud() -> void:
 		var hud = load(hud_path).instantiate()
 		add_child(hud)
 
-func _build_skin_switch_button() -> void:
+func _build_debug_buttons() -> void:
 	var canvas = CanvasLayer.new()
-	canvas.name = "SkinSwitchCanvas"
+	canvas.name = "DebugButtonCanvas"
 	canvas.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(canvas)
 
+	# 切换外观按钮
 	_switch_btn = Button.new()
 	_switch_btn.text = "切换外观: " + _skin_list[_skin_index]["name"]
 	_switch_btn.position = Vector2(1120, 60)
 	_switch_btn.size = Vector2(140, 36)
 	_switch_btn.add_theme_font_size_override("font_size", 14)
-	_switch_btn.focus_mode = Control.FOCUS_NONE  # 防止空格键误触
+	_switch_btn.focus_mode = Control.FOCUS_NONE
 	_switch_btn.pressed.connect(_on_switch_skin)
 	canvas.add_child(_switch_btn)
+
+	# 刷新怪物按钮
+	_refresh_enemy_btn = Button.new()
+	_refresh_enemy_btn.text = "刷新怪物"
+	_refresh_enemy_btn.position = Vector2(1120, 100)
+	_refresh_enemy_btn.size = Vector2(140, 36)
+	_refresh_enemy_btn.add_theme_font_size_override("font_size", 14)
+	_refresh_enemy_btn.focus_mode = Control.FOCUS_NONE
+	_refresh_enemy_btn.pressed.connect(_on_refresh_enemies)
+	canvas.add_child(_refresh_enemy_btn)
+
+	# 切换怪物按钮
+	_switch_enemy_btn = Button.new()
+	_switch_enemy_btn.text = "切换怪物: " + _enemy_list[_enemy_index]["name"]
+	_switch_enemy_btn.position = Vector2(1120, 140)
+	_switch_enemy_btn.size = Vector2(140, 36)
+	_switch_enemy_btn.add_theme_font_size_override("font_size", 14)
+	_switch_enemy_btn.focus_mode = Control.FOCUS_NONE
+	_switch_enemy_btn.pressed.connect(_on_switch_enemy)
+	canvas.add_child(_switch_enemy_btn)
 
 func _on_switch_skin() -> void:
 	if not is_instance_valid(_current_player):
@@ -129,3 +172,11 @@ func _on_switch_skin() -> void:
 	_current_player.add_child(_player_camera)
 
 	_switch_btn.text = "切换外观: " + _skin_list[_skin_index]["name"]
+
+func _on_refresh_enemies() -> void:
+	_spawn_test_enemies()
+
+func _on_switch_enemy() -> void:
+	_enemy_index = (_enemy_index + 1) % _enemy_list.size()
+	_switch_enemy_btn.text = "切换怪物: " + _enemy_list[_enemy_index]["name"]
+	_spawn_test_enemies()

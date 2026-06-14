@@ -69,7 +69,7 @@ var _transition_running: bool = false
 const NARRATIVE_INPUT_TIMEOUT: float = 30.0
 
 # ---- 敌人管理 ----
-var _enemy_slime_scene: PackedScene = null
+var _enemy_cyber_wolf_scene: PackedScene = null
 var _cyber_enemies: Array[Node2D] = []
 var _enemy_spawn_timer: Timer = null
 const ENEMY_MAX_ALIVE: int = 6
@@ -124,9 +124,9 @@ func _on_ready() -> void:
 		level_data = load("res://DataConfig/Level/Level03Data.tres") as Level03Data
 
 	# 预加载敌人场景
-	var slime_path = "res://EnemyModule/Formal/Enemy_Slime.tscn"
-	if ResourceLoader.exists(slime_path):
-		_enemy_slime_scene = load(slime_path)
+	var wolf_path = "res://EnemyModule/Formal/Enemy_CyberWolf.tscn"
+	if ResourceLoader.exists(wolf_path):
+		_enemy_cyber_wolf_scene = load(wolf_path)
 
 	# 应用跨关卡配置（关卡2"配置篡改"的结果）
 	_apply_dream_runtime_flags()
@@ -834,8 +834,8 @@ func _is_player_body(body: Node2D) -> bool:
 # ============================================================
 
 func _spawn_cyber_enemies() -> void:
-	if not _enemy_slime_scene:
-		push_warning("[Level_03] Enemy_Slime.tscn 缺失，跳过敌人")
+	if not _enemy_cyber_wolf_scene:
+		push_warning("[Level_03] Enemy_CyberWolf.tscn 缺失，跳过敌人")
 		return
 
 	# 清理程序
@@ -844,7 +844,7 @@ func _spawn_cyber_enemies() -> void:
 	if cleaner_points.is_empty():
 		cleaner_points = [Vector2(2400, 540), Vector2(3600, 540), Vector2(5200, 540), Vector2(6800, 540), Vector2(7600, 540)]
 	for i in range(mini(cleaner_points.size(), 5)):
-		var enemy = _spawn_enemy_with_config(_enemy_slime_scene, cleaner_points[i], cleaner_config)
+		var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, cleaner_points[i], cleaner_config)
 		if enemy:
 			enemy.modulate = Color(0.3, 0.35, 0.4, 0.95)  # 灰蓝色
 			_cyber_enemies.append(enemy)
@@ -855,7 +855,7 @@ func _spawn_cyber_enemies() -> void:
 	if security_points.is_empty():
 		security_points = [Vector2(3000, 480), Vector2(4800, 480), Vector2(7200, 480)]
 	for i in range(mini(security_points.size(), 3)):
-		var enemy = _spawn_enemy_with_config(_enemy_slime_scene, security_points[i], security_config)
+		var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, security_points[i], security_config)
 		if enemy:
 			enemy.modulate = Color(0.9, 0.15, 0.15, 0.95)  # 红色
 			_cyber_enemies.append(enemy)
@@ -877,7 +877,7 @@ func _spawn_enemy_with_config(scene: PackedScene, spawn_pos: Vector2, config: En
 func _on_enemy_spawn_timer_timeout() -> void:
 	if current_state not in [LevelState.CYBER_CITY, LevelState.MEMORY_COLLECTION]:
 		return
-	if not _enemy_slime_scene:
+	if not _enemy_cyber_wolf_scene:
 		return
 	# 性能约束
 	_cyber_enemies = _cyber_enemies.filter(func(e): return is_instance_valid(e))
@@ -897,7 +897,7 @@ func _on_enemy_spawn_timer_timeout() -> void:
 	var side = 1.0 if randf() > 0.3 else -1.0  # 偏向前方
 	var spawn_x = clampf(player.global_position.x + side * randf_range(400.0, 600.0), 200.0, 11800.0)
 	var config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
-	var enemy = _spawn_enemy_with_config(_enemy_slime_scene, Vector2(spawn_x, 540), config)
+	var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, Vector2(spawn_x, 540), config)
 	if enemy:
 		enemy.modulate = Color(0.3, 0.35, 0.4, 0.95)
 		_cyber_enemies.append(enemy)

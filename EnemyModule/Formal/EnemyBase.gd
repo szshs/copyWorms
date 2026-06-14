@@ -293,12 +293,19 @@ func die() -> void:
 	is_dead = true
 	_change_state(GlobalDefine.EnemyState.DEAD)
 	GameManager.unregister_enemy(self)
+	set_physics_process(false)
+	# 白闪：致命伤害命中反馈
+	modulate = Color(5, 5, 5, 1)
 	EventBus.emit(GlobalDefine.EventName.ENEMY_DIED, {
 		"enemy": self,
 		"exp_reward": config.exp_reward if config else 10
 	})
 	_on_die()
-	queue_free()
+	# 延迟释放：EventBus 用 call_deferred 发回调，queue_free 也用 call_deferred
+	# 必须保证命中特效回调在敌人释放前执行，否则 is_instance_valid(target) 为 false
+	var tween = create_tween()
+	tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.3)
+	tween.tween_callback(queue_free)
 
 # ---- 占位视觉（子类可重写） ----
 
