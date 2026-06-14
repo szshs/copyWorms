@@ -20,9 +20,11 @@ var _player_camera: Camera2D = null
 # 怪物类型列表
 var _enemy_index: int = 0
 var _enemy_list: Array = [
-	{ "name": "史莱姆",    "scene": "res://EnemyModule/Formal/Enemy_Slime.tscn",     "config": "res://DataConfig/Enemy/SlimeConfig.tres" },
-	{ "name": "赛博狼人",  "scene": "res://EnemyModule/Formal/Enemy_CyberWolf.tscn",  "config": "res://DataConfig/Enemy/CleanerConfig.tres" },
-	{ "name": "赛博冲撞兽", "scene": "res://EnemyModule/Formal/Enemy_CyberBull.tscn", "config": "res://DataConfig/Enemy/CyberBullConfig.tres" },
+	{ "name": "史莱姆",    "scene": "res://EnemyModule/Formal/Enemy_Slime.tscn",         "config": "res://DataConfig/Enemy/SlimeConfig.tres" },
+	{ "name": "纸符人",    "scene": "res://EnemyModule/Formal/Enemy_PaperEffigy.tscn",   "config": "res://DataConfig/Enemy/PaperEffigyConfig.tres" },
+	{ "name": "灯笼鬼",    "scene": "res://EnemyModule/Formal/Enemy_LanternGhost.tscn",  "config": "res://DataConfig/Enemy/LanternGhostConfig.tres" },
+	{ "name": "赛博狼人",  "scene": "res://EnemyModule/Formal/Enemy_CyberWolf.tscn",     "config": "res://DataConfig/Enemy/CleanerConfig.tres" },
+	{ "name": "赛博冲撞兽", "scene": "res://EnemyModule/Formal/Enemy_CyberBull.tscn",    "config": "res://DataConfig/Enemy/CyberBullConfig.tres" },
 ]
 var _spawned_enemies: Array = []  # 当前场景中的怪物实例
 
