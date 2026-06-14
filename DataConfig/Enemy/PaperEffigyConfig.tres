@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://DataConfig/Enemy/EnemyConfig.gd" id="1_cfg"]
+
+[resource]
+script = ExtResource("1_cfg")
+max_health = 30
+move_speed = 100.0
+gravity = 1200.0
+knockback_resistance = 0.35
+attack_damage = 8
+attack_cooldown = 1.6
+attack_range = 50.0
+detect_range = 280.0
+patrol_wait_time = 2.0
+chase_speed_multiplier = 1.7
+wander_radius = 90.0
+exp_reward = 5
+drop_health_chance = 0.12
