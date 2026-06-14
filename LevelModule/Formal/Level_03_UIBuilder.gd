@@ -19,25 +19,11 @@ func _init(parent: Level_03, canvas_layer: CanvasLayer) -> void:
 	canvas = canvas_layer
 
 func build_all() -> void:
-	_build_blackout_overlay()
 	_build_narrative_panel()
 	_build_code_rain_overlay()
 	_build_warm_glow_overlay()
 	_build_glitch_overlay()
 	_build_ending_prompt()
-
-
-# ---- 黑屏遮罩（转场共用） ----
-
-func _build_blackout_overlay() -> void:
-	var overlay = ColorRect.new()
-	overlay.name = "BlackoutOverlay"
-	overlay.visible = false
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0, 0, 0, 0)
-	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(overlay)
-	level._blackout_overlay = overlay
 
 
 # ---- 叙事面板（复用关卡1/2样式） ----
