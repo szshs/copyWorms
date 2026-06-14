@@ -218,6 +218,8 @@ func _check_enemy_contact(_delta: float) -> void:
 	if is_invincible or current_state == GlobalDefine.PlayerState.DEAD: return
 	for enemy in GameManager.get_enemies():
 		if not is_instance_valid(enemy): continue
+		if enemy.has_method("deals_contact_damage") and not enemy.deals_contact_damage():
+			continue
 		var es = Vector2(36, 36)
 		if enemy.has_method("_get_collision_size"): es = enemy._get_collision_size()
 		var mr = Rect2(global_position - _get_collision_size() / 2, _get_collision_size())
