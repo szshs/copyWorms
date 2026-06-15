@@ -228,7 +228,7 @@ func _load_hud() -> void:
 # 工具方法（与关卡1同模式）
 # ============================================================
 
-func _get_or_create_child(node_name: String, node_type) -> Node:
+func _get_or_create_child(node_name: String, node_type: Variant) -> Node:
 	var existing = get_node_or_null(node_name)
 	if existing: return existing
 	var node = node_type.new()
@@ -586,10 +586,10 @@ func _input(event: InputEvent) -> void:
 			_safe_end_interaction()
 		return
 
-	var nearby_obj = _find_nearby_interactive()
-	if nearby_obj:
+	var obj = _find_nearby_interactive()
+	if obj:
 		_interact_cooldown = 0.3
-		EventBus.emit(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, {"object_id": nearby_obj.object_id})
+		EventBus.emit(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, {"object_id": obj.object_id})
 		get_viewport().set_input_as_handled()
 
 func _find_nearby_interactive() -> InteractiveObject:
