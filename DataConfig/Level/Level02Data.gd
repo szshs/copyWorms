@@ -56,5 +56,5 @@ extends Resource
 @export var bgm_dream_warm_path: String = ""
 
 @export_category("Ending")
-@export_multiline var dream_rebuilt_text: String = "西关梦境 v2.0 重构完毕。按【Enter】继续。"
+@export_multiline var dream_rebuilt_text: String = "西关梦境 v2.0 重构完毕。意识正在下沉……闭上眼睛，回到梦里。"
 @export var next_level_path: String = "res://LevelModule/Formal/Level_03.tscn"
