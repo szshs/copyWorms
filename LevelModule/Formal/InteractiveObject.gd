@@ -190,6 +190,54 @@ func reset_completed() -> void:
 		print("[InteractiveObject] %s 重置完成状态" % object_id)
 
 
+## 关卡1标准交互外观：10px 黄点 + 24px 光晕 + 正弦闪烁（Level_01 / Level_02 现实子空间共用）
+func apply_level01_dot_visual() -> void:
+	var old_indicator = get_node_or_null("Indicator")
+	if old_indicator:
+		old_indicator.queue_free()
+	var old_glow = get_node_or_null("Glow")
+	if old_glow:
+		old_glow.queue_free()
+	var indicator = ColorRect.new()
+	indicator.name = "Indicator"
+	indicator.color = Color(1.0, 0.85, 0.2, 0.9)
+	indicator.size = Vector2(10, 10)
+	indicator.position = -indicator.size / 2
+	indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	indicator.z_index = 10
+	add_child(indicator)
+	var glow = ColorRect.new()
+	glow.name = "Glow"
+	glow.color = Color(1.0, 0.9, 0.3, 0.3)
+	glow.size = Vector2(24, 24)
+	glow.position = -glow.size / 2
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.z_index = 9
+	add_child(glow)
+	if not is_active:
+		indicator.visible = false
+		glow.visible = false
+	if is_node_ready():
+		_bind_level01_dot_tweens()
+	else:
+		ready.connect(_bind_level01_dot_tweens, CONNECT_ONE_SHOT)
+
+func _bind_level01_dot_tweens() -> void:
+	var indicator = get_node_or_null("Indicator") as ColorRect
+	var glow = get_node_or_null("Glow") as ColorRect
+	if not indicator or not glow:
+		return
+	if not is_active:
+		indicator.visible = false
+		glow.visible = false
+	var tw = indicator.create_tween().set_loops()
+	tw.tween_property(indicator, "color:a", 0.2, 0.6).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(indicator, "color:a", 0.9, 0.6).set_trans(Tween.TRANS_SINE)
+	var tw2 = glow.create_tween().set_loops()
+	tw2.tween_property(glow, "color:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
+	tw2.tween_property(glow, "color:a", 0.3, 0.6).set_trans(Tween.TRANS_SINE)
+
+
 ## 公共方法: 程序化设置激活状态并更新提示
 func set_active(active: bool) -> void:
 	is_active = active

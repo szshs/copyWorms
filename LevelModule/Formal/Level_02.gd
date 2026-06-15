@@ -95,6 +95,10 @@ var _recompile_panel: Panel = null
 var _recompile_log: RichTextLabel = null
 var _ending_prompt: Control = null
 var _ending_label: Label = null
+var _left_edge_flash: ColorRect = null
+var _left_edge_glow: ColorRect = null
+var _left_edge_flash_active: bool = false
+var _phone_vibrate_tween: Tween = null
 
 # ---- 交互/叙事状态（关卡1同款幂等模式） ----
 var _interact_cooldown: float = 0.0
@@ -125,16 +129,21 @@ var _enemy_slime_scene: PackedScene = null
 var wake_hold_required: float = 1.5
 const VIEW_W: float = 1280.0
 const VIEW_H: float = 720.0
+const REALITY_SPACE_CONFIG_PATH: String = "res://DataConfig/Level/Level01Config.tres"
+const REALITY_PLAYER_SCENE_PATH: String = "res://PlayerModule/Formal/Player_Warrior.tscn"
+const REALITY_MOVE_MULTIPLIER: float = 0.5
+const FINAL_BLACKOUT_DURATION: float = 4.0
+const FINAL_BLACKOUT_FADE_DURATION: float = 0.8
 
 # ---- 终局 ----
-var _bed_glow_tween: Tween = null
-var _ending_enter_armed: bool = false
 var _level_complete_emitted: bool = false
 
 # ---- 音效挂点 ----
 var _sfx_phone_player: AudioStreamPlayer = null
 var _sfx_noise_player: AudioStreamPlayer = null
 var _fsm: Level_02_FSM = null
+var _reality_space_config: LevelConfig = null
+var _reality_player_rules_active: bool = false
 
 
 # ============================================================
@@ -200,6 +209,9 @@ func _on_ready() -> void:
 func _exit_tree() -> void:
 	if InputManager.game_action.is_connected(_on_game_action):
 		InputManager.game_action.disconnect(_on_game_action)
+	if _reality_player_rules_active:
+		_reality_player_rules_active = false
+		_clear_reality_player_rules()
 
 
 func _load_hud() -> void:
@@ -314,6 +326,157 @@ func _set_camera_limits(left: int, right: int, top: int, bottom: int) -> void:
 	cam.bind_target(player)
 	print("[Level_02] SmoothCamera limit 更新 (left=%d, right=%d)" % [left, right])
 
+func _get_reality_space_config() -> LevelConfig:
+	if not _reality_space_config:
+		_reality_space_config = load(REALITY_SPACE_CONFIG_PATH) as LevelConfig
+	return _reality_space_config
+
+## 现实子空间 (Level_02_sub01) 专用：背景色 + 玩家 + 输入 + 相机与 Level_01 完全一致
+func _apply_reality_space_settings() -> void:
+	var cfg := _get_reality_space_config()
+	if not cfg:
+		push_warning("[Level_02] 无法加载 Level01Config，现实子空间环境降级")
+		return
+	if cfg.bg_color:
+		RenderingServer.set_default_clear_color(cfg.bg_color)
+	if _reality_root and is_instance_valid(_reality_root):
+		_reality_root.modulate = Color.WHITE
+	var spawn_pos := _reality_spawn.position if _reality_spawn else Vector2(1504, 550)
+	_swap_to_reality_player(spawn_pos)
+	_reality_player_rules_active = true
+	_apply_reality_player_rules()
+	_apply_level01_camera_settings(cfg)
+
+func _swap_to_reality_player(spawn_pos: Vector2) -> void:
+	var old_player = GameManager.player_ref
+	var max_health := 100
+	if old_player and is_instance_valid(old_player):
+		max_health = old_player.max_health
+		old_player.queue_free()
+	if not ResourceLoader.exists(REALITY_PLAYER_SCENE_PATH):
+		push_error("[Level_02] 现实子空间玩家场景不存在: %s" % REALITY_PLAYER_SCENE_PATH)
+		return
+	var player = load(REALITY_PLAYER_SCENE_PATH).instantiate()
+	player.global_position = spawn_pos
+	player.velocity = Vector2.ZERO
+	player.max_health = max_health
+	player.current_health = max_health
+	player.is_invincible = false
+	player.invincible_timer = 0.0
+	add_child(player)
+	GameManager.register_player(player)
+	player._restore_visibility()
+	_ensure_player_collision_layer()
+	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+		"target": player,
+		"current_health": player.current_health,
+		"max_health": player.max_health
+	})
+	print("[Level_02] 现实子空间已切换为 Player_Warrior")
+
+func _apply_reality_player_rules() -> void:
+	InputManager.block_action(&"player_attack", "Level_02 现实子空间禁止攻击")
+	InputManager.block_action(&"player_jump", "Level_02 现实子空间禁止跳跃")
+	var player = GameManager.player_ref
+	if not player:
+		return
+	player.can_jump = false
+	player.can_attack = false
+	player.can_dash = true
+	player.can_skill = true
+	player.runtime_move_speed_multiplier = REALITY_MOVE_MULTIPLIER
+
+func _clear_reality_player_rules() -> void:
+	InputManager.unblock_action(&"player_attack")
+	InputManager.unblock_action(&"player_jump")
+	var player = GameManager.player_ref
+	if not player:
+		return
+	player.can_jump = true
+	player.can_dash = true
+	player.can_attack = true
+	player.can_skill = true
+	player.runtime_move_speed_multiplier = 1.0
+
+## 现实子空间手机提示：左侧边缘闪烁 + 手机震动（与 Level_01 一致）
+func _start_phone_vibration() -> void:
+	if not _reality_phone_node:
+		return
+	_stop_phone_vibration()
+	_phone_vibrate_tween = create_tween()
+	_phone_vibrate_tween.set_loops()
+	var bp = _reality_phone_node.position
+	_phone_vibrate_tween.tween_property(_reality_phone_node, "position:x", bp.x + 3, 0.05)
+	_phone_vibrate_tween.tween_property(_reality_phone_node, "position:x", bp.x - 3, 0.05)
+	_phone_vibrate_tween.tween_property(_reality_phone_node, "position:x", bp.x + 1.5, 0.05)
+	_phone_vibrate_tween.tween_property(_reality_phone_node, "position:x", bp.x, 0.05)
+
+func _stop_phone_vibration() -> void:
+	if _phone_vibrate_tween and is_instance_valid(_phone_vibrate_tween):
+		_phone_vibrate_tween.kill()
+	_phone_vibrate_tween = null
+
+func _start_left_edge_flash() -> void:
+	if _left_edge_flash_active:
+		return
+	if not _left_edge_flash or not is_instance_valid(_left_edge_flash):
+		return
+	_left_edge_flash.visible = true
+	_left_edge_flash.color.a = 0.0
+	_left_edge_glow.visible = true
+	_left_edge_glow.color.a = 0.0
+	var tw = _left_edge_flash.create_tween().set_loops()
+	tw.tween_property(_left_edge_flash, "color:a", 0.8, 0.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(_left_edge_flash, "color:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE)
+	var tw2 = _left_edge_glow.create_tween().set_loops()
+	tw2.tween_property(_left_edge_glow, "color:a", 0.25, 0.5).set_trans(Tween.TRANS_SINE)
+	tw2.tween_property(_left_edge_glow, "color:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE)
+	_left_edge_flash_active = true
+	print("[Level_02] 左侧边缘闪烁光效启动")
+
+func _check_flash_target_in_view() -> void:
+	if not _left_edge_flash_active:
+		return
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player):
+		return
+	var cam = player.get_node_or_null("SmoothCamera") as SmoothCamera
+	if not cam:
+		return
+	var half_visible = get_viewport_rect().size * 0.5 / cam.zoom
+	var cam_center = cam.global_position + cam.offset
+	var view_rect = Rect2(cam_center - half_visible, half_visible * 2)
+	if _reality_phone_node and is_instance_valid(_reality_phone_node) and view_rect.has_point(_reality_phone_node.global_position):
+		_stop_left_edge_flash()
+
+func _stop_left_edge_flash() -> void:
+	if not _left_edge_flash_active:
+		return
+	_left_edge_flash_active = false
+	if _left_edge_flash and is_instance_valid(_left_edge_flash):
+		_left_edge_flash.hide()
+	if _left_edge_glow and is_instance_valid(_left_edge_glow):
+		_left_edge_glow.hide()
+	print("[Level_02] 左侧边缘闪烁光效停止")
+
+## 与 Level_01._set_camera_limits 保持一致（2x zoom / lerp 2.5 / 完整 limit）
+func _apply_level01_camera_settings(cfg: LevelConfig) -> void:
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player):
+		return
+	var cam = player.get_node_or_null("SmoothCamera") as SmoothCamera
+	if not cam:
+		return
+	cam.limit_left = cfg.camera_limit_left
+	cam.limit_right = cfg.camera_limit_right
+	cam.limit_top = cfg.camera_limit_top
+	cam.limit_bottom = cfg.camera_limit_bottom
+	cam.zoom = Vector2(2, 2)
+	cam.offset = Vector2.ZERO
+	cam.lerp_speed = 2.5
+	cam.bind_target(player)
+	print("[Level_02] 现实子空间已应用 Level_01 相机 (left=%d, right=%d, zoom=2)" % [cfg.camera_limit_left, cfg.camera_limit_right])
+
 
 # ============================================================
 # 玩家控制
@@ -331,12 +494,14 @@ func _restore_player_mechanics() -> void:
 	player.can_double_jump = false
 	player.runtime_move_speed_multiplier = 1.0
 
-## 关卡级技能限制守卫：每帧强制维持 can_double_jump=false
-## 防止任何外部路径意外重新启用被禁技能
+## 关卡级技能限制守卫：梦境禁二段跳；现实子空间强制维持 Level_01 输入规则
 func _enforce_level_restrictions() -> void:
 	var player = GameManager.player_ref
-	if not player or not is_instance_valid(player): return
-	if player.can_double_jump:
+	if not player or not is_instance_valid(player):
+		return
+	if _reality_player_rules_active:
+		_apply_reality_player_rules()
+	elif player.can_double_jump:
 		player.can_double_jump = false
 
 ## 干扰期"沉重化": 禁跳/禁冲刺/禁技能/移速降低（保留攻击表达围攻压力）
@@ -379,9 +544,6 @@ func _handle_accept_input() -> void:
 		_render_next_chat_line()
 		return
 	if current_state == LevelState.LEVEL_END_TRANSIT:
-		if _ending_enter_armed:
-			_ending_enter_armed = false
-			_emit_level_complete()
 		return
 	if _narrative_open:
 		_narrative_enter_pressed = true
@@ -407,9 +569,6 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if current_state == LevelState.LEVEL_END_TRANSIT:
-		if _ending_enter_armed:
-			_ending_enter_armed = false
-			_emit_level_complete()
 		get_viewport().set_input_as_handled()
 		return
 
@@ -474,6 +633,9 @@ func _process(delta: float) -> void:
 
 	_poll_interactives_in_range()
 
+	if _left_edge_flash_active:
+		_check_flash_target_in_view()
+
 	# 长按 Tab 睁眼（仅干扰/睁眼状态轮询; 转场/重置/叙事期间不累计）
 	if current_state in [LevelState.DREAM_INTERFERENCE, LevelState.WAKING_HOLD_TAB]:
 		if not _transition_running and not _fall_reset_running:
@@ -515,6 +677,11 @@ func _on_object_interacted(data: Dictionary) -> void:
 	var obj_id: String = data.get("object_id", "")
 	if not _fsm:
 		push_error("[Level_02] FSM 为 null，无法处理交互: %s" % obj_id)
+		return
+	_interact_cooldown = 0.0
+	# 终局床交互为 async 流程，不能走 _run_safely（会在 await 前误触 _safe_end_interaction）
+	if obj_id == "reality_bed" and current_state == LevelState.REALITY_BED_READY:
+		_fsm.handle_interaction(obj_id)
 		return
 	_run_safely(func(): _fsm.handle_interaction(obj_id))
 
@@ -915,21 +1082,8 @@ func _complete_wake_up_transition() -> void:
 				if blocker_shape:
 					blocker_shape.disabled = true
 
-	# 4) 玩家移到现实出生点 + 恢复状态 + 相机 limit 缩到现实房间
-	var player = GameManager.player_ref
-	if player and is_instance_valid(player):
-		player.global_position = _reality_spawn.position if _reality_spawn else Vector2(1830, 550)
-		player.velocity = Vector2.ZERO
-		player.current_health = player.max_health
-		player.is_invincible = false
-		player.invincible_timer = 0.0
-		# 关键: 干扰期受击触发闪烁(_update_blink)会在 _sprite_node.visible=false 帧
-		# 冻结玩家; 直接置 invincible=false 跳过了 _update_timers→_restore_visibility 路径，
-		# 导致精灵永远不可见。必须显式恢复。
-		player._restore_visibility()
-		EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": player, "current_health": player.current_health, "max_health": player.max_health})
-	_restore_player_mechanics()
-	_set_camera_limits(-50, 1920, -500, 1200)
+	# 4) 切换现实子空间玩家/背景/相机（与 Level_01 一致）
+	_apply_reality_space_settings()
 
 	# 5) 激活现实手机, 进入 REALITY_PHONE_LOCKED
 	current_state = LevelState.REALITY_PHONE_LOCKED
@@ -937,8 +1091,9 @@ func _complete_wake_up_transition() -> void:
 		if is_instance_valid(obj):
 			obj.visible = true
 	if _reality_phone_node:
-		_reality_phone_node.is_active = true
-	_start_phone_glow()
+		_reality_phone_node.set_active(true)
+		_start_phone_vibration()
+		_start_left_edge_flash()
 
 	# 6) 淡入现实
 	if _eye_overlay:
@@ -983,23 +1138,6 @@ func _cleanup_dream_interference() -> void:
 			e.queue_free()
 	_street_enemies.clear()
 
-## 现实手机微光提示
-var _phone_glow_tween: Tween = null
-func _start_phone_glow() -> void:
-	if not _reality_phone_node: return
-	var indicator = _reality_phone_node.get_node_or_null("Indicator")
-	if not indicator: return
-	indicator.color = Color(0.9, 0.2, 0.2, 0.4)
-	_phone_glow_tween = create_tween()
-	_phone_glow_tween.set_loops()
-	_phone_glow_tween.tween_property(indicator, "color:a", 0.7, 0.5)
-	_phone_glow_tween.tween_property(indicator, "color:a", 0.25, 0.5)
-
-func _stop_phone_glow() -> void:
-	if _phone_glow_tween and is_instance_valid(_phone_glow_tween):
-		_phone_glow_tween.kill()
-	_phone_glow_tween = null
-
 
 # ============================================================
 # 现实流程: 手机 → 电脑(IDE+配置) → 床
@@ -1009,7 +1147,8 @@ func _handle_reality_phone() -> void:
 	if not level_data: return
 	has_read_reality_phone = true
 	_mark_interaction_completed("reality_phone")
-	_stop_phone_glow()
+	_stop_left_edge_flash()
+	_stop_phone_vibration()
 	var message = "【%s】\n\n%s" % [level_data.reality_phone_sender, level_data.reality_phone_content]
 	_show_narrative(message, func():
 		_show_narrative(level_data.reality_phone_monologue, func():
@@ -1020,10 +1159,7 @@ func _handle_reality_phone() -> void:
 func _unlock_reality_computer() -> void:
 	current_state = LevelState.REALITY_PHONE_READ
 	if _reality_computer_node:
-		_reality_computer_node.is_active = true
-		var indicator = _reality_computer_node.get_node_or_null("Indicator")
-		if indicator:
-			indicator.color = Color(0.3, 0.6, 0.9, 0.4)
+		_reality_computer_node.set_active(true)
 	print("[Level_02] 电脑解锁 — REALITY_PHONE_READ")
 
 # ---- IDE 对话 ----
@@ -1160,18 +1296,8 @@ func _run_recompile_sequence() -> void:
 func _unlock_reality_bed() -> void:
 	current_state = LevelState.REALITY_BED_READY
 	if _reality_bed_node:
-		_reality_bed_node.is_active = true
+		_reality_bed_node.set_active(true)
 		_reality_bed_node.reset_completed()
-		# 床发蓝光
-		var indicator = _reality_bed_node.get_node_or_null("Indicator")
-		if indicator:
-			indicator.color = Color(0.3, 0.5, 1.0, 0.3)
-			if _bed_glow_tween and is_instance_valid(_bed_glow_tween):
-				_bed_glow_tween.kill()
-			_bed_glow_tween = create_tween()
-			_bed_glow_tween.set_loops()
-			_bed_glow_tween.tween_property(indicator, "color:a", 0.65, 0.8)
-			_bed_glow_tween.tween_property(indicator, "color:a", 0.2, 0.8)
 	print("[Level_02] 床已解锁 — REALITY_BED_READY")
 	if level_data and level_data.bed_unlocked_text != "":
 		_show_narrative(level_data.bed_unlocked_text)
@@ -1182,36 +1308,38 @@ func _unlock_reality_bed() -> void:
 # ============================================================
 
 func _trigger_level_end() -> void:
-	if _transition_running: return
+	if _transition_running:
+		return
 	_transition_running = true
 	_is_interacting = true
 	_mark_interaction_completed("reality_bed")
+	current_state = LevelState.LEVEL_END_TRANSIT
 	print("[Level_02] 终局转场开始")
 	InputManager.block_input("关卡2终局转场", self)
 	_freeze_player(true)
-	if _bed_glow_tween and is_instance_valid(_bed_glow_tween):
-		_bed_glow_tween.kill()
-		_bed_glow_tween = null
+	_stop_left_edge_flash()
+	_stop_phone_vibration()
 
-	# 入梦渐黑
-	await _fade_blackout(1.0, 1.2)
-
-	# 显示终局提示, 等待 Enter
-	current_state = LevelState.LEVEL_END_TRANSIT
-	if _ending_prompt:
+	if _ending_prompt and level_data:
 		_ending_prompt.show()
-		if _ending_label and level_data:
+		if _ending_label:
 			_ending_label.text = level_data.dream_rebuilt_text
-	_transition_running = false
-	_ending_enter_armed = true
-	# 终局提示阶段解除全局屏蔽: Enter 经 game_action/_input 走 LEVEL_END_TRANSIT 分支
-	InputManager.unblock_input("关卡2终局转场")
+
+	# 与 Level_01 一致：淡入黑屏 → 满黑保持 → 在黑屏中切关（淡出由 MainEntry 负责）
+	await _fade_blackout(1.0, FINAL_BLACKOUT_FADE_DURATION)
+	await get_tree().create_timer(FINAL_BLACKOUT_DURATION).timeout
+
+	get_viewport().gui_release_focus()
+	_emit_level_complete()
 
 func _emit_level_complete() -> void:
-	if _level_complete_emitted: return
+	if _level_complete_emitted:
+		return
 	_level_complete_emitted = true
 	var next_path = level_data.next_level_path if level_data else "res://LevelModule/Formal/Level_03.tscn"
 	print("[Level_02] 发射 LEVEL_COMPLETE → ", next_path)
+	get_viewport().gui_release_focus()
+	InputManager.force_unblock_all()
 	# 全量清理（防跨关卡泄漏）
 	_full_cleanup()
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {
@@ -1222,10 +1350,11 @@ func _emit_level_complete() -> void:
 ## 关卡退出全量清理: 循环 Tween / 计时器 / 音效 / 敌人 / 订阅 / 输入屏蔽
 func _full_cleanup() -> void:
 	_cleanup_dream_interference()
-	_stop_phone_glow()
-	if _bed_glow_tween and is_instance_valid(_bed_glow_tween):
-		_bed_glow_tween.kill()
-		_bed_glow_tween = null
+	_stop_left_edge_flash()
+	_stop_phone_vibration()
+	if _reality_player_rules_active:
+		_reality_player_rules_active = false
+		_clear_reality_player_rules()
 	if _shadow_spawn_timer and is_instance_valid(_shadow_spawn_timer):
 		_shadow_spawn_timer.stop()
 	InputManager.unblock_input("关卡2清理")

@@ -26,6 +26,7 @@ func build_all() -> void:
 	_build_phone_message_overlay()
 	_build_eye_close_overlay()
 	_build_ide_ui()
+	_build_left_edge_flash()
 	_build_config_editor_ui()
 	_build_recompile_log_panel()
 	_build_ending_prompt()
@@ -190,6 +191,28 @@ func _build_eye_close_overlay() -> void:
 
 	canvas.add_child(overlay)
 	level._eye_overlay = overlay
+
+func _build_left_edge_flash() -> void:
+	var flash = ColorRect.new()
+	flash.name = "LeftEdgeFlash"
+	flash.color = Color(1.0, 0.85, 0.2, 0.0)
+	flash.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	flash.offset_right = 8
+	flash.visible = false
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 100
+	canvas.add_child(flash)
+	level._left_edge_flash = flash
+	var glow = ColorRect.new()
+	glow.name = "LeftEdgeGlow"
+	glow.color = Color(1.0, 0.9, 0.3, 0.0)
+	glow.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	glow.offset_right = 30
+	glow.visible = false
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.z_index = 99
+	canvas.add_child(glow)
+	level._left_edge_glow = glow
 
 # ---- CodeBuddy IDE 对话窗口 ----
 

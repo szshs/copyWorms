@@ -2,7 +2,7 @@
 # Level_02_SceneBuilder.gd - 关卡2场景构建器
 # 单场景双空间容器架构:
 #   DreamWorldRoot  — 梦境: 阁楼(0-424) / 老街(424-5416) / 断崖(5416+)
-#   RealityRoomRoot — 现实房间: 复用关卡1布局参数（宽1920, 地面Y=620), 初始隐藏
+#   RealityRoomRoot — 现实房间: 实例化 Level_02_sub01.tscn, 初始隐藏
 # 另构建: 交互物 / 触发器 / 出生点 / CanvasLayerUI
 # 只创建节点并写入主控字段，不处理流程
 # ============================================================
@@ -10,6 +10,7 @@ extends RefCounted
 class_name Level_02_SceneBuilder
 
 var level: Level_02
+const REALITY_ROOM_SCENE_PATH: String = "res://LevelModule/Formal/Level_02_sub01.tscn"
 
 func _init(parent: Level_02) -> void:
 	level = parent
@@ -49,26 +50,42 @@ func _build_dream_world() -> void:
 	# ---- E 断崖右端墙壁 (5896-6192) ----
 	dream.add_child(level._create_static_body("CliffRightWall", Vector2(6044, 480), Vector2(296, 320)))
 
+	# Level_02.tscn 里预置的梦境 Pixelwork 地图挂在根节点，需收进 DreamWorldRoot，
+	# 否则睁眼切现实时 _dream_root.visible=false 无法隐藏它。
+	_attach_dream_visual_layers(dream)
+
+func _attach_dream_visual_layers(dream: Node2D) -> void:
+	var to_reparent: Array[Node] = []
+	for child in level.get_children():
+		if child == dream or not child is Node2D:
+			continue
+		var scene_path: String = child.scene_file_path
+		if scene_path.contains("PixelworkMapStitch"):
+			to_reparent.append(child)
+	for node in to_reparent:
+		node.reparent(dream)
+
 # ============================================================
-# 现实房间（复用关卡1布局参数, 初始隐藏, 整体灰暗化）
+# 现实房间（Level_02_sub01.tscn, 初始隐藏；睁眼后应用 Level_01 背景/相机）
 # ============================================================
 
 func _build_reality_room() -> void:
-	var reality = level._get_or_create_child("RealityRoomRoot", Node2D)
+	var reality = level.get_node_or_null("RealityRoomRoot") as Node2D
+	if not reality:
+		var packed_scene = load(REALITY_ROOM_SCENE_PATH) as PackedScene
+		if not packed_scene:
+			push_error("[Level_02_SceneBuilder] 无法加载现实空间子场景: %s" % REALITY_ROOM_SCENE_PATH)
+			return
+		reality = packed_scene.instantiate() as Node2D
+		reality.name = "RealityRoomRoot"
+		level.add_child(reality)
+
 	level._reality_root = reality
-
-	# 主地面 + 左右墙（与关卡1坐标一致）
-	reality.add_child(level._create_static_body("RealityGround", Vector2(960, 620), Vector2(1920, 40)))
-	reality.add_child(level._create_static_body("RealityLeftWall", Vector2(-10, 360), Vector2(20, 720)))
-	reality.add_child(level._create_static_body("RealityRightWall", Vector2(1930, 360), Vector2(20, 720)))
-
-	# 整体灰暗化
-	reality.modulate = Color(0.65, 0.65, 0.7)
 	# 初始隐藏 + 物理禁用（防止与梦境地形在同坐标系下冲突）
 	reality.visible = false
 
 # ============================================================
-# 交互物（6 个）
+# 交互物（梦境动态创建, 现实从 Level_02_sub01.tscn 取引用）
 # ============================================================
 
 func _build_interactives() -> void:
@@ -99,27 +116,42 @@ func _build_interactives() -> void:
 	level._rattan_chair_node.prompt_text = "按 Enter 回忆"
 	container.add_child(level._rattan_chair_node)
 
-	# ---- 现实交互物（初始全部不可见/不激活, 随 RealityRoomRoot 显示再启用） ----
-	# 4. 现实手机（睁眼后唯一激活）
-	level._reality_phone_node = level._create_interactive("RealityPhone", "reality_phone", Vector2(1660, 580), Vector2(50, 40))
-	level._reality_phone_node.is_active = false
-	level._reality_phone_node.visible = false
-	level._reality_phone_node.prompt_text = "按 Enter 查看"
-	container.add_child(level._reality_phone_node)
+	_cache_reality_interactives()
 
-	# 5. 电脑（读完短信后解锁）
-	level._reality_computer_node = level._create_interactive("RealityComputer", "reality_computer", Vector2(1470, 560), Vector2(100, 80))
-	level._reality_computer_node.is_active = false
-	level._reality_computer_node.visible = false
-	level._reality_computer_node.prompt_text = "按 Enter 使用"
-	container.add_child(level._reality_computer_node)
+func _cache_reality_interactives() -> void:
+	if not level._reality_root:
+		push_error("[Level_02_SceneBuilder] RealityRoomRoot 未创建，无法获取现实交互物")
+		return
 
-	# 6. 单人床（重编译完成后解锁）
-	level._reality_bed_node = level._create_interactive("RealityBed", "reality_bed", Vector2(1830, 570), Vector2(160, 60))
-	level._reality_bed_node.is_active = false
-	level._reality_bed_node.visible = false
-	level._reality_bed_node.prompt_text = "按 Enter 入梦"
-	container.add_child(level._reality_bed_node)
+	level._reality_phone_node = level._reality_root.get_node_or_null("InteractiveObjects/RealityPhone") as InteractiveObject
+	level._reality_computer_node = level._reality_root.get_node_or_null("InteractiveObjects/RealityComputer") as InteractiveObject
+	level._reality_bed_node = level._reality_root.get_node_or_null("InteractiveObjects/RealityBed") as InteractiveObject
+
+	var required_nodes: Dictionary = {
+		"RealityPhone": level._reality_phone_node,
+		"RealityComputer": level._reality_computer_node,
+		"RealityBed": level._reality_bed_node
+	}
+	for node_name in required_nodes:
+		if not required_nodes[node_name]:
+			push_error("[Level_02_SceneBuilder] Level_02_sub01.tscn 缺少现实交互物: %s" % node_name)
+
+	for obj in [level._reality_phone_node, level._reality_computer_node, level._reality_bed_node]:
+		if obj:
+			obj.apply_level01_dot_visual()
+
+	if level._reality_phone_node:
+		level._reality_phone_node.set_active(false)
+		level._reality_phone_node.visible = false
+		level._reality_phone_node.prompt_text = "按 Enter 查看"
+	if level._reality_computer_node:
+		level._reality_computer_node.set_active(false)
+		level._reality_computer_node.visible = false
+		level._reality_computer_node.prompt_text = "按 Enter 使用"
+	if level._reality_bed_node:
+		level._reality_bed_node.set_active(false)
+		level._reality_bed_node.visible = false
+		level._reality_bed_node.prompt_text = "按 Enter 入梦"
 
 # ============================================================
 # 非交互触发器（Area2D, collision_layer=0, mask=PLAYER）
@@ -180,7 +212,7 @@ func _build_spawn_points() -> void:
 
 	var reality_spawn = Marker2D.new()
 	reality_spawn.name = "RealitySpawn"
-	reality_spawn.position = Vector2(1830, 550)
+	reality_spawn.position = Vector2(1504, 550)
 	container.add_child(reality_spawn)
 	level._reality_spawn = reality_spawn
 
