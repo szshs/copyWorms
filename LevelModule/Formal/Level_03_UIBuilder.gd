@@ -32,8 +32,14 @@ func _build_narrative_panel() -> void:
 	var panel = Panel.new()
 	panel.name = "NarrativePanel"
 	panel.visible = false
-	panel.size = Vector2(1280, 200)
-	panel.position = Vector2(0, 520)
+	panel.anchor_left = 0.0
+	panel.anchor_top = 1.0
+	panel.anchor_right = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = 0.0
+	panel.offset_top = -200.0
+	panel.offset_right = 0.0
+	panel.offset_bottom = 0.0
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var style = StyleBoxFlat.new()
@@ -43,8 +49,14 @@ func _build_narrative_panel() -> void:
 
 	var label = RichTextLabel.new()
 	label.name = "RichTextLabel"
-	label.size = Vector2(1240, 160)
-	label.position = Vector2(20, 20)
+	label.anchor_left = 0.0
+	label.anchor_top = 0.0
+	label.anchor_right = 1.0
+	label.anchor_bottom = 1.0
+	label.offset_left = 20.0
+	label.offset_top = 20.0
+	label.offset_right = -20.0
+	label.offset_bottom = -20.0
 	label.bbcode_enabled = true
 	label.fit_content = true
 	label.add_theme_font_size_override("normal_font_size", 18)

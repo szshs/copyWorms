@@ -73,8 +73,14 @@ func _ready() -> void:
 	# 阶段3: 订阅 InputManager 的游戏操作信号
 	# attack/dash/skill 由信号驱动(单次触发)，跳跃/移动保留轮询(需连续状态)
 	if not Engine.is_editor_hint():
-		InputManager.game_action.connect(_on_game_action)
+		if not InputManager.game_action.is_connected(_on_game_action):
+			InputManager.game_action.connect(_on_game_action)
 	_on_ready()
+
+func _exit_tree() -> void:
+	if not Engine.is_editor_hint():
+		if InputManager.game_action.is_connected(_on_game_action):
+			InputManager.game_action.disconnect(_on_game_action)
 
 func _apply_config() -> void:
 	if config:
@@ -483,7 +489,10 @@ func heal(amount: int) -> void:
 func _get_input_direction() -> Vector2:
 	return Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 
-func _input_jump_just_pressed() -> bool: return Input.is_action_just_pressed("player_jump")
+func _input_jump_just_pressed() -> bool:
+	if InputManager.is_action_blocked(&"player_jump"):
+		return false
+	return Input.is_action_just_pressed("player_jump")
 
 # ---- 取值器 ----
 

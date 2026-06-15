@@ -16,6 +16,7 @@ func build_all() -> void:
 	_build_sleep_overlay()
 	_build_narrative_panel()
 	_build_ide_ui()
+	_build_left_edge_flash()
 	_build_glitch_overlay()
 
 func _build_sleep_overlay() -> void:
@@ -32,8 +33,14 @@ func _build_narrative_panel() -> void:
 	var panel = Panel.new()
 	panel.name = "NarrativePanel"
 	panel.visible = false
-	panel.size = Vector2(1280, 200)
-	panel.position = Vector2(0, 520)
+	panel.anchor_left = 0.0
+	panel.anchor_top = 1.0
+	panel.anchor_right = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = 0.0
+	panel.offset_top = -200.0
+	panel.offset_right = 0.0
+	panel.offset_bottom = 0.0
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var style = StyleBoxFlat.new()
@@ -43,8 +50,14 @@ func _build_narrative_panel() -> void:
 
 	var label = RichTextLabel.new()
 	label.name = "RichTextLabel"
-	label.size = Vector2(1240, 160)
-	label.position = Vector2(20, 20)
+	label.anchor_left = 0.0
+	label.anchor_top = 0.0
+	label.anchor_right = 1.0
+	label.anchor_bottom = 1.0
+	label.offset_left = 20.0
+	label.offset_top = 20.0
+	label.offset_right = -20.0
+	label.offset_bottom = -20.0
 	label.bbcode_enabled = true
 	label.fit_content = true
 	label.add_theme_font_size_override("normal_font_size", 18)
@@ -235,6 +248,30 @@ func _build_ide_ui() -> void:
 
 	canvas.add_child(ide)
 	level._ide_ui = ide
+
+func _build_left_edge_flash() -> void:
+	# 主光条（窄、亮）
+	var flash = ColorRect.new()
+	flash.name = "LeftEdgeFlash"
+	flash.color = Color(1.0, 0.85, 0.2, 0.0)
+	flash.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	flash.offset_right = 8
+	flash.visible = false
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 100
+	canvas.add_child(flash)
+	level._left_edge_flash = flash
+	# 扩散光晕（宽、淡）
+	var glow = ColorRect.new()
+	glow.name = "LeftEdgeGlow"
+	glow.color = Color(1.0, 0.9, 0.3, 0.0)
+	glow.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	glow.offset_right = 30
+	glow.visible = false
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.z_index = 99
+	canvas.add_child(glow)
+	level._left_edge_glow = glow
 
 func _build_glitch_overlay() -> void:
 	var overlay = ColorRect.new()
