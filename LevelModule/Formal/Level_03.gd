@@ -138,7 +138,8 @@ func _on_ready() -> void:
 	EventBus.subscribe(GlobalDefine.EventName.ENEMY_DIED, self, "_on_enemy_died")
 	_fsm = Level_03_FSM.new(self)
 
-	InputManager.game_action.connect(_on_game_action)
+	if not InputManager.game_action.is_connected(_on_game_action):
+		InputManager.game_action.connect(_on_game_action)
 
 	_enemy_spawn_timer = Timer.new()
 	_enemy_spawn_timer.name = "EnemySpawnTimer"
@@ -151,6 +152,11 @@ func _on_ready() -> void:
 	_load_hud()
 	set_process(true)
 	print("[Level_03] 初始化完成 — 当前: TEA_SHOP_FRONT")
+
+
+func _exit_tree() -> void:
+	if InputManager.game_action.is_connected(_on_game_action):
+		InputManager.game_action.disconnect(_on_game_action)
 
 
 func _load_hud() -> void:

@@ -42,6 +42,9 @@ var _pause_allowed: bool = true
 ## 本帧捕获的动作（用于外部查询）
 var captured_this_frame: StringName = &""
 
+## 关卡/系统级动作禁用表（如关卡1禁攻击/跳跃）
+var _blocked_actions: Dictionary = {}
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
@@ -65,6 +68,10 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if _is_mouse_over_interactive_gui(event as InputEventMouse):
 			return
+
+	if _is_blocked_action_event(event):
+		get_viewport().set_input_as_handled()
+		return
 	
 	# ---- 游戏操作键识别与分发 ----
 	var action := _identify_game_action(event)
@@ -88,7 +95,13 @@ func _should_block_game_input() -> bool:
 ## 检测 UI 焦点是否在 Control 节点上
 func _is_ui_focused() -> bool:
 	var focused = get_viewport().gui_get_focus_owner()
-	return focused != null and focused is Control
+	if focused == null or not (focused is Control):
+		return false
+	var ctrl := focused as Control
+	if not ctrl.is_visible_in_tree():
+		get_viewport().gui_release_focus()
+		return false
+	return true
 
 ## 检测鼠标是否在可交互的 GUI 控件上（mouse_filter != IGNORE）
 ## 策略: 只检查"真正的 UI 区域"，跳过 Node2D 场景中的装饰性 Control
@@ -176,6 +189,24 @@ func _identify_game_action(event: InputEvent) -> StringName:
 	if event.is_action_pressed("ui_accept"):       return &"ui_accept"
 	return &""
 
+func _is_blocked_action_event(event: InputEvent) -> bool:
+	for action: StringName in _blocked_actions.keys():
+		if event.is_action_pressed(action):
+			return true
+	return false
+
+func block_action(action: StringName, reason: String = "") -> void:
+	_blocked_actions[action] = reason
+
+func unblock_action(action: StringName) -> void:
+	_blocked_actions.erase(action)
+
+func clear_action_blocks() -> void:
+	_blocked_actions.clear()
+
+func is_action_blocked(action: StringName) -> bool:
+	return _blocked_actions.has(action)
+
 func _get_ui_focus_info() -> String:
 	var focused = get_viewport().gui_get_focus_owner()
 	if focused == null:
@@ -200,6 +231,13 @@ func unblock_input(_reason: String = "") -> void:
 		is_input_blocked = false
 		block_reason = ""
 		_block_count = 0
+
+## 强制解除所有输入屏蔽（用于关卡切换/清理等需要打破未配对 block 的场景）
+func force_unblock_all() -> void:
+	_block_count = 0
+	is_input_blocked = false
+	block_reason = ""
+	clear_action_blocks()
 
 ## 设置是否允许暂停切换（按键设置界面打开时设为 false，关闭时恢复 true）
 func set_pause_allowed(allowed: bool) -> void:

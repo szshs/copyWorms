@@ -175,7 +175,8 @@ func _on_ready() -> void:
 	EventBus.subscribe(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, self, "_on_object_interacted")
 	_fsm = Level_02_FSM.new(self)
 
-	InputManager.game_action.connect(_on_game_action)
+	if not InputManager.game_action.is_connected(_on_game_action):
+		InputManager.game_action.connect(_on_game_action)
 
 	# 阴影敌人刷新计时器
 	_shadow_spawn_timer = Timer.new()
@@ -194,6 +195,11 @@ func _on_ready() -> void:
 		_show_narrative(level_data.attic_intro_text)
 
 	print("[Level_02] 初始化完成 — 当前: DREAM_ATTIC")
+
+
+func _exit_tree() -> void:
+	if InputManager.game_action.is_connected(_on_game_action):
+		InputManager.game_action.disconnect(_on_game_action)
 
 
 func _load_hud() -> void:
@@ -463,9 +469,7 @@ func _process(delta: float) -> void:
 	# 输入安全守卫：非交互状态下确保输入未被误锁
 	if not _is_interacting and not _transition_running and not _fall_reset_running and not _narrative_open:
 		if InputManager.is_input_blocked:
-			InputManager._block_count = 0
-			InputManager.is_input_blocked = false
-			InputManager.block_reason = ""
+			InputManager.force_unblock_all()
 			push_warning("[Level_02] 输入被误锁，已强制解除")
 
 	_poll_interactives_in_range()
@@ -844,19 +848,36 @@ func _update_wake_hold(delta: float) -> void:
 			current_state = LevelState.DREAM_INTERFERENCE
 		_update_eye_overlay(wake_hold_time / wake_hold_required)
 
-## 4 块黑色 ColorRect 从四周向中心收缩 (progress 0→1)
+## 4 块黑色 ColorRect 从屏幕四周向玩家屏幕位置收拢 (progress 0→1)
 func _update_eye_overlay(progress: float) -> void:
 	var p = clampf(progress, 0.0, 1.0)
+	var view_size := get_viewport_rect().size
+	var focus := _get_player_screen_focus(view_size)
 	if _eye_rect_top:
-		_eye_rect_top.size = Vector2(VIEW_W, p * VIEW_H * 0.5)
+		_eye_rect_top.position = Vector2.ZERO
+		_eye_rect_top.size = Vector2(view_size.x, focus.y * p)
 	if _eye_rect_bottom:
-		_eye_rect_bottom.size = Vector2(VIEW_W, p * VIEW_H * 0.5)
-		_eye_rect_bottom.position = Vector2(0, VIEW_H - p * VIEW_H * 0.5)
+		var bottom_height: float = (view_size.y - focus.y) * p
+		_eye_rect_bottom.position = Vector2(0.0, view_size.y - bottom_height)
+		_eye_rect_bottom.size = Vector2(view_size.x, bottom_height)
 	if _eye_rect_left:
-		_eye_rect_left.size = Vector2(p * VIEW_W * 0.5, VIEW_H)
+		_eye_rect_left.position = Vector2.ZERO
+		_eye_rect_left.size = Vector2(focus.x * p, view_size.y)
 	if _eye_rect_right:
-		_eye_rect_right.size = Vector2(p * VIEW_W * 0.5, VIEW_H)
-		_eye_rect_right.position = Vector2(VIEW_W - p * VIEW_W * 0.5, 0)
+		var right_width: float = (view_size.x - focus.x) * p
+		_eye_rect_right.position = Vector2(view_size.x - right_width, 0.0)
+		_eye_rect_right.size = Vector2(right_width, view_size.y)
+
+func _get_player_screen_focus(view_size: Vector2) -> Vector2:
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player):
+		return view_size * 0.5
+	var canvas_transform := get_viewport().get_canvas_transform()
+	var screen_pos: Vector2 = canvas_transform * player.global_position
+	return Vector2(
+		clampf(screen_pos.x, 0.0, view_size.x),
+		clampf(screen_pos.y, 0.0, view_size.y)
+	)
 
 func _complete_wake_up_transition() -> void:
 	if _transition_running: return
@@ -1125,6 +1146,7 @@ func _run_recompile_sequence() -> void:
 	await get_tree().create_timer(1.0).timeout
 	if _recompile_panel: _recompile_panel.hide()
 	if _ide_ui: _ide_ui.hide()
+	get_viewport().gui_release_focus()
 	_freeze_player(false)
 	InputManager.unblock_input("IDE对话")
 	_is_interacting = false

@@ -84,19 +84,14 @@ func _process(_delta: float) -> void:
 	if not _prompt_label:
 		return
 	
-	if not is_active or not is_player_in_range:
+	if not is_active or not is_player_in_range or completed:
 		_prompt_label.visible = false
 		return
 	
 	_prompt_label.visible = true
-	
-	if completed:
-		_prompt_label.text = "已完成 ✓"
-		_prompt_label.add_theme_color_override("font_color", Color(0.4, 0.5, 0.4, 0.8))
-	else:
-		_prompt_label.text = prompt_text
-		var alpha = 0.6 + 0.4 * abs(sin(Time.get_ticks_msec() * 0.004))
-		_prompt_label.add_theme_color_override("font_color", Color(1, 0.9, 0.2, alpha))
+	_prompt_label.text = prompt_text
+	var alpha = 0.6 + 0.4 * abs(sin(Time.get_ticks_msec() * 0.004))
+	_prompt_label.add_theme_color_override("font_color", Color(1, 0.9, 0.2, alpha))
 
 	# 输入处理已统一收归 Level_01._input() 分发
 	# 此处不再检测 ui_accept，避免与 Level_01 双重触发交互事件
@@ -179,6 +174,12 @@ func _rect_overlaps_player(player: Node2D) -> bool:
 ## 标记交互为已完成（幂等性：调用后该物体不可再触发的交互）
 func mark_completed() -> void:
 	completed = true
+	# 隐藏光点指示器（床等允许重复交互的除外）
+	if not allow_repeat:
+		var indicator = get_node_or_null("Indicator")
+		if indicator: indicator.visible = false
+		var glow = get_node_or_null("Glow")
+		if glow: glow.visible = false
 	print("[InteractiveObject] %s 标记为已完成" % object_id)
 
 
@@ -195,3 +196,8 @@ func set_active(active: bool) -> void:
 	if not active and _prompt_label:
 		_prompt_label.visible = false
 		is_player_in_range = false
+	# 同步光点显隐：未激活时隐藏，激活时显示
+	var indicator = get_node_or_null("Indicator")
+	if indicator: indicator.visible = active
+	var glow = get_node_or_null("Glow")
+	if glow: glow.visible = active
