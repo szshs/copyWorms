@@ -155,11 +155,18 @@ func _physics_process(delta: float) -> void:
 	# ---- 3) clamp 到 limit 边界 ----
 	# DRAG_CENTER 模式：position = 视口中心的世界坐标
 	# limit 值表示视口边缘可达的世界坐标极限
+	# zoom 缩放后实际可见世界空间 = vp_size / zoom，clamp 需用缩放后的半宽
+	# offset 在世界坐标中偏移渲染中心，clamp 必须补偿 offset 才能让可见边缘对齐 limit
 	var vp_size: Vector2 = get_viewport_rect().size
+	var half_visible: Vector2 = vp_size * 0.5 / zoom
+	var rendered_min_x: float = limit_left + half_visible.x - offset.x
+	var rendered_max_x: float = limit_right - half_visible.x - offset.x
+	var rendered_min_y: float = limit_top + half_visible.y - offset.y
+	var rendered_max_y: float = limit_bottom - half_visible.y - offset.y
 	if limit_left < limit_right:
-		new_pos.x = clamp(new_pos.x, limit_left + vp_size.x * 0.5, limit_right - vp_size.x * 0.5)
+		new_pos.x = clamp(new_pos.x, rendered_min_x, rendered_max_x)
 	if limit_top < limit_bottom:
-		new_pos.y = clamp(new_pos.y, limit_top + vp_size.y * 0.5, limit_bottom - vp_size.y * 0.5)
+		new_pos.y = clamp(new_pos.y, rendered_min_y, rendered_max_y)
 
 	global_position = new_pos
 
