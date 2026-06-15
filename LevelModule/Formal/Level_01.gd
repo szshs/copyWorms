@@ -266,7 +266,7 @@ func _ensure_player_collision_layer() -> void:
 
 # ---- 工具方法 ----
 
-func _get_or_create_child(node_name: String, node_type) -> Node:
+func _get_or_create_child(node_name: String, node_type: Variant) -> Node:
 	var existing = get_node_or_null(node_name)
 	if existing: return existing
 	var node = node_type.new()
