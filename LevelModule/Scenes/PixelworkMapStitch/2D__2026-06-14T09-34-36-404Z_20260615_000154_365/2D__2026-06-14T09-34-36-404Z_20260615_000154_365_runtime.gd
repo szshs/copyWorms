@@ -790,7 +790,13 @@ func _apply_region_tile_key(tile_key: String, active: bool) -> void:
 		area.monitorable = adjust_active
 
 func _region_records_for_tile(index: Dictionary, tile_key: String) -> Array:
-	var records: Array = index.get(tile_key, [])
+	var records: Array = []
+	if index.has(""):
+		var global_records: Array = index[""]
+		records.append_array(global_records)
+	if not tile_key.is_empty() and index.has(tile_key):
+		var tile_records: Array = index[tile_key]
+		records.append_array(tile_records)
 	return records
 
 func _physics_process(delta: float) -> void:
@@ -880,19 +886,22 @@ func _actor_from_state(state: Dictionary) -> Node2D:
 	return node_value as Node2D
 
 func _prune_runtime_actors(detection_keys: Dictionary) -> void:
+	var keys_to_erase: Array = []
 	for key in _actors.keys():
 		var state: Dictionary = _actors[key]
 		var actor := _actor_from_state(state)
 		if actor == null:
 			_clear_adjust_ghost_for_key(int(key))
-			_actors.erase(key)
+			keys_to_erase.append(key)
 			continue
 		if bool(state.get("primary", false)):
 			continue
 		if not _actor_is_in_detection_keys(actor, detection_keys):
 			if bool(state.get("adjusted", false)):
 				_restore_adjust(actor)
-			_actors.erase(key)
+			keys_to_erase.append(key)
+	for key in keys_to_erase:
+		_actors.erase(key)
 
 func _is_annotation_node(node: Node) -> bool:
 	var annotations := get_node_or_null("Annotations")
@@ -931,12 +940,13 @@ func _update_active_region_tile() -> void:
 		_set_runtime_regions_enabled(_runtime_regions_enabled())
 
 func _update_runtime_actors() -> void:
+	var keys_to_erase: Array = []
 	for key in _actors.keys():
 		var state: Dictionary = _actors[key]
 		var actor := _actor_from_state(state)
 		if actor == null:
 			_clear_adjust_ghost_for_key(int(key))
-			_actors.erase(key)
+			keys_to_erase.append(key)
 			continue
 		var is_primary: bool = bool(state.get("primary", false))
 		var collision_records := _shape_records_for_actor(_collision_records_by_tile, actor)
@@ -963,6 +973,8 @@ func _update_runtime_actors() -> void:
 			_restore_adjust(actor)
 		state["adjusted"] = in_adjust
 		_actors[key] = state
+	for key in keys_to_erase:
+		_actors.erase(key)
 
 func _tile_key_for_actor(actor: Node2D) -> String:
 	for point in _actor_foot_probe_points(actor):

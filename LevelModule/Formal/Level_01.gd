@@ -52,6 +52,13 @@ var _interact_cooldown: float = 0.0
 var _is_interacting: bool = false
 var _fsm: Level_01_FSM = null
 var _phone_vibrate_tween: Tween = null
+var _flicker_tween: Tween = null
+var _level_input_rules_active: bool = false
+
+# 左侧边缘黄色闪烁光效（提示左侧有未查看内容）
+var _left_edge_flash: ColorRect = null
+var _left_edge_glow: ColorRect = null
+var _left_edge_flash_active: bool = false
 
 # 所有交互物引用的统一访问方法（消除 4 处硬编码数组重复）
 var _all_interactives: Array[InteractiveObject] = []
@@ -68,8 +75,10 @@ var _sleep_fading: bool = false
 # IDE 预览超时崩溃（8 秒）
 const IDE_PREVIEW_TIMEOUT: float = 8.0
 var _ide_preview_timer: float = 0.0
+const LEVEL_01_MOVE_MULTIPLIER: float = 0.5
 # GLITCH_TRANSIT 床再触发的时序常量
-const FINAL_BLACKOUT_DURATION: float = 0.8
+const FINAL_BLACKOUT_DURATION: float = 4.0
+const FINAL_BLACKOUT_FADE_DURATION: float = 0.8
 const FINAL_AMBIENT_FADE_DURATION: float = 2.5
 const FINAL_GLITCH_DURATION: float = 2.0
 
@@ -182,9 +191,8 @@ func _on_ready() -> void:
 	_setup_camera_limits()
 
 	_cache_ui_refs()
-	_restrict_player_mechanics()
-	# 立即恢复：LIVING_ROOM 是正常探索状态，玩家需要完整操作能力
-	_restore_player_mechanics()
+	_level_input_rules_active = true
+	_apply_level_input_rules()
 	# 初始化交互物统一列表（SceneBuilder 已设置 phone/computer 的 is_active=false）
 	_all_interactives = [_obstacle_box, _obstacle_clothes, _bed_node, _computer_node, _phone_node, _notice_node, _thermos_node]
 	# 修正: 使用 GlobalDefine 常量替代硬编码字符串（B5 修复）
@@ -194,7 +202,8 @@ func _on_ready() -> void:
 	# 验证玩家 collision_layer（B8 修复）— 若玩家在 PLAYER 层缺失则修正
 	_ensure_player_collision_layer()
 
-	InputManager.game_action.connect(_on_game_action)
+	if not InputManager.game_action.is_connected(_on_game_action):
+		InputManager.game_action.connect(_on_game_action)
 
 	# 加载 HUD（血条/状态/暂停面板）
 	_load_hud()
@@ -202,6 +211,12 @@ func _on_ready() -> void:
 	set_process(true)
 
 	print("[Level_01] 初始化完成 — 当前: LIVING_ROOM")
+
+
+func _exit_tree() -> void:
+	_level_input_rules_active = false
+	_clear_level_input_rules()
+	_disconnect_input_manager()
 
 
 func _load_hud() -> void:
@@ -259,7 +274,7 @@ func _get_or_create_child(node_name: String, node_type) -> Node:
 	add_child(node)
 	return node
 
-func _create_static_body(node_name: String, pos: Vector2, size: Vector2, col: Color) -> StaticBody2D:
+func _create_static_body(node_name: String, pos: Vector2, size: Vector2) -> StaticBody2D:
 	var body = StaticBody2D.new()
 	body.name = node_name
 	body.position = pos
@@ -271,33 +286,34 @@ func _create_static_body(node_name: String, pos: Vector2, size: Vector2, col: Co
 	col_shape.shape = rect_shape
 	col_shape.name = "CollisionShape2D"
 	body.add_child(col_shape)
-	var color_rect = ColorRect.new()
-	color_rect.name = "ColorRect"
-	color_rect.color = col
-	color_rect.size = size
-	color_rect.position = -size / 2
-	color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.add_child(color_rect)
 	return body
 
-## 把基类 LevelBase 在 _setup_camera() 创建的 LevelCamera 升级为 SmoothCamera，
 ## 把 level_config 的 limit 参数传给玩家预制的 SmoothCamera
-## 架构改进：摄像机组件由玩家场景持有（PlayerModule），关卡只负责配置参数
+## 委托给 _set_camera_limits() 实现，支持动态切换相机范围
 func _setup_camera_limits() -> void:
 	if not level_config:
 		return
+	_set_camera_limits(level_config.camera_limit_left, level_config.camera_limit_right,
+		level_config.camera_limit_top, level_config.camera_limit_bottom)
+
+## 动态设置相机边界（可在运行时任意调用，如空间切换/区域推进时）
+func _set_camera_limits(left: int, right: int, top: int, bottom: int) -> void:
 	var player = GameManager.player_ref
 	if not player or not is_instance_valid(player):
 		return
 	var cam = player.get_node_or_null("SmoothCamera") as SmoothCamera
 	if not cam:
 		return
-	cam.limit_left = level_config.camera_limit_left
-	cam.limit_right = level_config.camera_limit_right
-	cam.limit_top = level_config.camera_limit_top
-	cam.limit_bottom = level_config.camera_limit_bottom
+	cam.limit_left = left
+	cam.limit_right = right
+	cam.limit_top = top
+	cam.limit_bottom = bottom
+	# 关卡1专属：2倍放大视角 + 回弹速度减半（更沉重的跟随感）
+	cam.zoom = Vector2(2, 2)
+	cam.offset = Vector2.ZERO
+	cam.lerp_speed = 2.5
 	cam.bind_target(player)
-	print("[Level_01] SmoothCamera 已配置 (limit_left=%d, limit_right=%d)" % [cam.limit_left, cam.limit_right])
+	print("[Level_01] SmoothCamera limit 更新 (left=%d, right=%d, zoom=2)" % [left, right])
 
 func _create_interactive(node_name: String, obj_id: String, pos: Vector2, size: Vector2) -> InteractiveObject:
 	var obj = InteractiveObject.new()
@@ -315,11 +331,32 @@ func _create_interactive(node_name: String, obj_id: String, pos: Vector2, size: 
 	obj.add_child(col_shape)
 	var indicator = ColorRect.new()
 	indicator.name = "Indicator"
-	indicator.color = Color(0.5, 0.5, 0.5, 0.3)
-	indicator.size = size
-	indicator.position = -size / 2
+	indicator.color = Color(1.0, 0.85, 0.2, 0.9)
+	indicator.size = Vector2(10, 10)
+	indicator.position = -indicator.size / 2
 	indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	obj.add_child(indicator)
+	# 黄色闪烁光点动画
+	var glow = ColorRect.new()
+	glow.name = "Glow"
+	glow.color = Color(1.0, 0.9, 0.3, 0.3)
+	glow.size = Vector2(24, 24)
+	glow.position = -glow.size / 2
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	obj.add_child(glow)
+	# 延迟启动闪烁（需要节点在树中才能创建 tween）
+	obj.ready.connect(func():
+		# 未激活的交互物（电脑/手机）初始隐藏光点
+		if not obj.is_active:
+			indicator.visible = false
+			glow.visible = false
+		var tw = indicator.create_tween().set_loops()
+		tw.tween_property(indicator, "color:a", 0.2, 0.6).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(indicator, "color:a", 0.9, 0.6).set_trans(Tween.TRANS_SINE)
+		var tw2 = glow.create_tween().set_loops()
+		tw2.tween_property(glow, "color:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
+		tw2.tween_property(glow, "color:a", 0.3, 0.6).set_trans(Tween.TRANS_SINE)
+	)
 	return obj
 
 func _add_physics_blocker(parent: Node2D, size: Vector2) -> void:
@@ -350,33 +387,34 @@ func _cache_ui_refs() -> void:
 	_glitch_overlay = canvas.get_node_or_null("GlitchOverlay")
 
 
-# ---- 玩家控制 ----
+# ---- 关卡1输入策略 ----
 
-func _restrict_player_mechanics() -> void:
+func _apply_level_input_rules() -> void:
+	InputManager.block_action(&"player_attack", "Level_01 禁止攻击")
+	InputManager.block_action(&"player_jump", "Level_01 禁止跳跃")
 	var player = GameManager.player_ref
 	if not player: return
 	player.can_jump = false
-	player.can_dash = false
 	player.can_attack = false
-	player.can_skill = false
+	player.can_dash = true
+	player.can_skill = true
+	player.runtime_move_speed_multiplier = LEVEL_01_MOVE_MULTIPLIER
 
-func _restore_player_mechanics() -> void:
+func _clear_level_input_rules() -> void:
+	InputManager.unblock_action(&"player_attack")
+	InputManager.unblock_action(&"player_jump")
 	var player = GameManager.player_ref
 	if not player: return
 	player.can_jump = true
 	player.can_dash = true
-	# 关卡1设计约束：禁用攻击（本关无敌人，无需攻击；按键也不会触发）
-	# 在关卡模块内拦截，不修改 PlayerBase 核心代码
-	player.can_attack = false
+	player.can_attack = true
 	player.can_skill = true
+	player.runtime_move_speed_multiplier = 1.0
 
-## 关卡级技能限制守卫：每帧强制维持 can_attack=false
-## 防止任何外部路径（如未来新增的状态恢复）意外重新启用被禁技能
+## 关卡级输入守卫：关卡1只禁攻击/跳跃，移动速度固定为0.5倍
 func _enforce_level_restrictions() -> void:
-	var player = GameManager.player_ref
-	if not player or not is_instance_valid(player): return
-	if player.can_attack:
-		player.can_attack = false
+	if _level_input_rules_active:
+		_apply_level_input_rules()
 
 func _freeze_player(freeze: bool) -> void:
 	var player = GameManager.player_ref
@@ -498,6 +536,9 @@ func _process(delta: float) -> void:
 	if _is_interacting and current_state not in [LevelState.IDE_CHAT, LevelState.IDE_PREVIEW, LevelState.GLITCH_TRANSIT]:
 		if not _narrative_open and not _sleep_fading:
 			_safe_end_interaction()
+	# 左侧边缘闪烁：检测手机是否进入摄像机画面，若是则停止闪烁
+	if _left_edge_flash_active:
+		_check_flash_target_in_view()
 	# 代码滚动：IDE 对话"编译"阶段，右侧面板自动滚屏输出伪代码
 	if _code_scroll_active:
 		_code_scroll_timer += delta
@@ -670,7 +711,7 @@ func _try_unlock_computer() -> void:
 		return
 	if _computer_node.is_active:
 		return  # 已解锁
-	_computer_node.is_active = true
+	_computer_node.set_active(true)
 	print("[Level_01] 电脑已解锁 (sleep_count=%d)" % sleep_count)
 
 
@@ -803,8 +844,10 @@ func _on_preview_crashed() -> void:
 	if _ide_ui: _ide_ui.hide()
 	_stop_code_scroll()
 	current_state = LevelState.PHONE_RINGING
-	if _phone_node: _phone_node.is_active = true
+	if _phone_node: _phone_node.set_active(true)
 	_start_phone_vibration()
+	# 启动左侧边缘闪烁光效（玩家在电脑附近右侧，手机在左侧画面外）
+	_start_left_edge_flash()
 	_freeze_player(false)
 	# 阶段3d: IDE 崩溃退出，解除输入屏蔽（进入 PHONE_RINGING 正常探索状态）
 	InputManager.unblock_input("IDE对话")
@@ -835,8 +878,10 @@ func _stop_phone_vibration() -> void:
 
 func _trigger_climax_transition() -> void:
 	if not level_data:
-		_start_glitch_shader_effect(); return
+		_on_final_bed_trigger(); return
 	_mark_interaction_completed("phone")
+	# 手机已交互，停止左侧边缘闪烁
+	_stop_left_edge_flash()
 	_freeze_player(true)
 	# 阶段3d: 终局叙事期间屏蔽输入（_show_narrative 内部也会 block，但此处提前确保）
 	InputManager.block_input("终局叙事", self)
@@ -846,18 +891,20 @@ func _trigger_climax_transition() -> void:
 		_stop_phone_vibration()
 		# 2) 短信确认后弹出崩溃独白
 		_show_narrative(level_data.climax_monologue, func():
-			# 3) 独白关闭 → 锁死除 bed 外所有交互，进入 GLITCH_TRANSIT
+			# 3) 独白关闭 → 先解锁交互和移动，再启动视觉闪烁效果
 			_lock_all_interactions_except_bed()
 			if _bed_node:
-				# B9 修复: 床必须确保 is_active=true（即便前置流程中误设了 false）
 				_bed_node.is_active = true
 				_bed_node.reset_completed()
 			current_state = LevelState.GLITCH_TRANSIT
 			_freeze_player(false)
-			# 阶段3d: GLITCH_TRANSIT 允许玩家移动+交互（等最终床触发）
 			InputManager.unblock_input("终局叙事")
 			_is_interacting = false
 			_interact_cooldown = 0.0
+			# 眨眼效果仅作为视觉叠加，不阻塞交互
+			_start_flicker_effect(func():
+				pass
+			)
 			print("[Level_01] 进入 GLITCH_TRANSIT — 等待玩家与床最终交互")
 		)
 	)
@@ -866,21 +913,25 @@ func _on_final_bed_trigger() -> void:
 	# 玩家在 GLITCH_TRANSIT 状态再次与床交互 → 触发终局转场链
 	if _bed_node: _bed_node.mark_completed()
 	_freeze_player(true)
-	# 阶段3d: 终局转场全程屏蔽输入（渐黑→音效渐变→glitch，不可打断）
 	InputManager.block_input("终局转场", self)
-	# 1) 0.8s 遮罩渐黑
+	# 强制打断闪烁效果，接管 _sleep_overlay
+	if _flicker_tween and is_instance_valid(_flicker_tween):
+		_flicker_tween.kill()
+		_flicker_tween = null
 	if _sleep_overlay:
-		_sleep_overlay.color.a = 0.0
+		_sleep_overlay.color = Color(0, 0, 0, 0)
 		_sleep_overlay.show()
-		var black_tween = create_tween()
-		black_tween.tween_property(_sleep_overlay, "color:a", 1.0, FINAL_BLACKOUT_DURATION)
-		await black_tween.finished
-	# 2) 2.5s 声效交叉渐变（出租屋底噪淡出 + 西关白噪音淡入）
-	# 资源就绪前的占位实现：等待时长，真实接入 AudioStreamPlayer 时填充淡入/淡出逻辑
-	_fade_ambient_audio(FINAL_AMBIENT_FADE_DURATION)
-	await get_tree().create_timer(FINAL_AMBIENT_FADE_DURATION).timeout
-	# 3) 2.0s glitch intensity 0→1
-	_start_glitch_shader_effect()
+	else:
+		var fallback_tw = create_tween()
+		fallback_tw.tween_interval(FINAL_BLACKOUT_FADE_DURATION)
+		fallback_tw.tween_interval(FINAL_BLACKOUT_DURATION)
+		fallback_tw.tween_callback(_emit_level_complete)
+		return
+	# 淡入黑屏 → 满黑保持至少4秒 → 在黑屏中切关；淡出由 MainEntry 的跨关黑幕负责
+	var tw = create_tween()
+	tw.tween_property(_sleep_overlay, "color:a", 1.0, FINAL_BLACKOUT_FADE_DURATION).set_trans(Tween.TRANS_SINE)
+	tw.tween_interval(FINAL_BLACKOUT_DURATION)
+	tw.tween_callback(_emit_level_complete)
 
 func _fade_ambient_audio(_duration: float) -> void:
 	# 方案要求的"环境声效交叉渐变"占位接口；
@@ -893,6 +944,82 @@ func _lock_all_interactions_except_bed() -> void:
 		if is_instance_valid(obj) and obj.object_id != "bed":
 			obj.is_active = false
 
+## 眨眼效果：每隔2秒平滑变暗一次（模拟意识沉重），不闪亮，只从正常→暗→恢复
+func _start_flicker_effect(callback: Callable) -> void:
+	if not _sleep_overlay:
+		callback.call()
+		return
+	if _flicker_tween and is_instance_valid(_flicker_tween):
+		_flicker_tween.kill()
+	_sleep_overlay.color = Color(0, 0, 0, 0)
+	_sleep_overlay.show()
+	_flicker_tween = create_tween()
+	# 5 次眨眼：第一次立即变暗，之后每次等2s再变暗
+	for i in range(5):
+		var dim_alpha := 0.5 + i * 0.08  # 逐渐变暗更深: 0.5, 0.58, 0.66, 0.74, 0.82
+		if i > 0:
+			_flicker_tween.tween_interval(2.0)
+		_flicker_tween.tween_property(_sleep_overlay, "color:a", dim_alpha, 0.8).set_trans(Tween.TRANS_SINE)
+		_flicker_tween.tween_interval(0.3)
+		_flicker_tween.tween_property(_sleep_overlay, "color:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
+	# 最后一次变暗后平滑恢复，让玩家能看到床并交互
+	_flicker_tween.tween_interval(2.0)
+	_flicker_tween.tween_property(_sleep_overlay, "color:a", 0.9, 1.2).set_trans(Tween.TRANS_SINE)
+	_flicker_tween.tween_interval(0.5)
+	_flicker_tween.tween_property(_sleep_overlay, "color:a", 0.0, 0.8).set_trans(Tween.TRANS_SINE)
+	_flicker_tween.tween_callback(_sleep_overlay.hide)
+	_flicker_tween.tween_callback(func():
+		_flicker_tween = null
+		callback.call()
+	)
+
+## 启动左侧边缘黄色闪烁光效（UI组件由 UIBuilder 预创建，此处只激活动画）
+func _start_left_edge_flash() -> void:
+	if _left_edge_flash_active:
+		return
+	if not _left_edge_flash or not is_instance_valid(_left_edge_flash):
+		return
+	_left_edge_flash.visible = true
+	_left_edge_flash.color.a = 0.0
+	_left_edge_glow.visible = true
+	_left_edge_glow.color.a = 0.0
+	# 闪烁动画
+	var tw = _left_edge_flash.create_tween().set_loops()
+	tw.tween_property(_left_edge_flash, "color:a", 0.8, 0.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(_left_edge_flash, "color:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE)
+	var tw2 = _left_edge_glow.create_tween().set_loops()
+	tw2.tween_property(_left_edge_glow, "color:a", 0.25, 0.5).set_trans(Tween.TRANS_SINE)
+	tw2.tween_property(_left_edge_glow, "color:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE)
+	_left_edge_flash_active = true
+	print("[Level_01] 左侧边缘闪烁光效启动")
+
+## 检测手机是否进入摄像机画面范围，若是则平滑停止闪烁
+func _check_flash_target_in_view() -> void:
+	if not _left_edge_flash_active:
+		return
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player):
+		return
+	var cam = player.get_node_or_null("SmoothCamera") as SmoothCamera
+	if not cam:
+		return
+	var half_visible = get_viewport_rect().size * 0.5 / cam.zoom
+	var cam_center = cam.global_position + cam.offset
+	var view_rect = Rect2(cam_center - half_visible, half_visible * 2)
+	if _phone_node and is_instance_valid(_phone_node) and view_rect.has_point(_phone_node.global_position):
+		_stop_left_edge_flash()
+
+## 平滑停止左侧边缘闪烁
+func _stop_left_edge_flash() -> void:
+	if not _left_edge_flash_active:
+		return
+	_left_edge_flash_active = false
+	if _left_edge_flash and is_instance_valid(_left_edge_flash):
+		_left_edge_flash.hide()
+	if _left_edge_glow and is_instance_valid(_left_edge_glow):
+		_left_edge_glow.hide()
+	print("[Level_01] 左侧边缘闪烁光效停止")
+
 func _start_glitch_shader_effect() -> void:
 	if not _glitch_overlay or not _glitch_overlay.material:
 		_emit_level_complete(); return
@@ -903,12 +1030,21 @@ func _start_glitch_shader_effect() -> void:
 	_emit_level_complete()
 
 func _emit_level_complete() -> void:
-	# P1 修复: 防御性解除输入屏蔽（即使当前因节点销毁而无害，
-	# 但若未来关卡切换改为节点复用则此行防止泄漏）
-	InputManager.unblock_input("终局转场")
+	_cleanup_input_before_level_switch()
 	# B10 修复: 发射事件前清自己的全部订阅,避免关卡切换时游离回调
 	EventBus.unsubscribe_all(self)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {
 		"level": self,
 		"next_level": "res://LevelModule/Formal/Level_02.tscn"
 	})
+
+func _cleanup_input_before_level_switch() -> void:
+	_level_input_rules_active = false
+	_disconnect_input_manager()
+	get_viewport().gui_release_focus()
+	_clear_level_input_rules()
+	InputManager.force_unblock_all()
+
+func _disconnect_input_manager() -> void:
+	if InputManager.game_action.is_connected(_on_game_action):
+		InputManager.game_action.disconnect(_on_game_action)
