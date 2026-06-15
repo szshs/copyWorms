@@ -59,7 +59,7 @@ func _setup_player() -> void:
 	# 正式关卡自动生成玩家
 	if GameManager.player_ref and is_instance_valid(GameManager.player_ref):
 		return  # 玩家已存在
-	var player_path = "res://PlayerModule/Formal/Player_Warrior.tscn"
+	var player_path: String = level_config.player_scene_path if level_config else "res://PlayerModule/Formal/Player_Warrior.tscn"
 	if ResourceLoader.exists(player_path):
 		var player = load(player_path).instantiate()
 		var spawn_pos = level_config.spawn_point if level_config else Vector2(640, 500)

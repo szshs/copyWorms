@@ -151,10 +151,10 @@ func _on_ready() -> void:
 		level_data = load("res://DataConfig/Level/Level02Data.tres") as Level02Data
 	wake_hold_required = level_data.wake_hold_required if level_data else 1.5
 
-	# 预加载敌人场景（避免干扰期频繁 load）
-	var slime_path = "res://EnemyModule/Formal/Enemy_Slime.tscn"
-	if ResourceLoader.exists(slime_path):
-		_enemy_slime_scene = load(slime_path)
+	# 预加载敌人场景（岭南风格怪物）
+	var enemy_path = "res://EnemyModule/Formal/Enemy_LanternGhost.tscn"
+	if ResourceLoader.exists(enemy_path):
+		_enemy_slime_scene = load(enemy_path)
 
 	var builder = Level_02_SceneBuilder.new(self)
 	builder.build_all()
@@ -218,7 +218,7 @@ func _get_or_create_child(node_name: String, node_type) -> Node:
 	add_child(node)
 	return node
 
-func _create_static_body(node_name: String, pos: Vector2, size: Vector2, col: Color) -> StaticBody2D:
+func _create_static_body(node_name: String, pos: Vector2, size: Vector2) -> StaticBody2D:
 	var body = StaticBody2D.new()
 	body.name = node_name
 	body.position = pos
@@ -230,13 +230,6 @@ func _create_static_body(node_name: String, pos: Vector2, size: Vector2, col: Co
 	col_shape.shape = rect_shape
 	col_shape.name = "CollisionShape2D"
 	body.add_child(col_shape)
-	var color_rect = ColorRect.new()
-	color_rect.name = "ColorRect"
-	color_rect.color = col
-	color_rect.size = size
-	color_rect.position = -size / 2
-	color_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.add_child(color_rect)
 	return body
 
 func _create_interactive(node_name: String, obj_id: String, pos: Vector2, size: Vector2) -> InteractiveObject:
@@ -308,10 +301,10 @@ func _set_camera_limits(left: int, right: int, top: int, bottom: int) -> void:
 	var cam = player.get_node_or_null("SmoothCamera") as SmoothCamera
 	if not cam:
 		return
-	cam.limit_left = left
+	cam.limit_left = 0
 	cam.limit_right = right
 	cam.limit_top = top
-	cam.limit_bottom = bottom
+	cam.limit_bottom = 640
 	cam.bind_target(player)
 	print("[Level_02] SmoothCamera limit 更新 (left=%d, right=%d)" % [left, right])
 
@@ -467,6 +460,14 @@ func _process(delta: float) -> void:
 	# 关卡级技能限制守卫：确保被禁技能不会被任何外部路径意外恢复
 	_enforce_level_restrictions()
 
+	# 输入安全守卫：非交互状态下确保输入未被误锁
+	if not _is_interacting and not _transition_running and not _fall_reset_running and not _narrative_open:
+		if InputManager.is_input_blocked:
+			InputManager._block_count = 0
+			InputManager.is_input_blocked = false
+			InputManager.block_reason = ""
+			push_warning("[Level_02] 输入被误锁，已强制解除")
+
 	_poll_interactives_in_range()
 
 	# 长按 Tab 睁眼（仅干扰/睁眼状态轮询; 转场/重置/叙事期间不累计）
@@ -618,7 +619,7 @@ func _do_attic_door_transition() -> void:
 		_attic_door_node.visible = false
 	var player = GameManager.player_ref
 	if player and is_instance_valid(player):
-		player.global_position = Vector2(980, 550)
+		player.global_position = Vector2(435, 550)
 		player.velocity = Vector2.ZERO
 
 	_enter_street_state()

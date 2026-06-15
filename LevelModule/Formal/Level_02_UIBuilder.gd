@@ -191,7 +191,6 @@ func _build_ide_ui() -> void:
 	bg.name = "Background"
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.color = Color(0.06, 0.07, 0.1, 0.97)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ide.add_child(bg)
 
 	var title_bar = ColorRect.new()
@@ -199,7 +198,6 @@ func _build_ide_ui() -> void:
 	title_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	title_bar.color = Color(0.1, 0.12, 0.18, 1.0)
 	title_bar.custom_minimum_size = Vector2(0, 40)
-	title_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ide.add_child(title_bar)
 
 	var title_label = Label.new()
@@ -249,7 +247,6 @@ func _build_ide_ui() -> void:
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Color(0.5, 0.6, 0.7))
 	hint.position = Vector2(1080, 678)
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ide.add_child(hint)
 
 	canvas.add_child(ide)
