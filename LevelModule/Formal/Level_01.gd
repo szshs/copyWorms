@@ -31,7 +31,7 @@ var _chat_window: RichTextLabel = null
 var _viewport_container: SubViewportContainer = null
 var _mini_viewport: SubViewport = null
 var _glitch_overlay: ColorRect = null
-var _code_scroll_panel: Panel = null
+var _code_scroll_panel: Control = null
 var _code_scroll_text: RichTextLabel = null
 
 # 代码滚动状态
