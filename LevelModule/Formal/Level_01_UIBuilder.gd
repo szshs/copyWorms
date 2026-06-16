@@ -99,9 +99,9 @@ func _build_ide_ui() -> void:
 	chat.anchor_top = 0.0
 	chat.anchor_right = 1.0
 	chat.anchor_bottom = 1.0
-	chat.offset_left = -188.0
+	chat.offset_left = -236.0
 	chat.offset_top = 174.0
-	chat.offset_right = -10.0
+	chat.offset_right = -58.0
 	chat.offset_bottom = -34.0
 	chat.bbcode_enabled = true
 	chat.scroll_following = true
