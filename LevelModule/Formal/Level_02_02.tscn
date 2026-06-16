@@ -1,0 +1,202 @@
+[gd_scene format=3 uid="uid://cs62g6kqle635"]
+
+[ext_resource type="Texture2D" uid="uid://c5tnk83ddbsy7" path="res://LevelModule/Scenes/Level_02_02.png" id="1_efy5v"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_left_boundary"]
+size = Vector2(124, 4096)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_right_boundary"]
+size = Vector2(52, 4096)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_top_right_platform"]
+size = Vector2(618, 62)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_row2_mid_platform"]
+size = Vector2(1050, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_row2_right_platform"]
+size = Vector2(392, 52)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_row3_mid_platform"]
+size = Vector2(527, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_row3_right_platform"]
+size = Vector2(648, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_row4_mid_platform"]
+size = Vector2(1336, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_row4_right_platform"]
+size = Vector2(640, 66)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_row5_left_platform"]
+size = Vector2(104, 560)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_row5_mid_platform"]
+size = Vector2(624, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_row5_right_platform"]
+size = Vector2(1672, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom_left_platform"]
+size = Vector2(1348, 53)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom_mid_platform"]
+size = Vector2(1488, 68)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom_right_platform"]
+size = Vector2(112, 496)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_left_brick_column"]
+size = Vector2(110, 3056)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_right_brick_column"]
+size = Vector2(110, 2496)
+
+[node name="Level0202" type="Node2D" unique_id=868040456]
+
+[node name="Level0202" type="Sprite2D" parent="." unique_id=1904285418]
+position = Vector2(2048, -1408)
+texture = ExtResource("1_efy5v")
+
+[node name="CollisionBodies" type="Node2D" parent="." unique_id=1315390094]
+
+[node name="LeftBoundary" type="StaticBody2D" parent="CollisionBodies" unique_id=1004863022]
+position = Vector2(-10, -1408)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/LeftBoundary" unique_id=769692907]
+position = Vector2(52, 0)
+shape = SubResource("RectangleShape2D_left_boundary")
+
+[node name="RightBoundary" type="StaticBody2D" parent="CollisionBodies" unique_id=873392782]
+position = Vector2(4106, -1408)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/RightBoundary" unique_id=1215499375]
+position = Vector2(-16, 0)
+shape = SubResource("RectangleShape2D_right_boundary")
+
+[node name="TopRightPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=825940544]
+position = Vector2(3680, -2450)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/TopRightPlatform" unique_id=1500010463]
+position = Vector2(21, 11)
+shape = SubResource("RectangleShape2D_top_right_platform")
+
+[node name="Row2MidPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=699614049]
+position = Vector2(2050, -1995)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row2MidPlatform" unique_id=472369745]
+position = Vector2(926, 11)
+shape = SubResource("RectangleShape2D_row2_mid_platform")
+
+[node name="Row2RightPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=2113310336]
+position = Vector2(3360, -1995)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row2RightPlatform" unique_id=1576021776]
+position = Vector2(532, 9)
+shape = SubResource("RectangleShape2D_row2_right_platform")
+
+[node name="Row3MidPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=1077378817]
+position = Vector2(2040, -1470)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row3MidPlatform" unique_id=1787776116]
+position = Vector2(895.5, 70)
+shape = SubResource("RectangleShape2D_row3_mid_platform")
+
+[node name="Row3RightPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=1817896012]
+position = Vector2(3340, -1470)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row3RightPlatform" unique_id=1033811739]
+position = Vector2(432, 70)
+shape = SubResource("RectangleShape2D_row3_right_platform")
+
+[node name="Row4MidPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=169305103]
+position = Vector2(2040, -910)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row4MidPlatform" unique_id=87628285]
+position = Vector2(60, -34)
+shape = SubResource("RectangleShape2D_row4_mid_platform")
+
+[node name="Row4RightPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=657981283]
+position = Vector2(3340, -910)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row4RightPlatform" unique_id=1271971165]
+position = Vector2(420, 13)
+shape = SubResource("RectangleShape2D_row4_right_platform")
+
+[node name="Row5LeftPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=91389740]
+position = Vector2(1392, 328)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row5LeftPlatform" unique_id=888026296]
+position = Vector2(-8, -8)
+shape = SubResource("RectangleShape2D_row5_left_platform")
+
+[node name="Row5MidPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=1720169237]
+position = Vector2(2030, -430)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row5MidPlatform" unique_id=1738472182]
+position = Vector2(-318, 38)
+shape = SubResource("RectangleShape2D_row5_mid_platform")
+
+[node name="Row5RightPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=556502186]
+position = Vector2(3340, -430)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row5RightPlatform" unique_id=1932393251]
+position = Vector2(-96, 0)
+shape = SubResource("RectangleShape2D_row5_right_platform")
+
+[node name="BottomLeftPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=640202045]
+position = Vector2(640, 560)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/BottomLeftPlatform" unique_id=1761948790]
+position = Vector2(112, 48)
+shape = SubResource("RectangleShape2D_bottom_left_platform")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="CollisionBodies/BottomLeftPlatform" unique_id=1046425708]
+position = Vector2(96, -946.5)
+shape = SubResource("RectangleShape2D_bottom_left_platform")
+
+[node name="BottomMidPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=743490598]
+position = Vector2(2100, 560)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/BottomMidPlatform" unique_id=289698421]
+position = Vector2(-156, -482)
+shape = SubResource("RectangleShape2D_bottom_mid_platform")
+
+[node name="BottomRightPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=96728690]
+position = Vector2(3340, 560)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/BottomRightPlatform" unique_id=1883753421]
+position = Vector2(-628, -720)
+shape = SubResource("RectangleShape2D_bottom_right_platform")
+
+[node name="LeftBrickColumn" type="StaticBody2D" parent="CollisionBodies" unique_id=1931500875]
+position = Vector2(1375, -1408)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/LeftBrickColumn" unique_id=1076083500]
+position = Vector2(0, -520)
+shape = SubResource("RectangleShape2D_left_brick_column")
+
+[node name="RightBrickColumn" type="StaticBody2D" parent="CollisionBodies" unique_id=24592063]
+position = Vector2(2715, -1408)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/RightBrickColumn" unique_id=73917119]
+position = Vector2(0, -800)
+shape = SubResource("RectangleShape2D_right_brick_column")

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="Level02Data" format=3 uid="uid://b1s4igaiqss34"]
 
-[ext_resource type="Script" uid="uid://7e5htq0dpdgf" path="res://DataConfig/Level/Level02Data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://do7isgrde1lu5" path="res://DataConfig/Level/Level02Data.gd" id="1_data"]
 
 [resource]
 script = ExtResource("1_data")
@@ -20,7 +20,7 @@ rattan_chair_monologue = "爷爷每天都来的杂货店。
 每天黄昏，爷爷就坐在这里摇着葵扇，给街坊们讲古。我蹲在旁边数着石板路上的蚂蚁。
 
 藤椅还在轻轻摇晃，好像他刚刚才离开。"
-street_enemy_spawn_points = Array[Vector2]([Vector2(800, 540), Vector2(1500, 540), Vector2(2200, 540), Vector2(3200, 540), Vector2(4600, 540)])
+street_enemy_spawn_points = Array[Vector2]([Vector2(735, 540), Vector2(1315, 540), Vector2(2093, 540), Vector2(3219, 540), Vector2(3877, 540)])
 cliff_first_sight_text = "老街在这里断裂了。
 
 对岸是爷爷的凉茶铺，炉火还亮着，一个熟悉的剪影在柜台后忙碌着。

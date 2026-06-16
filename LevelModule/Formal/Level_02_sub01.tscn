@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bs0dmh2he2bb5"]
 
-[ext_resource type="PackedScene" path="res://LevelModule/Scenes/PixelworkMapStitch/2D_8_8-bit_2026-06-15T03-39-38-815Z_resized_20260615_151851_729/2D_8_8-bit_2026-06-15T03-39-38-815Z_resized_20260615_151851_729.tscn" id="1_ii8kc"]
+[ext_resource type="PackedScene" path="res://LevelModule/Scenes/PixelworkMapStitch/Level 3/2D_8_8-bit_2026-06-15T03-39-38-815Z_resized_20260615_151851_729.tscn" id="1_ii8kc"]
 [ext_resource type="Script" uid="uid://cxmk1rrycfmp3" path="res://LevelModule/Formal/InteractiveObject.gd" id="2_interactive"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
