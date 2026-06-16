@@ -146,7 +146,7 @@ func _finish_climb() -> void:
 		if landing_dir > 0:  # 向下爬完，落在底端平台上方
 			_player.global_position.y = ladder_bottom_y - 15.0
 		elif landing_dir < 0:  # 向上爬完，落在顶端平台上方
-			_player.global_position.y = ladder_top_y + 5.0
+			_player.global_position.y = ladder_top_y - 15.0
 		_player.set_physics_process(true)
 		_player.velocity = Vector2.ZERO
 	print("[Ladder] climb finished, player at y=%.1f" % _player.global_position.y if _player and is_instance_valid(_player) else -999.0)
