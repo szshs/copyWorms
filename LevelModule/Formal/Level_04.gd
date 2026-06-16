@@ -15,6 +15,7 @@ var _current_world: int = 0
 var _swap_count: int = 0
 var _lingnan_spawn_index: int = 0
 var _lingnan_enemies_spawned: bool = false
+var _lingnan_intro_done: bool = false
 var _wall_dialog_shown: bool = false
 var _cyber_return_dialog_shown: bool = false
 var _swap_cooldown: float = 0.0
@@ -132,7 +133,9 @@ func _on_ready() -> void:
 	if level_data and level_data.anchor_narrative != "":
 		_show_narrative("[color=green]> User_Ming_Override_Protocol: Phase_Final.[/color]\n[color=green]> Target: REAL_EXIT.[/color]", func():
 			_show_narrative("[color=goldenrod]阿明：[/color]" + level_data.anchor_narrative, func():
-				_spawn_stage1_enemies(); _restore_combat_mechanics()
+				_pan_camera_to(Vector2(1733, 318), func():
+					_spawn_stage1_enemies(); _restore_combat_mechanics()
+				)
 			)
 		)
 	else:
@@ -341,6 +344,9 @@ func _swap_world() -> void:
 		p.velocity = Vector2.ZERO
 		_snap_camera(p)
 		_set_camera_limits(LNGN_CAM[0], LNGN_CAM[1], LNGN_CAM[2], LNGN_CAM[3])
+		if not _lingnan_intro_done:
+			_lingnan_intro_done = true
+			_pan_camera_to(Vector2(1581, 1320))
 		_spawn_lingnan_enemies_once()
 		if dia != "":
 			get_tree().create_timer(1.0).timeout.connect(func():
@@ -365,12 +371,37 @@ func _snap_camera(p: CharacterBody2D) -> void:
 	var c = p.get_node_or_null("SmoothCamera")
 	if c: c.global_position = p.global_position
 
+
+func _pan_camera_to(target: Vector2, cb: Callable = Callable()) -> void:
+	var p = GameManager.player_ref
+	if not p or not is_instance_valid(p): return
+	var cam = p.get_node_or_null("SmoothCamera") as SmoothCamera
+	if not cam: return
+	_is_interacting = true
+	_freeze_player(true)
+	cam.follow_enabled = false
+	var t = create_tween()
+	t.tween_property(cam, "global_position", target, 0.5).set_trans(Tween.TRANS_SINE)
+	t.tween_interval(2.5)
+	t.tween_property(cam, "global_position", p.global_position, 0.5).set_trans(Tween.TRANS_SINE)
+	await t.finished
+	cam.global_position = p.global_position
+	cam.follow_enabled = true
+	_freeze_player(false)
+	_is_interacting = false
+	if cb.is_valid(): cb.call()
+
 func _flash_screen() -> void:
+	# 强度随切换次数递增，每次 +0.08，上限 1.0
+	var strength = minf(0.5 + _swap_count * 0.08, 1.0)
+	var duration = 0.25 + _swap_count * 0.04  # 淡出越来越慢
+
 	if _glitch_overlay and _glitch_overlay.material:
 		_glitch_overlay.show()
 		var m = _glitch_overlay.material as ShaderMaterial
-		m.set_shader_parameter("intensity", 1.0)
-		create_tween().tween_property(m, "shader_parameter/intensity", 0.0, 0.25)
+		m.set_shader_parameter("intensity", strength)
+		create_tween().tween_property(m, "shader_parameter/intensity", 0.0, duration)
+
 	var f = ColorRect.new()
 	f.name = "SwapFlash"; f.set_anchors_preset(Control.PRESET_FULL_RECT)
 	f.color = Color.WHITE; f.mouse_filter = Control.MOUSE_FILTER_IGNORE; f.z_index = 100
