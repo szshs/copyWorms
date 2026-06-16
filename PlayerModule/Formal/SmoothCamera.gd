@@ -46,6 +46,10 @@ var _lookahead_x: float = 0.0
 var _shake_strength: float = 0.0
 var _shake_decay: float = 10.0
 
+# ---- 手动控制 ----
+## 设为 false 时暂停自动跟随，允许外部 tween / 手动设置 global_position
+var follow_enabled: bool = true
+
 
 func _ready() -> void:
 	# 设为 top_level：脱离父节点 transform 干扰，让 global_position 真正表示世界坐标
@@ -110,6 +114,8 @@ func bind_target(node: Node2D) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if not follow_enabled:
+		return
 	if not _target or not is_instance_valid(_target):
 		return
 
