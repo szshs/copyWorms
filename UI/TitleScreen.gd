@@ -14,6 +14,7 @@ const LEVEL_LIST: Array[Dictionary] = [
 	{ "name": "关卡 1  —  西关老街", "path": "res://LevelModule/Formal/Level_01.tscn" },
 	{ "name": "关卡 2  —  撕裂与沉溺", "path": "res://LevelModule/Formal/Level_02.tscn" },
 	{ "name": "关卡 3  —  赛博蜃景与真实回声", "path": "res://LevelModule/Formal/Level_03.tscn" },
+	{ "name": "关卡 4  —  维度侵蚀与空间崩塌", "path": "res://LevelModule/Formal/Level_04.tscn" },
 ]
 
 func _ready() -> void:
