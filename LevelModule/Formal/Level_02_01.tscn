@@ -1,0 +1,132 @@
+[gd_scene format=3 uid="uid://dpjni6cwuqn61"]
+
+[ext_resource type="Script" uid="uid://cckkn406jib0s" path="res://LevelModule/Formal/Level_02_01.gd" id="1_script"]
+[ext_resource type="Resource" uid="uid://l3hmrf4ux81n" path="res://DataConfig/Level/Level02Config.tres" id="2_config"]
+[ext_resource type="PackedScene" path="res://LevelModule/Scenes/PixelworkMapStitch/Level_02_01/2D__2026-06-14T08-50-38-613Z_20260616_161150_777.tscn" id="3_map"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_segment_ground"]
+size = Vector2(4464, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_left_wall"]
+size = Vector2(20, 720)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_right_wall"]
+size = Vector2(20, 720)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_upper_walkway"]
+size = Vector2(1112, 8)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_level_exit_trigger"]
+size = Vector2(120, 360)
+
+[node name="Level0201" type="Node2D" unique_id=1255938091]
+script = ExtResource("1_script")
+level_config = ExtResource("2_config")
+
+[node name="CollisionBodies" type="Node2D" parent="." unique_id=55454084]
+
+[node name="SegmentGround" type="StaticBody2D" parent="CollisionBodies" unique_id=717066912]
+position = Vector2(2232, 620)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/SegmentGround" unique_id=2054000859]
+shape = SubResource("RectangleShape2D_segment_ground")
+
+[node name="LeftWall" type="StaticBody2D" parent="CollisionBodies"]
+position = Vector2(-10, 360)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/LeftWall"]
+shape = SubResource("RectangleShape2D_left_wall")
+
+[node name="RightWall" type="StaticBody2D" parent="CollisionBodies"]
+position = Vector2(4474, 360)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/RightWall"]
+shape = SubResource("RectangleShape2D_right_wall")
+
+[node name="UpperWalkwayCollision" type="StaticBody2D" parent="CollisionBodies"]
+position = Vector2(3620, 420)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/UpperWalkwayCollision"]
+shape = SubResource("RectangleShape2D_upper_walkway")
+
+[node name="TriggerZones" type="Node2D" parent="." unique_id=1354115143]
+
+[node name="Level0201ExitTrigger" type="Area2D" parent="TriggerZones" unique_id=1995420355]
+position = Vector2(4336, 460)
+collision_layer = 0
+collision_mask = 4
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TriggerZones/Level0201ExitTrigger" unique_id=649415108]
+shape = SubResource("RectangleShape2D_level_exit_trigger")
+
+[node name="SpawnPoints" type="Node2D" parent="." unique_id=166881570]
+
+[node name="SegmentSpawn" type="Marker2D" parent="SpawnPoints" unique_id=336420910]
+position = Vector2(140, 550)
+
+[node name="EnemySpawnPoints" type="Node2D" parent="."]
+
+[node name="PaperEffigyGroundLayer" type="Node2D" parent="EnemySpawnPoints"]
+
+[node name="PaperEffigy_Ground_01" type="Marker2D" parent="EnemySpawnPoints/PaperEffigyGroundLayer"]
+position = Vector2(700, 540)
+
+[node name="PaperEffigy_Ground_02" type="Marker2D" parent="EnemySpawnPoints/PaperEffigyGroundLayer"]
+position = Vector2(1400, 540)
+
+[node name="PaperEffigy_Ground_03" type="Marker2D" parent="EnemySpawnPoints/PaperEffigyGroundLayer"]
+position = Vector2(2100, 540)
+
+[node name="PaperEffigy_Ground_04" type="Marker2D" parent="EnemySpawnPoints/PaperEffigyGroundLayer"]
+position = Vector2(2800, 540)
+
+[node name="PaperEffigy_Ground_05" type="Marker2D" parent="EnemySpawnPoints/PaperEffigyGroundLayer"]
+position = Vector2(3500, 540)
+
+[node name="PaperEffigy_Ground_06" type="Marker2D" parent="EnemySpawnPoints/PaperEffigyGroundLayer"]
+position = Vector2(4200, 540)
+
+[node name="PaperEffigyUpperLayer" type="Node2D" parent="EnemySpawnPoints"]
+
+[node name="PaperEffigy_Upper_01" type="Marker2D" parent="EnemySpawnPoints/PaperEffigyUpperLayer"]
+position = Vector2(3200, 356)
+
+[node name="PaperEffigy_Upper_02" type="Marker2D" parent="EnemySpawnPoints/PaperEffigyUpperLayer"]
+position = Vector2(3900, 356)
+
+[node name="LanternGhostGroundLayer" type="Node2D" parent="EnemySpawnPoints"]
+
+[node name="LanternGhost_Ground_01" type="Marker2D" parent="EnemySpawnPoints/LanternGhostGroundLayer"]
+position = Vector2(1000, 540)
+
+[node name="LanternGhost_Ground_02" type="Marker2D" parent="EnemySpawnPoints/LanternGhostGroundLayer"]
+position = Vector2(2000, 540)
+
+[node name="LanternGhost_Ground_03" type="Marker2D" parent="EnemySpawnPoints/LanternGhostGroundLayer"]
+position = Vector2(3000, 540)
+
+[node name="LanternGhost_Ground_04" type="Marker2D" parent="EnemySpawnPoints/LanternGhostGroundLayer"]
+position = Vector2(4000, 540)
+
+[node name="LanternGhostUpperLayer" type="Node2D" parent="EnemySpawnPoints"]
+
+[node name="LanternGhost_Upper_01" type="Marker2D" parent="EnemySpawnPoints/LanternGhostUpperLayer"]
+position = Vector2(3200, 356)
+
+[node name="LanternGhost_Upper_02" type="Marker2D" parent="EnemySpawnPoints/LanternGhostUpperLayer"]
+position = Vector2(4000, 356)
+
+[node name="DynamicActors" type="Node2D" parent="."]
+
+[node name="2D__2026-06-14T08-50-38-613Z_20260616_161150_777" parent="." unique_id=187002474 instance=ExtResource("3_map")]
+process_priority = 1000
+position = Vector2(0, 56.000004)
+scale = Vector2(0.1844249, 0.1844249)

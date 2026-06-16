@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://c3qjw5j3lin5q" path="res://LevelModule/Formal/Level_01.gd" id="1_script"]
 [ext_resource type="Resource" path="res://DataConfig/Level/Level01Config.tres" id="2_config"]
 [ext_resource type="Resource" path="res://DataConfig/Level/Level01Data.tres" id="3_data"]
-[ext_resource type="PackedScene" path="res://LevelModule/Scenes/PixelworkMapStitch/2D_8_8-bit_2026-06-15T03-39-38-815Z_resized_20260615_151851_729/2D_8_8-bit_2026-06-15T03-39-38-815Z_resized_20260615_151851_729.tscn" id="4_mk7s1"]
+[ext_resource type="PackedScene" path="res://LevelModule/Scenes/PixelworkMapStitch/Level 3/2D_8_8-bit_2026-06-15T03-39-38-815Z_resized_20260615_151851_729.tscn" id="4_mk7s1"]
 
 [node name="Level_01" type="Node2D" unique_id=441359765]
 script = ExtResource("1_script")
