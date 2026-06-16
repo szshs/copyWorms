@@ -266,7 +266,7 @@ func _ensure_player_collision_layer() -> void:
 
 # ---- 工具方法 ----
 
-func _get_or_create_child(node_name: String, node_type) -> Node:
+func _get_or_create_child(node_name: String, node_type: Variant) -> Node:
 	var existing = get_node_or_null(node_name)
 	if existing: return existing
 	var node = node_type.new()
@@ -329,34 +329,7 @@ func _create_interactive(node_name: String, obj_id: String, pos: Vector2, size: 
 	rect_shape.size = size
 	col_shape.shape = rect_shape
 	obj.add_child(col_shape)
-	var indicator = ColorRect.new()
-	indicator.name = "Indicator"
-	indicator.color = Color(1.0, 0.85, 0.2, 0.9)
-	indicator.size = Vector2(10, 10)
-	indicator.position = -indicator.size / 2
-	indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	obj.add_child(indicator)
-	# 黄色闪烁光点动画
-	var glow = ColorRect.new()
-	glow.name = "Glow"
-	glow.color = Color(1.0, 0.9, 0.3, 0.3)
-	glow.size = Vector2(24, 24)
-	glow.position = -glow.size / 2
-	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	obj.add_child(glow)
-	# 延迟启动闪烁（需要节点在树中才能创建 tween）
-	obj.ready.connect(func():
-		# 未激活的交互物（电脑/手机）初始隐藏光点
-		if not obj.is_active:
-			indicator.visible = false
-			glow.visible = false
-		var tw = indicator.create_tween().set_loops()
-		tw.tween_property(indicator, "color:a", 0.2, 0.6).set_trans(Tween.TRANS_SINE)
-		tw.tween_property(indicator, "color:a", 0.9, 0.6).set_trans(Tween.TRANS_SINE)
-		var tw2 = glow.create_tween().set_loops()
-		tw2.tween_property(glow, "color:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
-		tw2.tween_property(glow, "color:a", 0.3, 0.6).set_trans(Tween.TRANS_SINE)
-	)
+	obj.apply_level01_dot_visual()
 	return obj
 
 func _add_physics_blocker(parent: Node2D, size: Vector2) -> void:
