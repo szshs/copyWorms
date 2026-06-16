@@ -1,6 +1,8 @@
 [gd_scene format=3 uid="uid://cs62g6kqle635"]
 
 [ext_resource type="Texture2D" uid="uid://c5tnk83ddbsy7" path="res://LevelModule/Scenes/Level_02_02.png" id="1_efy5v"]
+[ext_resource type="Script" uid="uid://iao51uak3w3" path="res://LevelModule/Formal/Level_02_02.gd" id="2_script"]
+[ext_resource type="Resource" uid="uid://l3hmrf4ux81n" path="res://DataConfig/Level/Level02Config.tres" id="3_config"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_left_boundary"]
 size = Vector2(124, 4096)
@@ -30,7 +32,7 @@ size = Vector2(1336, 32)
 size = Vector2(640, 66)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_row5_left_platform"]
-size = Vector2(104, 560)
+size = Vector2(104, 555.53064)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_row5_mid_platform"]
 size = Vector2(624, 40)
@@ -54,6 +56,10 @@ size = Vector2(110, 3056)
 size = Vector2(110, 2496)
 
 [node name="Level0202" type="Node2D" unique_id=868040456]
+position = Vector2(0, 407.99997)
+scale = Vector2(0.35979784, 0.35979784)
+script = ExtResource("2_script")
+level_config = ExtResource("3_config")
 
 [node name="Level0202" type="Sprite2D" parent="." unique_id=1904285418]
 position = Vector2(2048, -1408)
@@ -138,7 +144,7 @@ position = Vector2(1392, 328)
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CollisionBodies/Row5LeftPlatform" unique_id=888026296]
-position = Vector2(-8, -8)
+position = Vector2(-8, -5.765259)
 shape = SubResource("RectangleShape2D_row5_left_platform")
 
 [node name="Row5MidPlatform" type="StaticBody2D" parent="CollisionBodies" unique_id=1720169237]
