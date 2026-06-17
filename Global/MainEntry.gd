@@ -49,10 +49,11 @@ func _on_level_complete(data: Dictionary) -> void:
 	var next_path: String = data.get("next_level", "")
 	print("[MainEntry] 收到 LEVEL_COMPLETE, next_level=", next_path)
 	_switching_level = true
-	_switch_to_level(next_path)
+	var overlay_color := Color.WHITE if data.get("transition_white", false) else Color.BLACK
+	await _switch_to_level(next_path, overlay_color)
 
-func _switch_to_level(next_path: String) -> void:
-	_show_level_switch_black()
+func _switch_to_level(next_path: String, overlay_color: Color = Color.BLACK) -> void:
+	_show_level_switch_overlay(overlay_color)
 	# 1) 释放旧关卡（玩家作为关卡子节点随之销毁; EventBus tree_exited 自动清理订阅）
 	if _current_level_node and is_instance_valid(_current_level_node):
 		_current_level_node.queue_free()
@@ -74,29 +75,27 @@ func _switch_to_level(next_path: String) -> void:
 		add_child(level)
 		_current_level_node = level
 		print("[MainEntry] 关卡切换成功: ", next_path)
-		await get_tree().process_frame
-		await _fade_out_level_switch_black()
 	else:
 		push_warning("[MainEntry] 下一关不存在: %s — 安全降级显示提示" % next_path)
 		_show_end_placeholder()
-		await _fade_out_level_switch_black()
+	await get_tree().process_frame
+	await _fade_out_level_switch_overlay()
 	_switching_level = false
 
-func _show_level_switch_black() -> void:
+func _show_level_switch_overlay(color: Color) -> void:
 	if not _transition_canvas or not is_instance_valid(_transition_canvas):
 		_transition_canvas = CanvasLayer.new()
 		_transition_canvas.layer = 100
 		add_child(_transition_canvas)
 	if not _transition_black or not is_instance_valid(_transition_black):
 		_transition_black = ColorRect.new()
-		_transition_black.name = "LevelSwitchBlack"
 		_transition_black.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_transition_black.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_transition_canvas.add_child(_transition_black)
-	_transition_black.color = Color(0, 0, 0, 1)
+	_transition_black.color = Color(color.r, color.g, color.b, 1.0)
 	_transition_black.show()
 
-func _fade_out_level_switch_black() -> void:
+func _fade_out_level_switch_overlay() -> void:
 	if not _transition_black or not is_instance_valid(_transition_black):
 		return
 	var tween = create_tween()

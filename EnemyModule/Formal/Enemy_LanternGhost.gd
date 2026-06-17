@@ -40,8 +40,8 @@ func _on_ready() -> void:
 	_init_anim_sprite()
 	# 飞行模式：不受地面吸附
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
-	# 灯笼鬼穿墙飞行，不与地形碰撞
-	collision_mask = 0
+	# 飞行但仍受地形碰撞限制，避免穿越关卡碰撞层
+	collision_mask = GlobalDefine.Collision.TERRAIN
 	# 初始漂浮高度：在生成位置上方60px
 	_float_base_y = global_position.y - 60.0
 	_float_phase = randf() * TAU

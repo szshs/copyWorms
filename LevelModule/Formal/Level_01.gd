@@ -365,17 +365,19 @@ func _cache_ui_refs() -> void:
 func _apply_level_input_rules() -> void:
 	InputManager.block_action(&"player_attack", "Level_01 禁止攻击")
 	InputManager.block_action(&"player_jump", "Level_01 禁止跳跃")
+	InputManager.block_action(&"player_dash", "Level_01 禁止闪身")
 	var player = GameManager.player_ref
 	if not player: return
 	player.can_jump = false
 	player.can_attack = false
-	player.can_dash = true
+	player.can_dash = false
 	player.can_skill = true
 	player.runtime_move_speed_multiplier = LEVEL_01_MOVE_MULTIPLIER
 
 func _clear_level_input_rules() -> void:
 	InputManager.unblock_action(&"player_attack")
 	InputManager.unblock_action(&"player_jump")
+	InputManager.unblock_action(&"player_dash")
 	var player = GameManager.player_ref
 	if not player: return
 	player.can_jump = true

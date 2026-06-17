@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_main")
 max_health = 100
-move_speed = 300.0
+move_speed = 250.0
 jump_velocity = -650.0
 jump_hold_gravity_scale = 0.35
 jump_release_gravity_scale = 2.5
