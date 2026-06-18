@@ -17,6 +17,8 @@
 > - **切换链更新**：`Level_02 → Level_02_01 → Level_02_02 → Level_02_03 → Level_03`
 > - **`_emit_level_complete()` 重构**：事件发射提前到 `_full_cleanup()` 之前，新增 `_is_loaded_under_main_entry()` 双模切换
 > - **InputManager 动作级禁用完善**：`block_action/unblock_action` 覆盖 player_attack / player_jump / player_dash / player_skill
+> - **Level_02_01 白屏转场增强**：新增 `_exit_white_overlay` (ColorRect) + Tween 链条（0.8s 淡入至全白 + 4.0s 停留 + `_emit_level_complete`），`_freeze_player` + `InputManager.block_input` 保证切换期间无操作干扰
+> - **LanternGhost 平衡调整**：`attack_damage` 10→6，`attack_cooldown` 1.5→2.0
 >
 > **v0.9.0 变更摘要（历史）**：
 > - **Level_02 架构重构为分段式**：原单一 11 态双空间关卡（坠落/干扰/睁眼/配置篡改/重编译）已备份至 `LevelModule/Backup/Level_02_CliffReality/`，正式版拆为三段串联：
@@ -1313,17 +1315,19 @@ DREAM_STREET
 - **地图**：0–4464，地面 Y=620，含上层走道（UpperWalkwayCollision @ 3620, Y=420）
 - **相机**：`zoom=1.5x`，limit [0, 4464, 0, 616]，lerp_speed=2.5
 - **敌人**：纸扎人（PaperEffigy，间隔 700px 生成）+ 灯笼鬼（LanternGhost，间隔 1000px 生成，含上层走道刷怪点）
-- **出口**：`Level0201ExitTrigger`(4336,460) → 白屏转场（`FINAL_WHITEOUT_DURATION=4.0s` 全白停留 + 0.8s 淡入）→ `_emit_level_complete()` 携带 `transition_white=true`，next_level=`Level_02_02.tscn`
+- **出口**：`Level0201ExitTrigger`(4336,460) → `_freeze_player` + `InputManager.block_input` → `_exit_white_overlay` Tween 链条（0.8s 淡入至全白 `Color.WHITE` + 4.0s 停留 `FINAL_WHITEOUT_DURATION`）→ `_emit_level_complete()` 携带 `transition_white=true`，next_level=`Level_02_02.tscn`
+- **白屏实现**：`_build_exit_white_overlay()` 创建 CanvasLayer(layer=2) + `ExitWhiteOverlay` ColorRect(全屏, PRESET_FULL_RECT)，Tween 驱动 `color:a` 0→1，`tween_callback(_emit_level_complete)`
 - **双模切换**：`_is_loaded_under_main_entry()` 判断，支持 MainEntry 托管与 `change_scene_to_file` 独立运行
 
 ### 7B.4 Level_02_02 分段2（梯子谜题段）
 
-- **地图**：0–1474，相机 `zoom=2x`，limit [0, 1474, -835, 638]
+- **地图**：0–1474，相机 `zoom=1.5x` (`const`)，limit [0, 1474, -835, 638]，lerp_speed=2.5（**v0.10.0 重构**）
 - **谜题叙事**：开场 2s 后弹"有些梯子看似能爬，却不能爬…有些墙看似不能穿过，却可以穿过…"
 - **机制**：梯子（Ladder 节点置于 .tscn 的 Ladders 容器）+ 可穿墙，玩家需辨别真梯子/假梯子与可穿墙
-- **敌人**：纸扎人（PaperEffigy，6 固定刷新点）+ 灯笼鬼（LanternGhost，4 固定刷新点），`detect_range` 上限截断至 500（`_load_capped_enemy_config`）
+- **敌人**：纸扎人（PaperEffigy，6 固定刷新点 `PAPER_EFFIGY_SPAWN_POSITIONS`）+ 灯笼鬼（LanternGhost，4 固定刷新点 `LANTERN_GHOST_SPAWN_POSITIONS`），`detect_range` 上限截断至 500（`ENEMY_DETECT_RANGE_CAP`）
 - **`_remove_ladder_color_rects()`**：`call_deferred` 移除 .tscn 中 Ladder 子节点的 ColorRect（改由 Ladder.gd 自渲染）
-- **出口**：`Level0202ExitTrigger` → `_emit_level_complete()` → next_level=`Level_03.tscn`
+- **出口**：`Level0202ExitTrigger` → `_emit_level_complete()` → next_level=`Level_02_03.tscn`（**v0.10.0: 改为 Level_02_03**）
+- **新增 UI**：NarrativePanel + RichTextLabel（由 `_build_narrative_ui()` 直接构建）+ 开场叙事延迟 2.0s 自动弹出
 - **双模切换**：`_is_loaded_under_main_entry()` 判断是否在 MainEntry 下 → MainEntry 模式 emit LEVEL_COMPLETE，独立模式 `change_scene_to_file`
 
 ### 7B.5 SceneBuilder 调用顺序（Level_02 分段0）

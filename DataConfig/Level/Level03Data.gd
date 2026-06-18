@@ -22,8 +22,8 @@ class_name Level03Data
 @export var ai_warning_2_text: String = ""
 
 # ---- 阶段5: 异常数据光团（全局坐标，赛博城偏移+3600后） ----
-@export var memory_echo_1_pos: Vector2 = Vector2(12000, 550)
-@export var memory_echo_2_pos: Vector2 = Vector2(14400, 550)
+@export var memory_echo_1_pos: Vector2 = Vector2(5384, 550)
+@export var memory_echo_2_pos: Vector2 = Vector2(6560, 544)
 @export var memory_echo_1_subtitle: String = ""
 @export var memory_echo_1_codebuddy: String = ""
 @export var memory_echo_2_subtitle: String = ""
