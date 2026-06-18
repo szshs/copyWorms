@@ -51,7 +51,5 @@ awakening_monologue = "我终于明白了。
 override_protocol_text = "> User_Ming_Override_Protocol: Initiated.
 > Target: Exit.
 （用户_明_覆盖协议：已启动。目标：出口。）"
-memory_echo_1_pos = Vector2(5384, 550)
-memory_echo_2_pos = Vector2(6560, 544)
 cleaner_spawn_points = Array[Vector2]([Vector2(4596, 540), Vector2(5010, 540), Vector2(5424, 540), Vector2(5838, 540), Vector2(6252, 540)])
 security_spawn_points = Array[Vector2]([Vector2(4803, 480), Vector2(5424, 480), Vector2(6045, 480)])
