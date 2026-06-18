@@ -23,8 +23,11 @@ const ENEMY_GROUND_Y: float = 540.0
 const ENEMY_UPPER_Y: float = 356.0
 const PAPER_EFFIGY_SPAWN_INTERVAL: int = 700
 const LANTERN_GHOST_SPAWN_INTERVAL: int = 1000
+const FINAL_WHITEOUT_DURATION: float = 4.0
+const FINAL_WHITEOUT_FADE_DURATION: float = 0.8
 
 var _exit_trigger: Area2D = null
+var _exit_white_overlay: ColorRect = null
 var _dynamic_actors: Node2D = null
 var _paper_effigy_scene: PackedScene = null
 var _paper_effigies: Array[Node2D] = []
@@ -59,6 +62,7 @@ func _on_ready() -> void:
 	_spawn_paper_effigies()
 	_spawn_lantern_ghosts()
 	_load_hud()
+	_build_exit_white_overlay()
 	print("[Level_02_01] 初始化完成")
 
 
@@ -286,9 +290,43 @@ func _ensure_trigger_zone(container: Node, zone_name: String, pos: Vector2, size
 
 
 func _on_exit_trigger_body_entered(body: Node2D) -> void:
-	if not _is_player_body(body):
+	if not _is_player_body(body) or _level_complete_emitted:
 		return
-	_emit_level_complete()
+	_level_complete_emitted = true
+	_exit_trigger.set_deferred("monitoring", false)
+	_freeze_player(true)
+	InputManager.block_input("终局转场", self)
+	_exit_white_overlay.color = Color(1, 1, 1, 0)
+	_exit_white_overlay.show()
+	var tw = create_tween()
+	tw.tween_property(_exit_white_overlay, "color:a", 1.0, FINAL_WHITEOUT_FADE_DURATION).set_trans(Tween.TRANS_SINE)
+	tw.tween_interval(FINAL_WHITEOUT_DURATION)
+	tw.tween_callback(_emit_level_complete)
+
+
+func _build_exit_white_overlay() -> void:
+	var canvas = _get_or_create_child("CanvasLayerUI", CanvasLayer) as CanvasLayer
+	canvas.layer = 2
+	_exit_white_overlay = ColorRect.new()
+	_exit_white_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_exit_white_overlay.color = Color(1, 1, 1, 0)
+	_exit_white_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(_exit_white_overlay)
+
+
+func _freeze_player(freeze: bool) -> void:
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player):
+		return
+	if freeze:
+		player.velocity = Vector2.ZERO
+		player.set_physics_process(false)
+		player.set_process_input(false)
+		if player.has_method("_change_state"):
+			player._change_state(GlobalDefine.PlayerState.IDLE)
+	else:
+		player.set_physics_process(true)
+		player.set_process_input(true)
 
 
 func _is_player_body(body: Node2D) -> bool:
@@ -300,9 +338,6 @@ func _is_player_body(body: Node2D) -> bool:
 
 
 func _emit_level_complete() -> void:
-	if _level_complete_emitted:
-		return
-	_level_complete_emitted = true
 	get_viewport().gui_release_focus()
 	InputManager.force_unblock_all()
 	_cleanup_enemies()
@@ -313,10 +348,11 @@ func _emit_level_complete() -> void:
 		if err != OK:
 			push_warning("[Level_02_01] 直接切换失败: %s (err=%d)" % [next_level_path, err])
 		return
-	print("[Level_02_01] 发射 LEVEL_COMPLETE → ", next_level_path)
+	print("[Level_02_01] 发射 LEVEL_COMPLETE（白屏转场）→ ", next_level_path)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {
 		"level": self,
 		"next_level": next_level_path,
+		"transition_white": true,
 	})
 
 
