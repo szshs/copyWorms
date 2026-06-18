@@ -1,15 +1,17 @@
 # ============================================================
 # Level_03.gd - 第三关「赛博蜃景与真实回声」控制器
-# 场景构建 → Level_03_SceneBuilder
+# 场景节点 → Level_03.tscn（编辑器可视编辑）
 # UI 构建   → Level_03_UIBuilder
 # 状态调度  → Level_03_FSM
 #
-# 新架构（无缝单坐标空间）:
-#   1. 单空间: 凉茶铺(0-1200) + 岭南街巷(1200-2400) + 过渡走廊(2400-3600) + 赛博城(3600-15600)
-#   2. 无缝穿越: 玩家步行从凉茶铺走到赛博城，无传送/无黑屏
-#   3. 状态流: TEA_SHOP_FRONT → LINGNAN_COMBAT → WORLD_SHIFT → CYBER_CITY → ...
-#   4. 击退反转: 赛博阶段敌人击中后玩家向左击退
-#   5. 跨关卡: 读取 GameManager.dream_runtime_flags
+# 新架构（无缝单坐标空间，由 .tscn 中 Ground 碰撞体实际位置决定）:
+#   1. 凉茶铺(HavenGround): 0~640
+#   2. 岭南街巷(AlleyGround): 640~2128
+#   3. 过渡走廊(CorridorGroundCold): 2144~4032
+#   4. 赛博城(CyberGround, CyberCityRoot.x=3600): 4032~6816
+#   5. 状态流: TEA_SHOP_FRONT → LINGNAN_COMBAT → WORLD_SHIFT → CYBER_CITY → ...
+#   6. 击退反转: 赛博阶段敌人击中后玩家向左击退
+#   7. 跨关卡: 读取 GameManager.dream_runtime_flags
 # ============================================================
 extends LevelBase
 class_name Level_03
@@ -93,14 +95,14 @@ var _fsm: Level_03_FSM = null
 func _setup_player() -> void:
 	if GameManager.player_ref and is_instance_valid(GameManager.player_ref):
 		return
-	var player_path = "res://PlayerModule/Formal/Player_Warrior.tscn"
+	var player_path = level_config.player_scene_path if level_config and level_config.player_scene_path != "" else "res://PlayerModule/Formal/Player_Warrior_Lingnan.tscn"
 	if ResourceLoader.exists(player_path):
 		var player = load(player_path).instantiate()
-		var spawn_pos = level_config.spawn_point if level_config else Vector2(400, 550)
+		var spawn_pos = level_config.spawn_point if level_config else Vector2(56, 296)
 		player.position = spawn_pos
 		add_child(player)
 		GameManager.register_player(player)
-		print("[Level_03] 玩家创建成功")
+		print("[Level_03] 玩家创建成功 (Lingnan 皮肤)")
 
 func _on_ready() -> void:
 	super._on_ready()
@@ -118,15 +120,18 @@ func _on_ready() -> void:
 
 	_apply_dream_runtime_flags()
 
-	var builder = Level_03_SceneBuilder.new(self)
-	builder.build_all()
+	# 从 .tscn 绑定已有节点（SceneBuilder 的角色已被编辑器可视化替代）
+	_bind_scene_nodes()
+	# Canvas UI 仍由 UIBuilder 运行时构建（未截取到 .tscn 中）
+	_build_canvas_ui()
+	_set_all_color_rect_mouse_ignore(self)
 
 	# 赛博城初始: 隐藏 + 碰撞禁用
 	_set_space_collision(_cyber_city_root, false)
 
 	_setup_camera_limits()
-	# 凉茶铺阶段：摄像机限制在凉茶铺+街巷区域
-	_set_camera_limits(-50, 2500, -500, 1200)
+	# 凉茶铺阶段：摄像机限制在凉茶铺+街巷区域 (AlleyGround 末端=2128)
+	_set_camera_limits(0, 2120, 168, 608)
 	_cache_ui_refs()
 	_ensure_player_collision_layer()
 
@@ -136,6 +141,8 @@ func _on_ready() -> void:
 	EventBus.subscribe(GlobalDefine.EventName.PLAYER_HURT, self, "_on_player_hurt")
 	# 监听敌人死亡以追踪岭南战斗进度
 	EventBus.subscribe(GlobalDefine.EventName.ENEMY_DIED, self, "_on_enemy_died")
+	# 监听玩家死亡 — 重生
+	EventBus.subscribe(GlobalDefine.EventName.PLAYER_DIED, self, "_on_player_died")
 	_fsm = Level_03_FSM.new(self)
 
 	if not InputManager.game_action.is_connected(_on_game_action):
@@ -152,6 +159,10 @@ func _on_ready() -> void:
 	_load_hud()
 	set_process(true)
 	print("[Level_03] 初始化完成 — 当前: TEA_SHOP_FRONT")
+
+	# 关卡开场叙事，延迟 0.5s 弹出
+	await get_tree().create_timer(0.5).timeout
+	_show_narrative("[color=white]我……我真的回来了！\n爷爷就在前面！爷爷！爷爷！[/color]")
 
 
 func _exit_tree() -> void:
@@ -247,6 +258,56 @@ func _ensure_player_collision_layer() -> void:
 	if not (player.collision_layer & GlobalDefine.Collision.PLAYER):
 		player.collision_layer |= GlobalDefine.Collision.PLAYER
 
+
+# ============================================================
+# 从 .tscn 绑定已有场景节点（替代原 SceneBuilder 的角色）
+# ============================================================
+
+func _bind_scene_nodes() -> void:
+	# 空间根节点
+	_safe_haven_root = $SafeHavenRoot
+	_cyber_city_root = $CyberCityRoot
+	_dynamic_actors = $DynamicActors
+
+	# 交互物
+	_grandpa_node = $InteractiveObjects/Grandpa
+	_grandpa_node.allow_repeat = false
+	# 爷爷贴图
+	var grandpa_sprite = Sprite2D.new()
+	grandpa_sprite.name = "Sprite"
+	grandpa_sprite.texture = load("res://Assets/Granda.png")
+	grandpa_sprite.position = Vector2(0, -40)
+	_grandpa_node.add_child(grandpa_sprite)
+
+	_memory_echo_1_node = $InteractiveObjects/MemoryEcho1
+	_memory_echo_1_node.is_active = false   # 初始禁用，CYBER_CITY 阶段才激活
+	_memory_echo_2_node = $InteractiveObjects/MemoryEcho2
+	_memory_echo_2_node.is_active = false
+
+	# 触发器 — 连接 body_entered 信号
+	_warning_1_trigger = $TriggerZones/Warning1Trigger
+	_warning_1_trigger.body_entered.connect(_on_warning_1_trigger_body_entered)
+	_warning_2_trigger = $TriggerZones/Warning2Trigger
+	_warning_2_trigger.body_entered.connect(_on_warning_2_trigger_body_entered)
+
+	# 出生点
+	player_spawn_point = $SpawnPoints/TeaShopSpawn
+
+
+func _build_canvas_ui() -> void:
+	var canvas = _get_or_create_child("CanvasLayerUI", CanvasLayer)
+	canvas.layer = 2
+	canvas.process_mode = Node.PROCESS_MODE_ALWAYS
+	Level_03_UIBuilder.new(self, canvas).build_all()
+
+
+func _set_all_color_rect_mouse_ignore(node: Node) -> void:
+	for child in node.get_children():
+		if child is ColorRect:
+			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_all_color_rect_mouse_ignore(child)
+
+
 func _set_space_collision(root: Node, enabled: bool) -> void:
 	if not root or not is_instance_valid(root): return
 	for child in root.get_children():
@@ -265,6 +326,7 @@ func _setup_camera_limits() -> void:
 	cam.limit_right = level_config.camera_limit_right
 	cam.limit_top = level_config.camera_limit_top
 	cam.limit_bottom = level_config.camera_limit_bottom
+	cam.zoom = Vector2(1.75, 1.75)
 	cam.bind_target(player)
 
 func _set_camera_limits(left: int, right: int, top: int, bottom: int) -> void:
@@ -276,6 +338,7 @@ func _set_camera_limits(left: int, right: int, top: int, bottom: int) -> void:
 	cam.limit_right = right
 	cam.limit_top = top
 	cam.limit_bottom = bottom
+	cam.zoom = Vector2(1.75, 1.75)
 	cam.bind_target(player)
 
 func _cache_ui_refs() -> void:
@@ -355,7 +418,28 @@ func _freeze_player(freeze: bool) -> void:
 		if is_instance_valid(obj): obj.freeze_monitoring(freeze)
 
 
-# ============================================================
+func _on_player_died(_data: Dictionary) -> void:
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player): return
+
+	var respawn_pos: Vector2
+	if current_state in [LevelState.LINGNAN_COMBAT]:
+		respawn_pos = Vector2(120, 512)   # 岭南区域重生点
+	elif current_state in [LevelState.CYBER_CITY, LevelState.MEMORY_COLLECTION]:
+		respawn_pos = Vector2(4912, 512)  # 赛博区域重生点
+	else:
+		return  # 非战斗状态不处理
+
+	player.global_position = respawn_pos
+	player.velocity = Vector2.ZERO
+	player.current_health = player.max_health
+	player._change_state(GlobalDefine.PlayerState.IDLE)
+	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+		"target": player,
+		"current_health": player.current_health,
+		"max_health": player.max_health
+	})
+	print("[Level_03] 玩家重生至 ", respawn_pos)
 # 输入处理
 # ============================================================
 
@@ -568,11 +652,8 @@ func _trigger_lingnan_combat() -> void:
 	# 爷爷NPC消失
 	if _grandpa_node and is_instance_valid(_grandpa_node):
 		_grandpa_node.is_active = false
-		var indicator = _grandpa_node.get_node_or_null("Indicator")
-		if indicator:
-			indicator.color = Color(1, 0, 0, 0.8)
-			indicator.size = Vector2(60, 60)
-			indicator.position = Vector2(-30, -30)
+		var sprite = _grandpa_node.get_node_or_null("Sprite")
+		if sprite: sprite.visible = false
 
 	# 开启战斗能力
 	_restore_combat_mechanics()
@@ -580,11 +661,29 @@ func _trigger_lingnan_combat() -> void:
 	# 打开凉茶铺右墙 — 允许玩家进入街巷区域战斗
 	_remove_wall("SafeHavenRoot/HavenRightWall")
 
-	# 扩展相机到凉茶铺+街巷
-	_set_camera_limits(-50, 2500, -500, 1200)
+	# 在墙后刷一只冲脸敌人，直接命令其朝玩家冲锋
+	var rush_config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
+	var rush_enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, Vector2(680, 540), rush_config)
+	if rush_enemy:
+		rush_enemy.modulate = Color(0.25, 0.2, 0.35, 0.95)
+		_lingnan_enemies.append(rush_enemy)
+		# 为该敌人生成独立配置副本，扩大检测范围至 1000px
+		rush_enemy.config = rush_config.duplicate()
+		rush_enemy.config.detect_range = 1000.0
+		# 直接设置为追逐状态，跳过 AI 检测延迟
+		var player = GameManager.player_ref
+		if player and is_instance_valid(player):
+			rush_enemy.target = player
+			rush_enemy.current_state = GlobalDefine.EnemyState.CHASE
+
+	# 扩展相机到凉茶铺+街巷 (AlleyGround 末端=2128)
+	_set_camera_limits(0, 2120, 168, 608)
 
 	# 在凉茶铺+街巷区域生成敌人
 	_spawn_lingnan_enemies()
+
+	# 给敌人一个物理帧启动 AI，再弹出叙事——这样冲脸怪已经开始跑向玩家
+	await get_tree().physics_frame
 
 	# 显示战斗开始叙事
 	if level_data:
@@ -597,7 +696,7 @@ func _spawn_lingnan_enemies() -> void:
 
 	var spawn_points = level_data.lingnan_enemy_spawn_points if level_data else []
 	if spawn_points.is_empty():
-		spawn_points = [Vector2(800, 540), Vector2(1400, 540), Vector2(1800, 540), Vector2(2100, 540), Vector2(2300, 540)]
+		spawn_points = [Vector2(955, 540), Vector2(1170, 540), Vector2(1385, 540), Vector2(1600, 540), Vector2(1815, 540)]
 
 	var count = level_data.lingnan_enemy_count if level_data else 5
 	var cleaner_config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
@@ -664,8 +763,8 @@ func _on_lingnan_combat_complete() -> void:
 		# 移除赛博城左墙（旧双空间架构遗留，与走廊右墙重叠，不拆除则阻挡通行）
 		_remove_wall("CyberCityRoot/CyberLeftWall")
 
-	# 6) 扩展相机到全地图
-	_set_camera_limits(-50, 15600, -500, 1200)
+	# 6) 扩展相机到全地图 (CyberGround 末端=6816)
+	_set_camera_limits(0, 6816, 168, 608)
 
 	# 7) 玩家皮肤切换（赛博战斗系统）
 	_swap_player_to_cyber()
@@ -815,7 +914,7 @@ func _spawn_cyber_enemies() -> void:
 	var cleaner_config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
 	var cleaner_points = level_data.cleaner_spawn_points if level_data else []
 	if cleaner_points.is_empty():
-		cleaner_points = [Vector2(6000, 540), Vector2(7200, 540), Vector2(8800, 540), Vector2(10400, 540), Vector2(11200, 540)]
+		cleaner_points = [Vector2(4596, 540), Vector2(5010, 540), Vector2(5424, 540), Vector2(5838, 540), Vector2(6252, 540)]
 	for i in range(mini(cleaner_points.size(), 5)):
 		var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, cleaner_points[i], cleaner_config)
 		if enemy:
@@ -825,7 +924,7 @@ func _spawn_cyber_enemies() -> void:
 	var security_config = load("res://DataConfig/Enemy/SecurityConfig.tres") as EnemyConfig
 	var security_points = level_data.security_spawn_points if level_data else []
 	if security_points.is_empty():
-		security_points = [Vector2(6600, 480), Vector2(8400, 480), Vector2(10800, 480)]
+		security_points = [Vector2(4803, 480), Vector2(5424, 480), Vector2(6045, 480)]
 	for i in range(mini(security_points.size(), 3)):
 		var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, security_points[i], security_config)
 		if enemy:
@@ -862,7 +961,7 @@ func _on_enemy_spawn_timer_timeout() -> void:
 	if onscreen >= ENEMY_MAX_ONSCREEN: return
 
 	var side = 1.0 if randf() > 0.3 else -1.0
-	var spawn_x = clampf(player.global_position.x + side * randf_range(400.0, 600.0), 3600.0, 15400.0)
+	var spawn_x = clampf(player.global_position.x + side * randf_range(400.0, 600.0), 4100.0, 6700.0)
 	var config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
 	var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, Vector2(spawn_x, 540), config)
 	if enemy:
