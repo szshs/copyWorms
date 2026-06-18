@@ -182,7 +182,7 @@ size = Vector2(366, 25)
 size = Vector2(494, 25)
 
 [sub_resource type="RectangleShape2D" id="s2c_block"]
-size = Vector2(25, 80)
+size = Vector2(28.125, 54.83142)
 
 [sub_resource type="RectangleShape2D" id="s2c_9"]
 size = Vector2(293, 25)
@@ -207,6 +207,15 @@ size = Vector2(797, 25)
 
 [sub_resource type="RectangleShape2D" id="s2c_16"]
 size = Vector2(216, 25)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ei20x"]
+size = Vector2(24, 100)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_y2mcw"]
+size = Vector2(30.5, 371)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rtua0"]
+size = Vector2(36.5, 213.5)
 
 [node name="Level_04" type="Node2D" unique_id=81654247]
 script = ExtResource("1_script")
@@ -1326,3 +1335,20 @@ offset_right = 108.0
 offset_bottom = 12.5
 mouse_filter = 2
 color = Color(0.5, 0.5, 0.5, 0.3)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=124659686]
+position = Vector2(1604, 1537)
+scale = Vector2(1, 2.225)
+shape = SubResource("s2c_block")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=845496823]
+position = Vector2(1848, 1411)
+shape = SubResource("RectangleShape2D_ei20x")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=935973169]
+position = Vector2(772, 1408)
+shape = SubResource("RectangleShape2D_y2mcw")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=1818250480]
+position = Vector2(3373, 1206)
+shape = SubResource("RectangleShape2D_rtua0")

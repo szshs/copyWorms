@@ -56,6 +56,7 @@ var _erosion_value: float = 0.0
 var _erosion_bar_bg: ColorRect = null
 var _erosion_bar_fill: ColorRect = null
 var _erosion_label: Label = null
+var _erosion_vignette: ColorRect = null
 const EROSION_MAX: float = 100.0
 const EROSION_RATE: float = 0.35
 const EROSION_KILL_REDUCE: float = 15.0
@@ -645,12 +646,13 @@ func _build_erosion_ui() -> void:
 	var cv = get_node_or_null("CanvasLayerUI")
 	if not cv: return
 
-	# 容器
+	# ---- 侵蚀进度条容器 ----
 	var container = Control.new()
 	container.name = "ErosionBar"
 	container.position = Vector2(20, 105)
 	container.size = Vector2(280, 28)
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.z_index = 130
 	cv.add_child(container)
 
 	# 背景
@@ -684,6 +686,20 @@ func _build_erosion_ui() -> void:
 	_erosion_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	container.add_child(_erosion_label)
 
+	# ---- 侵蚀边缘扭曲覆盖层 ----
+	_erosion_vignette = ColorRect.new()
+	_erosion_vignette.name = "ErosionVignette"
+	_erosion_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_erosion_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_erosion_vignette.z_index = 120
+	var shader = load("res://LevelModule/Formal/erosion_vignette.gdshader")
+	if shader:
+		var mat = ShaderMaterial.new()
+		mat.shader = shader
+		mat.set_shader_parameter("intensity", 0.0)
+		_erosion_vignette.material = mat
+	cv.add_child(_erosion_vignette)
+
 func _update_erosion_ui() -> void:
 	if not _erosion_bar_fill or not _erosion_label: return
 	var ratio: float = _erosion_value / EROSION_MAX
@@ -696,6 +712,17 @@ func _update_erosion_ui() -> void:
 		_erosion_bar_fill.color = Color(0.8, 0.25, 0.5, 0.95)
 	else:
 		_erosion_bar_fill.color = Color(0.65, 0.15, 0.8, 0.95)
+
+	# 边缘扭曲强度：25/50/75 三档平滑渐变
+	var vignette_intensity: float = 0.0
+	if _erosion_value >= 75.0:
+		vignette_intensity = 0.7 + 0.3 * (_erosion_value - 75.0) / 25.0  # 0.7→1.0
+	elif _erosion_value >= 50.0:
+		vignette_intensity = 0.35 + 0.35 * (_erosion_value - 50.0) / 25.0  # 0.35→0.7
+	elif _erosion_value >= 25.0:
+		vignette_intensity = 0.35 * (_erosion_value - 25.0) / 25.0  # 0→0.35
+	if _erosion_vignette and _erosion_vignette.material:
+		_erosion_vignette.material.set_shader_parameter("intensity", vignette_intensity)
 
 func _modify_erosion(delta: float) -> void:
 	_erosion_value = clampf(_erosion_value + delta, 0.0, EROSION_MAX)
@@ -838,34 +865,29 @@ func _enter_stage3() -> void:
 	_is_interacting = true
 	_freeze_player(true)
 
-	# 黑屏过渡
+	# 黑屏过渡 → 跳转到 Level_05
 	var blk = _create_black_overlay()
-	if blk:
-		await get_tree().create_tween().tween_property(blk, "color", Color.BLACK, 0.5).finished
-
-	var p = GameManager.player_ref
-	current_state = LevelState.STAGE3
+	if not blk: _freeze_player(false); _is_interacting = false; return
+	await get_tree().create_tween().tween_property(blk, "color", Color.BLACK, 0.5).finished
 
 	# 清除阶段2敌人
 	for e in _stage2_lingnan_enemies:
-		if is_instance_valid(e):
-			GameManager.unregister_enemy(e)
-			e.queue_free()
+		if is_instance_valid(e): GameManager.unregister_enemy(e); e.queue_free()
 	_stage2_lingnan_enemies.clear()
 	for e in _stage2_cyber_enemies:
-		if is_instance_valid(e):
-			GameManager.unregister_enemy(e)
-			e.queue_free()
+		if is_instance_valid(e): GameManager.unregister_enemy(e); e.queue_free()
 	_stage2_cyber_enemies.clear()
 
-	# 黑屏淡出
-	if blk:
-		await get_tree().create_tween().tween_property(blk, "color:a", 0.0, 0.5).finished
-		blk.queue_free()
+	# 传递侵蚀值和血量给 Level_05
+	GameManager.dream_runtime_flags["erosion_value"] = _erosion_value
+	var pl = GameManager.player_ref
+	if pl and is_instance_valid(pl):
+		GameManager.dream_runtime_flags["player_health"] = pl.current_health
+		GameManager.dream_runtime_flags["player_max_health"] = pl.max_health
 
-	_freeze_player(false)
-	_is_interacting = false
-	_show_narrative("[color=red]空间彻底撕裂！两个维度正在疯狂融合——[/color]\n[color=white]终焉之主即将从裂隙中降临……[/color]")
+	# 跳转
+	_full_cleanup()
+	get_tree().change_scene_to_file("res://LevelModule/Formal/Level_05.tscn")
 
 
 # ---- 调试面板 (按 1 切换阶段) ----
