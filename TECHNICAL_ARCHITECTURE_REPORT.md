@@ -1,22 +1,55 @@
 # HackathonGame 关卡技术架构报告（叙事驱动版）
 
 > **目标读者**：关卡设计师 / 下游 AI 关卡设计助手
-> **更新日期**：2026-06-15
+> **更新日期**：2026-06-17
 > **引擎版本**：Godot 4.6 (GL Compatibility, GDScript)
-> **项目版本**：v0.8.0（三关卡完成 + 双空间架构 + 跨关卡配置 + 玩家皮肤切换）
+> **项目版本**：v0.10.0（Level_02_03 断崖→现实→IDE 交互完整实现 + 全局速度调整 + 技能禁用体系）
 >
-> **v0.8.0 变更摘要**：
-> - Level_02「撕裂与沉溺」完整实现：11态状态机、单场景双空间、坠落循环、干扰期、长按Tab睁眼、配置篡改解谜、重编译流程
-> - Level_03「赛博蜃景与真实回声」完整实现：6态状态机、无缝单坐标空间、世界异化演出、玩家皮肤切换、击退反转、异常数据光团收集
+> **v0.10.0 变更摘要**：
+> - **新增 Level_02_03「断崖坠落→现实干扰→睁眼→现实房间→IDE 交互→关三」**：从备份 `Level_02_CliffReality` 移植完整断崖坠落循环（坠落计数→干扰期红光+阴影敌人+沉重化→长按Tab睁眼），加入现实房间（手机→电脑→IDE对话→配置篡改→重编译→床），独立场景 `Level_02_03.tscn`（含碰撞体/触发器/出生点/像素地图）
+> - **IDE 界面重设计为 CODE-BUDDY 风格**：左侧 220px 深色边栏（Logo、项目名、文件树、SESSION 状态）+ 右侧主对话区 + 底部输入框，纯代码构建
+> - **交互式自由对话系统**：预写对话结束后进入 `REALITY_FREE_CHAT`，玩家在底部 `LineEdit` 输入 → Enter → 主区显示"阿明: [消息]" → CodeBuddy AI 关键词回复（7 类世界观匹配 + 随机默认回复），`/config` 命令进入配置编辑器
+> - **对话逐行动画**：所有预写对话（含阿明确认后）均追加 1.2s 延迟动画再显示，提升渐进感
+> - **黑屏过渡转场**：床交互触发 → 黑屏淡入(0.8s) → 居中文字"西关梦境 V2.0..."(2.5s) → `LEVEL_COMPLETE`(在黑屏中) → MainEntry 遮罩无缝衔接加载 Level_03
+> - **全局玩家速度调整**：`WarriorConfig.tres` `move_speed` 300→250（正常 250 / 干扰期 137.5 / 现实房间 125）
+> - **技能禁用体系**：Level_01 新增 `block_action("player_dash")` / `can_dash = false`，sub01 现实房间同步禁用攻击/跳跃/闪身/技能（共 4 项 action 级禁止）
+> - **Level_01 新增技能禁用**：`_apply_level_input_rules` 新增闪身禁用，与现有攻击/跳跃禁用一致
+> - **切换链更新**：`Level_02 → Level_02_01 → Level_02_02 → Level_02_03 → Level_03`
+> - **`_emit_level_complete()` 重构**：事件发射提前到 `_full_cleanup()` 之前，新增 `_is_loaded_under_main_entry()` 双模切换
+> - **InputManager 动作级禁用完善**：`block_action/unblock_action` 覆盖 player_attack / player_jump / player_dash / player_skill
+>
+> **v0.9.0 变更摘要（历史）**：
+> - **Level_02 架构重构为分段式**：原单一 11 态双空间关卡（坠落/干扰/睁眼/配置篡改/重编译）已备份至 `LevelModule/Backup/Level_02_CliffReality/`，正式版拆为三段串联：
+>   - `Level_02`（阁楼→老街，3态，引入薯片猫/子02传送门交互）
+>   - `Level_02_01`（老街分段 0-4464，纸扎人+灯笼鬼战斗，白屏转场出口）
+>   - `Level_02_02`（0-1474，梯子谜题「有些梯子看似能爬…有些墙看似不能穿过却可穿过」，相机2x缩放）
+>   - 切换链：`Level_02 → Level_02_01 → Level_02_02 → Level_02_03 → Level_03`，均通过 `LEVEL_COMPLETE.next_level` 串联
+> - **新增 Level_04「维度侵蚀与空间崩塌」**：承接 Level_03 觉醒，2态状态机，阶段1「半对半空间硬切」（赛博1-1 ↔ 岭南1-2 瞬移+闪帧+皮肤切换）已实现，后续阶段待开发
+> - **新增 Ladder.gd 梯子攀爬机制**：Area2D 子类，双向攀爬（底部 W↑/顶部 S↓，使用 `player_up`/`player_down` 输入动作），攀爬期间禁用玩家 `_physics_process`
+> - **新增输入动作** `player_up` / `player_down`（梯子攀爬用，保留轮询）
+> - **MainEntry 关卡切换增强**：新增转场遮罩（CanvasLayer+ColorRect 淡入淡出 0.8s）、`transition_white` 白屏转场支持、调用 `InputManager.force_unblock_all()` 防跨关卡输入锁泄漏
+> - **InputManager 新增** `force_unblock_all()` + **动作级禁用系统** `block_action/unblock_action`（关卡1通过 action 级禁用攻击/跳跃）+ **鼠标悬停 GUI 检测**（防止 HUD 按钮被关卡操作穿透）
+> - **PixelworkMapStitch 现被实际使用**：Level_02_SceneBuilder._attach_dream_visual_layers() 将拼接地图 reparent 到 DreamWorldRoot（不再仅"预留"）
+> - **dream_runtime_flags 写入链调整**：Level_02 不再写入配置篡改标志（机制已备份），Level_03 仍保留 `_apply_dream_runtime_flags()` 读取（当前为空字典安全跳过）
+> - **Enemy_PaperEffigy 已投入使用**：Level_02_01 / Level_02_02 老街与梯子段均生成纸扎人（不再"预留"）
+> - **Enemy_LanternGhost AI 完全实现**：漂浮系统 + 悬停距离保持 + 火球远程攻击（`FireballProjectile.gd` 弹体含拖尾粒子+命中效果），`deals_contact_damage()=false`，`MOTION_MODE_FLOATING` 重力免疫
+> - **Level_01 大幅增强**：新增 `_apply_level_input_rules()` 关卡输入策略系统（0.5x 移动速度 + action 级禁用攻击/跳跃）+ 代码滚动面板（`CODE_SCROLL_LINES` 伪代码模拟 AI 编译，含语法高亮）+ 左侧边缘闪烁光效（提示手机位置）+ 眨眼效果（GLITCH_TRANSIT 意识模糊）+ `_disconnect_input_manager()` 关卡退出清理
+> - **新增 FireballProjectile.gd**：`res://Tools/FireballProjectile.gd`，灯笼鬼远程弹体，含代码粒子拖尾、命中闪光、最大飞行距离消散
+> - **Level_02 分段控制器双模切换**：Level_02 / Level_02_01 / Level_02_02 均支持 MainEntry 托管 (`LEVEL_COMPLETE`) 与独立运行 (`change_scene_to_file`) 双模式，通过 `_is_loaded_under_main_entry()` 判断
+> - **Level_02 老街改用 LanternGhost**：StreetSlimeConfig.tres 配置驱动的灯笼鬼取代史莱姆作为老街敌人
+> - **InteractiveObject.mark_completed() 增强**：标记完成后自动隐藏 Indicator 和 Glow 子节点
+> - 删除 SelfTest 目录（LevelModule/SelfTest、EnemyModule/SelfTest、PlayerModule/SelfTest）
+>
+> **v0.8.0 变更摘要（历史，已被 v0.9.0 部分重构）**：
+> - Level_02「撕裂与沉溺」原 11 态双空间实现（已备份至 Backup/，正式版改为分段式）
+> - Level_03「赛博蜃景与真实回声」：6态状态机、无缝单坐标空间、世界异化演出、玩家皮肤切换、击退反转、异常数据光团收集
 > - LevelConfig 新增 `player_scene_path` 字段，LevelBase._setup_player() 按配置加载皮肤
-> - GameManager 新增 `dream_runtime_flags` 跨关卡配置字典（关卡2写入→关卡3读取应用）
+> - GameManager 新增 `dream_runtime_flags` 跨关卡配置字典
 > - 新增 4 种敌人：Enemy_LanternGhost / Enemy_CyberWolf / Enemy_CyberBull / Enemy_PaperEffigy + 配套 Config
 > - 新增 PixelworkMapStitch 像素地图拼接系统（LevelModule/Scenes/）
-> - 触发区（Area2D TriggerZone）系统：非交互一次性/可重复检测区，与 InteractiveObject 共存
-> - `_enforce_level_restrictions()` 关卡级技能限制守卫（每帧强制维持被禁技能）
-> - Level_03._swap_player_to_cyber() 运行时玩家皮肤切换（保留血量/朝向/位置，断连旧 InputManager 信号）
-> - Level_03._start_screen_shake() 画面抖动（通过 SmoothCamera.offset 随机偏移实现）
-> - Level_02 音效安全降级：_play_sfx_loop_safe() 资源不存在时跳过播放
+> - 触发区（Area2D TriggerZone）系统
+> - `_enforce_level_restrictions()` 关卡级技能限制守卫
+> - Level_03._swap_player_to_cyber() / _start_screen_shake() / 击退反转 / 音效安全降级
 >
 > **v0.6.0 变更摘要（历史）**：
 > - InputManager.gd Autoload 全面接管游戏操作输入（attack/dash/skill/accept 信号分发）
@@ -41,7 +74,7 @@
 | 类型 | 2D 横向叙事探索游戏（类空洞骑士） |
 | 屏幕分辨率 | 1280×720，canvas_items 拉伸 |
 | 主场景 | `res://UI/TitleScreen.tscn`（工程启动入口；开始游戏后进入 `res://Global/MainEntry.tscn`） |
-| 自测场景 | `res://LevelModule/SelfTest/LevelTest.tscn` |
+| 自测场景 | *(v0.9.0 已删除 SelfTest 目录)* |
 | **5 个 Autoload** | `GlobalDefine`、`EventBus`、`GameManager`、**`InputManager`**、`KeybindManager` |
 | 运行模式 | `FORMAL`（正式）/ `SELF_TEST`（自测） |
 | 玩家外观 | Player_Warrior / Player_Warrior_Cyber / Player_Warrior_Lingnan |
@@ -65,14 +98,23 @@
 │   ├── Level_01_FSM.gd            (7 态叙事状态机)        │
 │   ├── Level_01_UIBuilder.gd      (Canvas UI 纯代码构建)  │
 │   ├── InteractiveObject.gd       (交互物基类 Area2D)     │
-│   Level_02.gd            (关卡2主控/11态双空间状态机)     │
-│   ├── Level_02_SceneBuilder.gd   (梦境/现实双空间构建)   │
-│   ├── Level_02_FSM.gd            (11 态双空间状态机)     │
-│   ├── Level_02_UIBuilder.gd      (干扰/睁眼/配置/重编UI) │
+│   Level_02.gd            (关卡2分段0/3态: 阁楼→老街)     │  ★ v0.9.0 重构
+│   ├── Level_02_SceneBuilder.gd   (梦境世界构建, 简化版)   │
+│   ├── Level_02_FSM.gd            (3态: ATTIC/STREET/END) │
+│   ├── Level_02_UIBuilder.gd      (黑屏/叙事/终局, 简化版) │
+│   Level_02_01.gd         (关卡2分段1/老街0-4464, 白屏出口)│  ★ v0.9.0 新增
+│   Level_02_02.gd         (关卡2分段2/0-1474, 梯子谜题)   │  ★ v0.9.0 新增
+│   Level_02_03.gd / .tscn (关卡2分段3: 断崖→干扰→睁眼→   │  ★ v0.10.0 新增
+│   │                       现实房间→IDE→配置→床→关卡3)    │
+│   Ladder.gd              (梯子攀爬 Area2D, 双向W/S)      │  ★ v0.9.0 新增
 │   Level_03.gd            (关卡3主控/6态无缝空间状态机)     │
 │   ├── Level_03_SceneBuilder.gd   (四区域单坐标空间构建)   │
 │   ├── Level_03_FSM.gd            (6 态战斗+收集状态机)   │
 │   └── Level_03_UIBuilder.gd      (代码雨/Glitch/温暖光晕) │
+│   Level_04.gd            (关卡4主控/2态维度侵蚀)          │  ★ v0.9.0 新增
+│   ├── Level_04_SceneBuilder.gd   (容器+UI, 后续扩展)     │
+│   ├── Level_04_FSM.gd            (占位, 待扩展)          │
+│   └── Level_04_UIBuilder.gd      (叙事/Glitch/终局)      │
 ├──────────────────────────────────────────────────────────┤
 │ 角色层                                                   │
 │   Player_Warrior (.tscn)   - CharacterBody2D             │
@@ -107,8 +149,9 @@
 5. **数据驱动前置逻辑**：交互物之间的解锁条件（如"床交互≥4次解锁电脑"）由主控层布尔判定 + `is_active` 控制，不硬编码在 FSM 中。
 6. **摄像机归玩家**：SmoothCamera 作为子节点预置于每个玩家预制体内，不再由 LevelBase 或 MainEntry 动态创建。
 7. **双空间碰撞隔离**（v0.8.0）：隐藏空间必须同时禁用碰撞 + 停用交互物 + 禁用内嵌物理阻挡体，防止同坐标系下碰撞泄漏。
-8. **跨关卡配置传递**（v0.8.0）：通过 `GameManager.dream_runtime_flags` 字典跨关卡传递状态，关卡入口 `_apply_dream_runtime_flags()` 读取应用。
+8. **跨关卡配置传递**（v0.8.0，v0.9.0 调整）：通过 `GameManager.dream_runtime_flags` 字典跨关卡传递状态，关卡入口 `_apply_dream_runtime_flags()` 读取应用。**注**：v0.9.0 Level_02 重构后不再写入该字典（配置篡改机制已备份），Level_03 仍保留读取逻辑，当前为空字典安全跳过，后续关卡可重新启用写入。
 9. **关卡级限制守卫**（v0.8.0）：`_enforce_level_restrictions()` 在 `_process()` 中每帧强制维持被禁技能状态，防止任何外部路径意外恢复。
+10. **关卡分段串联**（v0.9.0 新增）：大型关卡可拆为多个分段控制器（如 Level_02 → Level_02_01 → Level_02_02），各段通过 `LEVEL_COMPLETE.next_level` 串联，分段控制器继承 LevelBase 并自建地形/敌人生成/出口触发器，支持 MainEntry 托管与独立 `change_scene_to_file` 双模式。
 
 ---
 
@@ -208,7 +251,7 @@ trigger_game_over() / toggle_pause() / is_self_test() / is_formal()
 
 > **跨关卡配置机制（v0.8.0 新增）**：关卡2「配置篡改」谜题完成后将 `dream_runtime_flags` 写入 GameManager（如 `player_damage_reduction=true, base_jump_height=99, allow_external_signal=false, dream_version="2.0"`），关卡3 在 `_on_ready()` 中通过 `_apply_dream_runtime_flags()` 读取并应用（如启用二段跳）。
 
-### 3.4 `InputManager` API（v0.6.0 新增）
+### 3.4 `InputManager` API（v0.6.0 新增，v0.9.0 扩展）
 
 ```gdscript
 ## 游戏操作输入信号（仅未屏蔽 + 未暂停 + 无 UI 焦点时发射）
@@ -221,9 +264,18 @@ signal game_action(action: StringName, event: InputEvent)
 
 var is_input_blocked: bool   # 输入屏蔽标志（只读）
 var block_reason: String     # 屏蔽原因（调试用）
+var captured_this_frame: StringName  # 本帧捕获的动作（外部查询用）
 
-block_input(reason: String, caller: Node)   # 请求屏蔽游戏输入
+block_input(reason: String, caller: Node)   # 请求屏蔽游戏输入（栈式引用计数）
 unblock_input(reason: String)                # 取消屏蔽游戏输入
+force_unblock_all()                          # ★ v0.9.0: 强制清零屏蔽计数 + 清空动作禁用表（关卡切换兜底）
+
+# ★ v0.9.0 新增：动作级禁用系统
+block_action(action: StringName, reason: String)     # 禁用单个动作（如 player_attack）
+unblock_action(action: StringName)                     # 恢复单个动作
+is_action_blocked(action: StringName) -> bool          # 查询动作是否被禁用
+clear_action_blocks()                                  # 清空所有动作禁用
+# 用途: Level_01 禁用 attack/jump，保留 dash/skill 和移动
 ```
 
 **输入分发规则**：
@@ -233,15 +285,18 @@ unblock_input(reason: String)                # 取消屏蔽游戏输入
 | `player_attack` | `game_action` 信号 | PlayerBase._on_game_action |
 | `player_dash` | `game_action` 信号 | PlayerBase._on_game_action |
 | `player_skill` | `game_action` 信号 | PlayerBase._on_game_action |
-| `ui_accept` | `game_action` 信号 | Level_01._on_game_action |
+| `ui_accept` | `game_action` 信号 | Level_XX._on_game_action |
 | `ui_pause` (ESC) | **独占处理** | InputManager._handle_pause（不受守卫影响） |
 | `player_jump` | **保留轮询** | PlayerBase._input_jump_just_pressed（需连续状态） |
 | `ui_left/right/up/down` | **保留轮询** | PlayerBase._get_input_direction（需每帧向量） |
+| `player_up` / `player_down` | **保留轮询** | Ladder._process（梯子攀爬，瞬时按键判定）★ v0.9.0 |
 
 **守卫逻辑**（以下条件任一满足则阻断 `game_action` 信号发射）：
 - `GameManager.is_paused == true`
 - `is_input_blocked == true`（外部调用 block_input）
 - UI 焦点在 Control 节点上
+- `_blocked_actions` 中命中该动作（如 Level_01 禁用 `player_attack`/`player_jump`）★ v0.9.0
+- 鼠标事件在可交互 GUI 控件上（`_is_mouse_over_interactive_gui` 检测 CanvasLayer 子树）★ v0.9.0
 
 ---
 
@@ -367,22 +422,23 @@ _trigger_sleep_cycle()
 
 > **`_sleep_fading` 标志**：睡眠渐变期间 `_process` 的防御性自愈逻辑不清除 `_is_interacting`，防止动画期间交互锁被误杀。
 
-#### 4.2.5 单场景双空间架构（Level_02，v0.8.0）
+#### 4.2.5 空间隔离架构（v0.9.0 调整）
 
-关卡2「撕裂与沉溺」采用**单场景双空间**设计：梦境世界（DreamWorldRoot）和现实房间（RealityRoomRoot）共存于同一 `.tscn` 的同一坐标系中，通过显隐+碰撞联动切换：
+> **v0.9.0 重要变更**：Level_02 原「单场景双空间（梦境/现实）」设计已随分段重构移除，旧实现备份至 `LevelModule/Backup/Level_02_CliffReality/`。当前 Level_02 仅保留梦境世界（DreamWorldRoot），不再有现实房间。
+
+双空间碰撞隔离机制**仍保留并应用于 Level_03**（赛博城 `_cyber_city_root` 初始隐藏+碰撞禁用，世界异化演出后显现+启用）。其核心 API 不变：
 
 ```
-DREAM_ATTIC/STREET/CLIFF/INTERFERENCE  →  _dream_root.visible=true, 碰撞启用
-                                           _reality_root.visible=false, 碰撞禁用
-WAKING_HOLD_TAB → REALITY_PHONE_LOCKED  →  _dream_root.visible=false, 碰撞禁用
-                                           _reality_root.visible=true, 碰撞启用
+_set_space_collision(root: Node2D, enabled: bool)
+  → 递归遍历子节点，启用/禁用所有 StaticBody2D.CollisionShape2D.disabled
 ```
 
-**关键设计**：
-- **碰撞隔离**：`_set_space_collision(root, enabled)` 递归遍历子节点，启用/禁用所有 `StaticBody2D.CollisionShape2D.disabled`。隐藏空间必须同时禁用碰撞，否则地形互相干涉。
-- **交互物停用**：空间切换时，旧空间的 InteractiveObject 必须同步 `set_active(false) + visible=false`，并禁用其内嵌物理阻挡体（如藤椅的 StaticBody2D），否则跨空间碰撞泄漏。
-- **梦境交互物坐标**：藤椅等梦境交互物的 Indicator/物理阻挡 可能落在现实房间范围内，切换时必须彻底停用。
-- **相机 limit 缩放**：梦境世界大地图（6192px）→ 现实房间小地图（1920px），睁眼转场时需调用 `_set_camera_limits()` 收缩边界。
+**关键设计（适用于 Level_03 赛博城显隐）**：
+- **碰撞隔离**：隐藏空间必须同时禁用碰撞，否则地形互相干涉。
+- **交互物停用**：空间切换时，旧空间的 InteractiveObject 必须同步 `set_active(false) + visible=false`，并禁用其内嵌物理阻挡体。
+- **相机 limit 缩放**：异化演出后相机从凉茶铺区域扩展至全地图（0-15600）。
+
+> Level_02 分段串联机制见 §4.2.12；Level_03 赛博城显隐见 §7C。
 
 #### 4.2.6 触发区系统（v0.8.0）
 
@@ -517,6 +573,94 @@ func _play_sfx_loop_safe(path: String) -> AudioStreamPlayer:
     player.play()
     return player
 ```
+
+#### 4.2.12 关卡分段串联（v0.9.0 新增）
+
+大型关卡可拆为多个**分段控制器**串联，每段是一个独立的 LevelBase 子类场景，通过 `LEVEL_COMPLETE.next_level` 事件串联（MainEntry 托管）或 `change_scene_to_file`（独立模式）切换：
+
+```
+Level_02 (阁楼→老街, DREAM_STREET 末尾 LevelExitTrigger)
+  └─ emit LEVEL_COMPLETE { next_level: "Level_02_01.tscn" }
+        └─ Level_02_01 (老街 0-4464, 出口触发器 + 白屏4s)
+              └─ emit LEVEL_COMPLETE { next_level: "Level_02_02.tscn", transition_white: true }
+                    └─ Level_02_02 (0-1474, 梯子谜题, 出口触发器)
+                          └─ emit LEVEL_COMPLETE { next_level: "Level_03.tscn" }
+```
+
+**分段控制器共性**（Level_02_01 / Level_02_02）：
+- 继承 `LevelBase`，重写 `_setup_player()`（优先 `level_config.player_scene_path`，否则默认 Lingnan/Warrior）
+- 自建地形（`_build_collision_bodies`）、敌人（`_spawn_paper_effigies` / `_spawn_lantern_ghosts`）、出口触发器（`_build_exit_trigger`）
+- 相机缩放（`cam.zoom`，分段01=1.5x，分段02=2x）+ 自定义 `limit_*` + `lerp_speed`
+- `_emit_level_complete()` 统一模式：`force_unblock_all()` → `unsubscribe_all(self)` → 判断是否在 MainEntry 下 → emit 或 `change_scene_to_file`
+- `transition_white` 字段：Level_02_01 出口使用白屏转场（MainEntry 据此将遮罩色置白）
+
+#### 4.2.13 Ladder 梯子攀爬机制（v0.9.0 新增）
+
+`Ladder.gd`（`res://LevelModule/Formal/Ladder.gd`）是 Area2D 子类，支持玩家在垂直梯子上双向攀爬，用于 Level_02_02 的"梯子/穿墙"谜题：
+
+```gdscript
+class_name Ladder extends Area2D
+@export var ladder_top_y: float    # 顶端 Y（小值=上方）
+@export var ladder_bottom_y: float # 底端 Y（大值=下方）
+@export var climb_speed: float = 250.0
+```
+
+**机制**：
+- 碰撞层 `layer=0, mask=PLAYER`，`monitoring=true`，与触发区同构
+- `body_entered` 绑定玩家；`_process` 中按玩家 Y 位置显示 `W↑`（近底端）/`S↓`（近顶端）提示
+- 底部按 `player_up` → 向上攀爬；顶部按 `player_down` → 向下攀爬
+- 攀爬期间 `_player.set_physics_process(false)`，按 `player_jump` 可中途取消
+- `_finish_climb()` 落点修正：向上落顶端平台上方，向下落底端平台上方
+
+> **关键**：Ladder 直接轮询 `Input.is_action_just_pressed("player_up"/"player_down"/"player_jump")`，不走 InputManager.game_action 信号（需瞬时按键判定，与 jump 同类）。`.tscn` 中放置的 Ladder 节点的 ColorRect 视觉体在 `_on_ready` 后由 `_remove_ladder_color_rects()` 移除（改由 Ladder.gd 自身渲染）。
+
+#### 4.2.14 FireballProjectile 火球弹体（v0.9.0 新增）
+
+`FireballProjectile.gd`（`res://Tools/FireballProjectile.gd`）是 Area2D 弹体基类，由 `Enemy_LanternGhost` 发射，实现远程火球攻击：
+
+```gdscript
+class_name 无（直接继承 Area2D，set_script 动态加载）
+func setup(dir: Vector2, dmg: int, owner: Node2D, dist: float = 500.0, spd: float = 300.0)
+```
+
+**机制**：
+- `_ready` 创建圆形碰撞体 + 精灵（回退纯代码 ColorRect 核心），`collision_layer=0, mask=PLAYER`
+- `_physics_process` 每帧方向 * 速度 * delta 移动，累积 `_traveled` 超出 `max_distance` 消散
+- 拖尾粒子系统：每 `TRAIL_SPAWN_INTERVAL(0.03s)` 生成 ColorRect 粒子，生命周期 `TRAIL_PARTICLE_LIFE(0.35s)`，最多 `TRAIL_MAX_PARTICLES(20)` 个，随生命周期衰减 alpha 和 scale
+- `body_entered` 命中玩家：通过 `DamageCalculator.calculate()` 计算伤害 + 击退方向 + 爆炸闪光（6个随机方向 spark ColorRect 渐隐 0.25s）
+- `_fade_out()` 消散：停物理 + 清拖尾 + modulate 渐隐 0.15s + queue_free
+
+**使用关卡**：Enemy_LanternGhost 在 Level_02 分段0/1/2 使用此弹体。
+
+#### 4.2.15 Action 级输入禁用系统（v0.9.0 新增）
+
+`InputManager` 新增 `block_action()` / `unblock_action()` API，支持从信号源头阻断单个游戏动作，与 `block_input()` 栈式屏蔽互补：
+
+```gdscript
+# action 级禁用：阻断单个动作的信号发射，不受 PlayerBase 内部状态影响
+InputManager.block_action(&"player_attack", "Level_01 禁止攻击")
+InputManager.block_action(&"player_jump", "Level_01 禁止跳跃")
+InputManager.block_action(&"player_dash", "Level_01 禁止闪身")  # ★ v0.10.0
+
+# 每帧强制维持（防止 UI 焦点/叙事冻结等意外恢复）
+func _enforce_level_restrictions() -> void:
+    if _level_input_rules_active:
+        _apply_level_input_rules()
+
+# 关卡退出时清理
+func _exit_tree() -> void:
+    InputManager.unblock_action(&"player_attack")
+    InputManager.unblock_action(&"player_jump")
+```
+
+**两种模式对比**：
+
+| 模式 | API | 用途 | 生命周期 | "stack"?
+|------|-----|------|---------|--------|
+| **Block 级** | `block_input/unblock_input` | 叙事/IDE/睡眠等临时场景 | 成对调用，引用计数 | 栈式 |
+| **Action 级** | `block_action/unblock_action` | 关卡级永久限制（如禁攻击/跳跃） | 关卡生命周期 | 字典覆盖 |
+
+> **设计原则**：Block 级适用于"暂时不让玩家做任何操作"的临时屏蔽；Action 级适用于"这个动作在本关永远禁用"的永久限制。两者在 `InputManager._input()` 中按次序守卫—先检查 block 级，再检查 action 级。关卡退出时必须同时清理两种屏蔽。
 
 ### 4.3 数据流转
 
@@ -658,7 +802,9 @@ _ready()
 └── _on_ready()              # 【子类入口】必须先 super._on_ready()
 ```
 
-> **v0.8.0 变更**：`_setup_player()` 优先从 `level_config.player_scene_path` 加载玩家皮肤，关卡2/3 配置为 `Player_Warrior_Lingnan.tscn`。Level_03 额外重写了 `_setup_player()` 以支持赛博皮肤切换后的重新绑定。
+> **v0.8.0 变更**：`_setup_player()` 优先从 `level_config.player_scene_path` 加载玩家皮肤，关卡2 配置为 `Player_Warrior_Lingnan.tscn`。
+>
+> **v0.9.0 勘误**：Level_03 与 Level_04 均重写了 `_setup_player()` 且**硬编码**皮肤路径（Level_03=`Player_Warrior.tscn`，Level_04=`Player_Warrior_Cyber.tscn`），**未读取** `level_config.player_scene_path`。Level_02_01/02 分段控制器则正确读取该字段（回退默认 Lingnan）。
 
 **子类公共方法**（开箱即用）：
 
@@ -709,7 +855,9 @@ class_name LevelConfig extends Resource
 @export_group("玩家")                          # ★ v0.8.0 新增
 @export var player_scene_path: String = "res://PlayerModule/Formal/Player_Warrior.tscn"
 # LevelBase._setup_player() 读取此字段加载对应皮肤预制体
-# 关卡2使用 Player_Warrior_Lingnan, 关卡3初始也使用 Lingnan
+# 关卡2 / Level_02_01/02 使用 Player_Warrior_Lingnan
+# Level_03 _setup_player() 硬编码 Player_Warrior（未读此字段）★ v0.9.0 勘误
+# Level_04 _setup_player() 硬编码 Player_Warrior_Cyber
 ```
 
 > **v0.8.0 变更**：新增 `player_scene_path` 字段。`LevelBase._setup_player()` 优先从此字段加载玩家皮肤，而非硬编码 `Player_Warrior.tscn`。
@@ -913,11 +1061,11 @@ v0.6.0 进一步演化:
 
 | 文件 | 职责 | 行数参考 |
 |---|---|---|
-| `Level_01.gd` | 主控/状态调度/输入/玩家控制/叙事编排/Glitch 终局/InputManager联动 | ~700 |
+| `Level_01.gd` | 主控/状态调度/输入/玩家控制/叙事编排/代码滚动/左侧闪烁/Glitch终局/InputManager联动 | ~1024 |
 | `Level_01_SceneBuilder.gd` | 地形 + 交互物 + 出生点 + Canvas UI 挂载 | ~84 |
 | `Level_01_FSM.gd` | 7 态叙事状态机 + 交互处理 | ~118 |
-| `Level_01_UIBuilder.gd` | SleepOverlay / NarrativePanel / IdeUI / GlitchOverlay | ~205 |
-| `InteractiveObject.gd` | 交互物基类（可被新关卡复用） | ~177 |
+| `Level_01_UIBuilder.gd` | SleepOverlay / NarrativePanel / IdeUI / GlitchOverlay / CodeScrollPanel / LeftEdgeFlash | ~205 |
+| `InteractiveObject.gd` | 交互物基类（可被新关卡复用） | ~252 |
 | `SmoothCamera.gd` | 通用死区+lerp+lookahead 摄像机 | ~143 |
 | `SmoothCamera.tscn` | Camera2D 预制场景（Player_Warrior 子节点） | ~7 |
 
@@ -980,31 +1128,37 @@ func _on_ready() -> void:
     _setup_camera_limits()
 
     _cache_ui_refs()              # 把 UI 子节点缓存到私有字段
-    _restrict_player_mechanics()  # 关卡禁用跳跃/攻击/冲刺（叙事期）
-    _restore_player_mechanics()   # 立即恢复（can_* 开关交由 InputManager.block 控制）
+    _apply_level_input_rules()    # ★ v0.9.0: 关卡输入策略，action 级禁用攻击/跳跃，0.5x移速
 
-    # 初始化交互物统一列表（SceneBuilder 已设置 is_active 初始值）
+    # 初始化交互物统一列表（SceneBuilder 已设置 phone/computer 的 is_active=false）
     _all_interactives = [_obstacle_box, _obstacle_clothes, _bed_node,
                          _computer_node, _phone_node, _notice_node, _thermos_node]
 
     EventBus.subscribe(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, self, "_on_object_interacted")
     _fsm = Level_01_FSM.new(self)
     _ensure_player_collision_layer()
+    if not InputManager.game_action.is_connected(_on_game_action):
+        InputManager.game_action.connect(_on_game_action)
+    _load_hud()                   # 加载 HUD
     set_process(true)             # 启用 _process：冷却递减 + 交互物轮询
 ```
 
-### 7.4 InputManager block/unblock 联动表（v0.6.0）
+### 7.4 InputManager block/unblock 联动表（v0.6.0，v0.9.0 新增 action 级禁用）
 
-Level_01 中所有叙事/对话/状态切换点的 block/unblock 配对：
+Level_01 的输入控制分为两个层级：
+1. **Action 级禁用**（`InputManager.block_action()`）：`_on_ready` 时禁用 `player_attack`/`player_jump`，保持永久生效，由 `_process` 中 `_enforce_level_restrictions()` 每帧强制维持
+2. **Block 级屏蔽**（`InputManager.block_input()`）：叙事/睡眠/IDE/终局等需要阻断所有输入的场景，成对 block/unblock
 
-| 状态切换 | block 原因 | unblock 原因 | 触发位置 |
-|---------|-----------|-------------|---------|
-| 进入叙事面板 | `"叙事面板"` | `"叙事面板"` | `_show_narrative()` 进/出 |
-| 进入睡眠循环 | `"睡眠循环"` | `"睡眠循环"` | `_trigger_sleep_cycle()` 进/两条退出路径 |
-| 进入 IDE 对话 | `"IDE对话"` | `"IDE对话"` | `_enter_ide_mode()` / `_on_preview_crashed()` |
-| 进入终局叙事 | `"终局叙事"` | `"终局叙事"` | `_trigger_climax_transition()` / GLITCH_TRANSIT |
-| 进入终局转场 | `"终局转场"` | *(永不解除)* | `_on_final_bed_trigger()` |
-| 防御性解除 | — | `"终局转场"` | `_emit_level_complete()` |
+| 控制点 | 层级 | 原因 | 解除方式 |
+|-------|------|-----|---------|
+| `_on_ready()` | action 级 | `block_action("player_attack")` / `block_action("player_jump")` | `_exit_tree()` + `_clear_level_input_rules()` |
+| 0.5x 移动速度 | `runtime_move_speed_multiplier` | Level_01 专属减速 | `_clear_level_input_rules()` 恢复 1.0 |
+| 进入叙事面板 | block 级 | `"叙事面板"` | `"叙事面板"` |
+| 进入睡眠循环 | block 级 | `"睡眠循环"` | `"睡眠循环"` |
+| 进入 IDE 对话 | block 级 | `"IDE对话"` | `"IDE对话"` |
+| 进入终局叙事 | block 级 | `"终局叙事"` | `"终局叙事"` |
+| 进入终局转场 | block 级 | `"终局转场"` | `force_unblock_all()`（`_emit_level_complete`） |
+| 关卡退出 | block 级+action 级 | `_cleanup_input_before_level_switch()` | `_disconnect_input_manager()` + `force_unblock_all()` + `_clear_level_input_rules()` |
 
 ### 7.5 SceneBuilder 调用顺序
 
@@ -1057,251 +1211,190 @@ CanvasLayerUI (CanvasLayer, layer=2, PROCESS_MODE_ALWAYS)
 │   ├── ViewportContainer
 │   │   └── MiniViewport   (SubViewport, 600×400)
 │   └── StatusBar
+├── CodeScrollPanel     (Control, 右侧伪代码滚动面板)    ★ v0.9.0
+│   └── CodeScrollText   (RichTextLabel, BBCode 语法高亮)
+├── LeftEdgeFlash       (ColorRect, 黄色闪烁)            ★ v0.9.0
+├── LeftEdgeGlow        (ColorRect, 黄色光晕)            ★ v0.9.0
 └── GlitchOverlay       (ColorRect + ShaderMaterial)
 ```
 
-### 7.8 玩家控制工具
+### 7.8 玩家控制工具（v0.9.0 更新）
 
 ```gdscript
-_restrict_player_mechanics()    # 关卡禁用 can_jump/dash/attack/skill
-_restore_player_mechanics()     # 恢复 can_* 开关
+# ★ v0.9.0: action 级禁用系统（替代旧 _restrict_player_mechanics）
+_apply_level_input_rules()      # block_action("player_attack"), block_action("player_jump"),
+                                # can_dash=true, can_skill=true, runtime_move_speed_multiplier=0.5
+_clear_level_input_rules()      # 恢复所有能力 + runtime_move_speed_multiplier=1.0
+
+# 每帧强制维持（外部路径无法恢复被禁动作）
+_enforce_level_restrictions()   # if _level_input_rules_active: _apply_level_input_rules()
+
 _freeze_player(true|false)      # 物理冻结 + 输入冻结 + 切到 IDLE + 同步交互物 monitoring
 ```
 
-> **v0.6.0 设计决策**：`_restrict_player_mechanics()` + `_restore_player_mechanics()` 在 `_on_ready()` 中成对调用，不再长期锁定 can_* 开关。实际的输入阻断由 `InputManager.block_input()` 在各叙事状态切换点动态控制。
+> **v0.9.0 设计决策**：Level_01 改用 `InputManager.block_action()` 在**动作级**禁用攻击/跳跃（`_apply_level_input_rules()`），配合 `runtime_move_speed_multiplier=0.5` 实现叙事期减速。`_enforce_level_restrictions()` 在 `_process` 中每帧强制维持。与旧 `_restrict_player_mechanics` 的最大区别是：action 级禁用从 InputManager 源头发起阻断，不受 PlayerBase 内部状态影响。
 
-### 7.9 关键流程 API
+### 7.9 关键流程 API（v0.9.0 新增项）
 
 | API | 触发 | 用途 |
 |---|---|---|
-| `_setup_camera_limits()` | `_on_ready` | 查找玩家子节点 SmoothCamera，配置 limit 参数 + bind_target |
+| `_setup_camera_limits()` | `_on_ready` | 查找玩家子节点 SmoothCamera，配置 limit 参数 + bind_target，zoom=2 |
+| `_set_camera_limits(left, right, top, bottom)` | 运行时 | 动态切换相机边界（空间切换/区域推进用） |
 | `_show_narrative(text)` | 任意叙事 | 弹出 NarrativePanel → 等待 Enter → 关闭（含 block/unblock 联动） |
 | `_trigger_sleep_cycle()` | 床 | 渐黑 + 叙事 + 渐亮 + 解锁检测（含 block/unblock 联动） |
 | `_try_unlock_computer()` | 睡眠后 | sleep_count≥4 时解锁电脑 |
 | `_enter_ide_mode()` | 电脑 | 显示 IdeUI + 逐行渲染对话（含 block 联动） |
-| `_start_ide_viewport_preview()` | 对话结束 | SubViewport 加载 MiniTestWorld.tscn（继承 IDE_CHAT 的 block） |
-| `_on_preview_crashed()` | TestRunner 出界/超时 | 崩溃信息 + 启用手机 + 震动（含 unblock 联动） |
+| `_render_next_chat_line()` | IDE 对话 | 渲染下一行 AI/System/Ming 对话，带 BBCode 着色 |
+| `_start_code_scroll()` | IDE 对话中"正在编译" | 启动右侧伪代码滚动面板（`CODE_SCROLL_LINES` 17行） |
+| `_advance_code_scroll()` | `_process` 定时 | 每 0.12s 输出一行带语法高亮的伪代码 |
+| `_colorize_code_line(line)` | 代码滚动 | BBCode 语法高亮（注释暗绿、关键字蓝、字符串橙） |
+| `_start_ide_viewport_preview()` | 对话结束 | SubViewport 加载 MiniTestWorld.tscn |
+| `_on_preview_crashed()` | TestRunner 出界/超时 | 崩溃信息 + 启用手机 + 震动 + 启动左侧边缘闪烁 |
 | `_start_phone_vibration()` | 终局前置 | 循环 Tween 让手机左右抖动 |
-| `_trigger_climax_transition()` | 手机 | 来电消息 + 独白 + glitch 渐强（含 block/unblock 联动） |
+| `_start_left_edge_flash()` | `_on_preview_crashed` | 左侧边缘黄色闪烁光效提示手机位置 |
+| `_stop_left_edge_flash()` | 手机入镜/交互 | 平滑停止闪烁 |
+| `_check_flash_target_in_view()` | `_process` 每帧 | 相机视野检测：手机进入画面则停止闪烁 |
+| `_trigger_climax_transition()` | 手机 | 来电消息 + 独白 + GLITCH_TRANSIT（含 block/unblock 联动） |
+| `_start_flicker_effect()` | GLITCH_TRANSIT | 眨眼效果：5次渐变变暗再恢复，模拟意识沉重 |
+| `_on_final_bed_trigger()` | GLITCH_TRANSIT 床 | 终局转场：淡入黑屏4s + emit LEVEL_COMPLETE |
 | `_start_glitch_shader_effect()` | 终局 | 2s 内 intensity 0→1 → emit LEVEL_COMPLETE |
-| `_emit_level_complete()` | 终局 | 防御性 unblock + LEVEL_COMPLETE 事件 |
+| `_emit_level_complete()` | 终局 | `_cleanup_input_before_level_switch()` + EventBus 清理 + LEVEL_COMPLETE 事件 |
+| `_cleanup_input_before_level_switch()` | 关卡退出 | 清 action 禁用 + force_unblock_all + gui_release_focus |
+| `_disconnect_input_manager()` | `_cleanup_input_before_level_switch` / `_exit_tree` | 断开 InputManager.game_action 信号，防幽灵订阅 |
 
 ---
 
-## 7B. 关卡主控 `Level_02` 拆解
+## 7B. 关卡主控 `Level_02` 拆解（v0.9.0 分段重构版）
+
+> **重大变更**：v0.8.0 的单一 11 态双空间 Level_02（坠落/干扰/睁眼/配置篡改/重编译）已整体备份至 `LevelModule/Backup/Level_02_CliffReality/`。正式版改为**分段串联**：`Level_02`（阁楼→老街）→ `Level_02_01`（老街战斗段）→ `Level_02_02`（梯子谜题段）→ `Level_03`。本节描述当前正式版实现。
 
 ### 7B.1 文件结构
 
-| 文件 | 职责 | 行数参考 |
-|---|---|---|
-| `Level_02.gd` | 主控/双空间管理/坠落循环/干扰期/睁眼/配置篡改/重编译/终局 | ~1237 |
-| `Level_02_SceneBuilder.gd` | 梦境世界(阁楼/老街/断崖) + 现实房间 + 交互物 + 触发区 + Canvas UI | ~206 |
-| `Level_02_FSM.gd` | 11 态双空间状态机 + 交互处理 | ~88 |
-| `Level_02_UIBuilder.gd` | BlackoutOverlay / NarrativePanel / RedWarningOverlay / PhoneMessage / EyeClose / IdeUI / ConfigEditor / RecompileLog / EndingPrompt | ~403 |
-| `Level02Data.gd` + `.tres` | 叙事文案 + 谜题数据 + 音效路径挂点 | — |
-| `Level02Config.tres` | 地图尺寸/相机边界/出生点/玩家皮肤(Lingnan) | — |
+| 文件 | 职责 |
+|---|---|
+| `Level_02.gd` | 分段0主控：阁楼→老街，3态状态机，交互物(window/attic_door/rattan_chair/sub02_portal/chips_cat) |
+| `Level_02_SceneBuilder.gd` | 梦境世界构建（简化版）：阁楼(0-424)+老街(424-5328)+PixelworkMapStitch挂载 |
+| `Level_02_FSM.gd` | 3态状态机（简化版）：ATTIC/STREET 交互分发 |
+| `Level_02_UIBuilder.gd` | 简化版 UI：BlackoutOverlay / NarrativePanel / EndingPrompt（干扰/睁眼/IDE/配置 UI 已备份） |
+| `Level_02_01.gd` | 分段1主控：老街 0-4464，纸扎人+灯笼鬼战斗，白屏转场出口 |
+| `Level_02_02.gd` | 分段2主控：0-1474，梯子谜题，纸扎人+灯笼鬼，出口→Level_03 |
+| `Ladder.gd` | 梯子攀爬 Area2D（见 §4.2.13） |
+| `Level_02_sub01.tscn` / `Level_02_sub02.tscn` | 子场景（Level_02 通过 sub02_portal 加载 SUB02） |
+| `Level02Data.gd` + `.tres` | 叙事文案（阁楼/老街/藤椅回忆） |
+| `Level02Config.tres` | 地图尺寸/相机边界/出生点/玩家皮肤 |
 
-### 7B.2 11 态双空间状态机
+### 7B.2 Level_02 分段0 状态机（3态）
 
 ```gdscript
 enum LevelState {
-    DREAM_ATTIC,             # 梦境阁楼：满洲窗、木趟栊门
-    DREAM_STREET,            # 老街探索：藤椅、低难度敌人
-    DREAM_CLIFF_LOOP,        # 断崖坠落循环
-    DREAM_INTERFERENCE,      # 现实干扰：红光、手机UI、阴影敌人、沉重化
-    WAKING_HOLD_TAB,         # 长按 Tab 睁眼
-    REALITY_PHONE_LOCKED,    # 现实房间：仅手机可交互
-    REALITY_PHONE_READ,      # 已读短信，电脑解锁
-    REALITY_IDE_CHAT,        # CodeBuddy 对话
-    REALITY_CONFIG_EDIT,     # 配置篡改解谜（鼠标操作，Enter 不参与）
-    REALITY_RECOMPILE,       # 重新编译日志播放
-    REALITY_BED_READY,       # 床解锁，等待入梦
-    LEVEL_END_TRANSIT        # 关卡结束转场
+    DREAM_ATTIC,       # 梦境阁楼：满洲窗、木趟栊门
+    DREAM_STREET,      # 老街探索：藤椅回忆、薯片猫、子02传送门
+    LEVEL_END_TRANSIT  # 右边界出口触发器 → 切换到 Level_02_01
 }
 ```
 
-**状态流转图**：
+**状态流转**：
 
 ```
-                     ┌──────────────┐
-   [进入关卡] ───▶    │ DREAM_ATTIC │ ── 交互 window_l2 → 观窗叙事
-                     │  满洲窗/门  │ ── 交互 attic_door → DREAM_STREET
-                     └──────────────┘
+[进入关卡] ──▶ DREAM_ATTIC
+  ── 交互 window_l2  → 观窗叙事
+  ── 交互 attic_door → _transition_attic_to_street() → DREAM_STREET
 
-   ┌──────────────────────────────────────────────────────────────┐
-   │ DREAM_STREET ── 老街探索 + 敌人战斗 + 藤椅记忆              │
-   │   ── 步入断崖区   ──▶ DREAM_CLIFF_LOOP                     │
-   └──────────────────────────────────────────────────────────────┘
-
-   DREAM_CLIFF_LOOP ── 坠落N次(≥threshold) ──▶ DREAM_INTERFERENCE
-
-   ┌──────────────────────────────────────────────────────────────┐
-   │ DREAM_INTERFERENCE ── 红光+阴影敌人+沉重化+手机UI           │
-   │   ── 长按 Tab       ──▶ WAKING_HOLD_TAB                     │
-   │   ── Tab 蓄满/死亡兜底 ──▶ 睁眼转场 → REALITY_PHONE_LOCKED  │
-   └──────────────────────────────────────────────────────────────┘
-
-   REALITY_PHONE_LOCKED ── 交互 phone ──▶ REALITY_PHONE_READ
-   REALITY_PHONE_READ   ── 交互 computer ──▶ REALITY_IDE_CHAT
-   REALITY_IDE_CHAT      ── 对话结束 ──▶ REALITY_CONFIG_EDIT
-   REALITY_CONFIG_EDIT   ── 三项配置全改+重编译 ──▶ REALITY_RECOMPILE
-   REALITY_RECOMPILE     ── 编译完成 ──▶ 叙事 → REALITY_BED_READY
-   REALITY_BED_READY     ── 交互 bed ──▶ LEVEL_END_TRANSIT
-   LEVEL_END_TRANSIT     ── 按 Enter ──▶ emit LEVEL_COMPLETE
+DREAM_STREET
+  ── 交互 rattan_chair → 藤椅回忆叙事（一次性）
+  ── 交互 chips_cat    → 薯片猫对话（可重复，CHIPS_CAT_TEXTS）
+  ── 交互 sub02_portal → _transition_to_sub02()（加载 Level_02_sub02.tscn）
+  ── LevelExitTrigger(5256) body_entered → _trigger_level_end() → LEVEL_END_TRANSIT
+  ── LEVEL_END_TRANSIT → _emit_level_complete() → next_level=Level_02_01.tscn
 ```
 
-### 7B.3 核心新机制
+### 7B.3 Level_02_01 分段1（老街战斗段）
 
-#### 坠落循环（DREAM_CLIFF_LOOP）
+- **地图**：0–4464，地面 Y=620，含上层走道（UpperWalkwayCollision @ 3620, Y=420）
+- **相机**：`zoom=1.5x`，limit [0, 4464, 0, 616]，lerp_speed=2.5
+- **敌人**：纸扎人（PaperEffigy，间隔 700px 生成）+ 灯笼鬼（LanternGhost，间隔 1000px 生成，含上层走道刷怪点）
+- **出口**：`Level0201ExitTrigger`(4336,460) → 白屏转场（`FINAL_WHITEOUT_DURATION=4.0s` 全白停留 + 0.8s 淡入）→ `_emit_level_complete()` 携带 `transition_white=true`，next_level=`Level_02_02.tscn`
+- **双模切换**：`_is_loaded_under_main_entry()` 判断，支持 MainEntry 托管与 `change_scene_to_file` 独立运行
 
-```
-触发: FallPitTrigger (Area2D) body_entered
-流程:
-  _trigger_fall_reset()
-    ├── fall_count += 1
-    ├── InputManager.block_input("坠落重置")
-    ├── _fade_blackout(1.0, 0.5) → 移动玩家到安全点
-    ├── _fade_blackout(0.0, 0.3) → InputManager.unblock_input
-    └── if fall_count >= interference_fall_threshold → _trigger_reality_interference()
-```
+### 7B.4 Level_02_02 分段2（梯子谜题段）
 
-#### 干扰期（DREAM_INTERFERENCE）
+- **地图**：0–1474，相机 `zoom=2x`，limit [0, 1474, -835, 638]
+- **谜题叙事**：开场 2s 后弹"有些梯子看似能爬，却不能爬…有些墙看似不能穿过，却可以穿过…"
+- **机制**：梯子（Ladder 节点置于 .tscn 的 Ladders 容器）+ 可穿墙，玩家需辨别真梯子/假梯子与可穿墙
+- **敌人**：纸扎人（PaperEffigy，6 固定刷新点）+ 灯笼鬼（LanternGhost，4 固定刷新点），`detect_range` 上限截断至 500（`_load_capped_enemy_config`）
+- **`_remove_ladder_color_rects()`**：`call_deferred` 移除 .tscn 中 Ladder 子节点的 ColorRect（改由 Ladder.gd 自渲染）
+- **出口**：`Level0202ExitTrigger` → `_emit_level_complete()` → next_level=`Level_03.tscn`
+- **双模切换**：`_is_loaded_under_main_entry()` 判断是否在 MainEntry 下 → MainEntry 模式 emit LEVEL_COMPLETE，独立模式 `change_scene_to_file`
 
-```
-_trigger_reality_interference()
-  ├── 视觉: 红光循环闪烁 (Tween loops) + 梦境冷灰化 (modulate)
-  ├── UI: 梦境短信回声 (PhoneMessageOverlay) + Tab 提示 (WakeHintLabel)
-  ├── 睁眼遮罩: EyeCloseOverlay (4块ColorRect向中心收缩)
-  ├── 听觉: _sfx_phone_player + _sfx_noise_player (安全降级)
-  ├── 玩家"沉重化": 禁跳/禁冲刺/禁技能 + 移速×0.55 (保留攻击表达围攻压力)
-  ├── 阴影敌人: ShadowSpawnTimer 每1.5s刷新, 总存活≤8, 同屏≤6
-  └── 死亡兜底: 血量≤10 → 强制"噩梦惊醒", 不走GameOver
-```
-
-#### 长按 Tab 睁眼（WAKING_HOLD_TAB）
-
-```
-_process() 中轮询 KEY_TAB (非 InputManager 信号，因需连续状态)
-  ├── Tab 按住: wake_hold_time += delta
-  │     进度 > 0 → 切入 WAKING_HOLD_TAB
-  │     进度 ≥ wake_hold_required (1.5s) → _complete_wake_up_transition()
-  └── Tab 松开: wake_hold_time 衰减 (×2速度)
-        衰减到 0 → 退回 DREAM_INTERFERENCE
-
-EyeCloseOverlay: 4块黑色 ColorRect 从四边向中心收缩 (progress 0→1)
-  Top:    size.y = progress × 720/2
-  Bottom: size.y = progress × 720/2 (position 同步)
-  Left:   size.x = progress × 1280/2
-  Right:  size.x = progress × 1280/2
-```
-
-#### 配置篡改解谜（REALITY_CONFIG_EDIT）
-
-```
-3项配置 (按钮操作，不受 InputManager.game_action 屏蔽影响):
-  1. player_damage_reduction: false → true
-  2. base_jump_height: 10 → 99
-  3. allow_external_signal: true → false
-
-三项全部修改后:
-  _can_recompile() = true → 启用 "重新编译" 按钮
-  → _run_recompile_sequence() → 逐行渲染日志 → 写入 GameManager.dream_runtime_flags
-  → 叙事 → _unlock_reality_bed()
-```
-
-### 7B.4 SceneBuilder 调用顺序
+### 7B.5 SceneBuilder 调用顺序（Level_02 分段0）
 
 ```
 build_all()
-├── _build_dream_world()         # 梦境: 阁楼(0-424) / 老街(424-5416) / 断崖深渊 / 右墙
-├── _build_reality_room()        # 现实: 复用关卡1布局, 初始隐藏+灰暗化
-├── _build_interactives()        # 6个: window_l2 / attic_door / rattan_chair / phone / computer / bed
-├── _build_triggers()            # 3个触发区: 老街进入 / 断崖接近 / 坠落深渊
-├── _build_spawn_points()        # AtticSpawn / CliffSafeSpawn / RealitySpawn
-├── _build_dynamic_actors_container()  # DynamicActors (敌人/阴影共用)
-└── _build_canvas_ui()           # CanvasLayerUI → UIBuilder.build_all()
+├── _build_dream_world()         # 梦境: 阁楼(0-424) + 老街(424-5328) + 街区阻挡体
+│   └── _attach_dream_visual_layers()  # 将 PixelworkMapStitch 子节点 reparent 到 DreamWorldRoot ★ v0.9.0
+├── _build_interactives()        # 5个: window_l2 / attic_door / rattan_chair / sub02_portal / chips_cat
+├── _build_triggers()            # 2个触发区: StreetEntryTrigger(500) / LevelExitTrigger(5256)
+├── _build_spawn_points()        # AtticSpawn
+├── _build_dynamic_actors_container()  # DynamicActors
+└── _build_canvas_ui()           # CanvasLayerUI(layer=10) → UIBuilder.build_all()
 ```
 
-### 7B.5 UIBuilder 生成的 Canvas 节点树
+> 分段1/2（Level_02_01/02）不使用 SceneBuilder，由主控 `_on_ready()` 直接调用 `_build_collision_bodies` / `_build_enemy_spawn_points` / `_spawn_*` / `_build_exit_trigger` 等内联方法构建。
+
+### 7B.6 UIBuilder 生成的 Canvas 节点树（简化版）
 
 ```
-CanvasLayerUI (CanvasLayer, layer=2, PROCESS_MODE_ALWAYS)
-├── BlackoutOverlay         (ColorRect, 全屏黑渐变, 坠落重置/转场共用)
-├── NarrativePanel          (Panel 1280×200, RichTextLabel)
-├── RedWarningOverlay       (ColorRect, 红光循环闪烁)
-├── WakeHintLabel           (Label, "长按【Tab】睁开眼睛")
-├── PhoneMessageOverlay     (Panel 380×180, 梦境短信回声)
-│   └── MessageText         (RichTextLabel, BBCode)
-├── EyeCloseOverlay         (Control, 睁眼遮罩)
-│   ├── EyeTop              (ColorRect, 上边收缩)
-│   ├── EyeBottom           (ColorRect, 下边收缩)
-│   ├── EyeLeft             (ColorRect, 左边收缩)
-│   └── EyeRight            (ColorRect, 右边收缩)
-├── IdeUI                   (Control, CodeBuddy IDE)
-│   ├── Background / TitleBar / TitleLabel
-│   ├── ChatPanel / ChatWindow (RichTextLabel, BBCode)
-│   └── ContinueHint
-├── ConfigEditorUI          (Panel 840×460, Xiguan_Dream.ini)
-│   ├── ConfigTitle
-│   ├── ItemLabel_0/1/2 + ValueLabel_0/1/2 + ModifyButton_0/1/2 + Feedback_0/1/2
-│   └── RecompileButton     (Button, 三项达标后启用)
-├── RecompileLogPanel       (Panel 840×420, 逐行渲染日志)
-│   └── LogText             (RichTextLabel, BBCode)
-└── EndingPrompt             (Control, "西关梦境 v2.0 重构完毕")
+CanvasLayerUI (CanvasLayer, layer=10)
+├── BlackoutOverlay         (ColorRect, 全屏黑渐变, 转场共用)
+├── NarrativePanel          (Panel 1280×200, RichTextLabel BBCode)
+└── EndingPrompt             (Control, 终局提示)
     └── EndingLabel
 ```
 
-### 7B.6 InputManager block/unblock 联动表
+> 分段1 另有 `ExitWhiteOverlay`（白屏转场用 ColorRect）。分段2 的 NarrativePanel 由 `_build_narrative_ui()` 直接构建。
+
+### 7B.7 InputManager block/unblock 联动表
 
 | 状态切换 | block 原因 | unblock 原因 | 触发位置 |
 |---------|-----------|-------------|---------|
 | 进入叙事面板 | `"叙事面板"` | `"叙事面板"` | `_show_narrative()` 进/出 |
-| 趟栊门转场 | `"趟栊门转场"` | `"趟栊门转场"` | `_do_attic_door_transition()` 进/出 |
-| 坠落重置 | `"坠落重置"` | `"坠落重置"` | `_trigger_fall_reset()` 进/出 |
-| 睁眼转场 | `"睁眼转场"` | `"睁眼转场"` | `_complete_wake_up_transition()` 进/出 |
-| IDE对话 | `"IDE对话"` | `"IDE对话"` | `_enter_ide_mode()` / `_run_recompile_sequence()`末尾 |
-| 关卡2终局转场 | `"关卡2终局转场"` | `"关卡2终局转场"` | `_trigger_level_end()` / 终局Enter前 |
-| 关卡2清理 | — | `"关卡2清理"` | `_full_cleanup()` |
+| 关卡2分段0终局 | — | `force_unblock_all()` | `_emit_level_complete()` |
+| 关卡2分段1/2叙事 | `"叙事面板"` | `"叙事面板"` | Level_02_01/02 `_show_narrative()` |
+| 关卡2分段1/2出口 | — | `force_unblock_all()` | `_emit_level_complete()` |
 
-### 7B.7 关卡2地图参数
-
-**梦境世界**：6192px 宽（4.8 屏）
+### 7B.8 关卡2地图参数（分段0）
 
 | 区域 | X 范围 | 地面 Y | 描述 |
 |------|--------|--------|------|
-| 阁楼 | 0–424 | 620 | 满洲窗、木趟栊门、出生点 |
-| 老街 | 424–5416 | 620 | 敌人战斗、藤椅回忆 |
-| 断崖深渊 | 5520–5896 | 无 | 无碰撞，玩家可坠落 |
-| 断崖右墙 | 5896–6192 | — | 墙壁封路 |
-
-**现实房间**：1920px（复用关卡1布局参数）
+| 阁楼 | 0–424 | 620 | 满洲窗、木趟栊门、出生点 AtticSpawn(140,550) |
+| 老街 | 424–5328 | 620 | 街区阻挡体、藤椅回忆、薯片猫、子02传送门 |
+| 出口 | 5256 | — | LevelExitTrigger 切换到 Level_02_01 |
 
 | 参数 | 值 |
 |---|---|
 | camera_limit_left | -50 |
-| camera_limit_right | 6192 (梦境) / 1920 (现实) |
+| camera_limit_right | 5328 |
 | camera_limit_top | -500 |
 | camera_limit_bottom | 1200 |
 | bg_color | Color(0.32, 0.2, 0.14) 暖棕 |
 | player_scene_path | Player_Warrior_Lingnan.tscn |
 
-### 7B.8 关键流程 API（关卡2新增）
+### 7B.9 关键流程 API（关卡2分段版）
 
 | API | 触发 | 用途 |
 |---|---|---|
 | `_handle_window_observe()` | 满洲窗交互 | 观窗叙事 |
 | `_transition_attic_to_street()` | 木趟栊门交互 | 渐黑→移除门墙→移动玩家→渐亮→DREAM_STREET |
-| `_trigger_fall_reset()` | 坠落深渊触发 | 渐黑→重置位置→渐亮→干扰阈值检查 |
-| `_trigger_reality_interference()` | fall_count≥阈值 | 红光+阴影敌人+沉重化+Tab提示 |
-| `_update_wake_hold(delta)` | _process轮询 | 长按Tab累计→睁眼遮罩更新→转场 |
-| `_complete_wake_up_transition()` | Tab蓄满/死亡兜底 | 空间切换: 隐藏梦境→显示现实+玩家移位+相机缩限 |
-| `_handle_reality_phone()` | 手机交互 | 短信+独白→电脑解锁 |
-| `_enter_ide_chat()` | 电脑交互 | IDE对话逐行渲染 |
-| `_enter_config_edit()` | 对话结束 | 配置编辑器弹出 |
-| `_on_config_button_pressed(index)` | 按钮点击 | 修改配置flag+UI反馈+达标检测 |
-| `_run_recompile_sequence()` | 重编译按钮 | 逐行渲染日志+写入dream_runtime_flags |
-| `_trigger_level_end()` | 床交互 | 渐黑→终局提示→等待Enter→LEVEL_COMPLETE |
-| `_full_cleanup()` | 关卡退出 | 全量清理Tween/Timer/音效/敌人/订阅 |
+| `_handle_chips_cat_interaction()` | 薯片猫交互 | 薯片猫对话（可重复，CHIPS_CAT_TEXTS 循环） |
+| `_transition_to_sub02()` | sub02_portal 交互 | 加载 Level_02_sub02.tscn 子场景 |
+| `_trigger_level_end()` | LevelExitTrigger | 渐黑→LEVEL_END_TRANSIT |
+| `_emit_level_complete()` | 终局 | force_unblock_all→cleanup→emit LEVEL_COMPLETE{next_level=Level_02_01} |
+| `_enforce_level_restrictions()` | _process 每帧 | 禁用二段跳（can_double_jump=false） |
+| `Level_02_01._emit_level_complete()` | 出口触发器 | 白屏4s→emit LEVEL_COMPLETE{next_level=Level_02_02, transition_white=true} |
+| `Level_02_02._emit_level_complete()` | 出口触发器 | emit LEVEL_COMPLETE{next_level=Level_03} |
+| `Level_02_02._remove_ladder_color_rects()` | _on_ready deferred | 移除 .tscn 中 Ladder 的 ColorRect 视觉体 |
+
+> **旧版（v0.8.0）机制归档**：坠落循环 / 干扰期 / 长按Tab睁眼 / 配置篡改 / 重编译 / dream_runtime_flags 写入 / 双空间切换 等机制的实现见 `LevelModule/Backup/Level_02_CliffReality/`（含 README + snapshots/Level_02.gd + Level_02_FSM.gd）。当前正式版不再使用。
 
 ---
 
@@ -1470,7 +1563,7 @@ CanvasLayerUI (CanvasLayer, layer=2, PROCESS_MODE_ALWAYS)
 | camera_limit_top | -500 |
 | camera_limit_bottom | 1200 |
 | bg_color | Color(0.12, 0.1, 0.08) 暗褐 |
-| player_scene_path | Player_Warrior_Lingnan.tscn |
+| 初始玩家皮肤 | **Player_Warrior.tscn**（`_setup_player()` 重写硬编码，未读 `level_config.player_scene_path`）★ v0.9.0 勘误 |
 
 ### 7C.7 关键流程 API（关卡3新增）
 
@@ -1489,7 +1582,162 @@ CanvasLayerUI (CanvasLayer, layer=2, PROCESS_MODE_ALWAYS)
 | `_on_player_hurt()` | PLAYER_HURT | 击退反转+伤害减免 |
 | `_handle_memory_echo_1/2()` | 光团交互 | 暖光晕+字幕+CodeBuddy评论 |
 | `_trigger_awakening()` | 2/2光团 | 停止赛博元素+觉醒独白 |
-| `_apply_dream_runtime_flags()` | _on_ready | 读取跨关卡配置（如二段跳） |
+| `_apply_dream_runtime_flags()` | _on_ready | 读取跨关卡配置（如二段跳）。**v0.9.0**：Level_02 不再写入该字典，当前为空安全跳过 |
+
+---
+
+## 7D. 关卡主控 `Level_04` 拆解（v0.9.0 新增）
+
+> 承接 Level_03 觉醒：阿明启动 Override Protocol 试图返回现实，CodeBuddy AI 发起最后反扑，启动「维度侵蚀」将赛博与岭南拼接成混乱空间。**当前仅阶段1「半对半空间硬切」已实现，后续阶段待开发。**
+
+### 7D.1 文件结构
+
+| 文件 | 职责 |
+|---|---|
+| `Level_04.gd` | 主控/维度侵蚀/地图切换/皮肤切换/终局 |
+| `Level_04_SceneBuilder.gd` | 仅创建 DynamicActors 容器 + Canvas UI（地形由 .tscn 提供，后续扩展） |
+| `Level_04_FSM.gd` | 占位（`handle_interaction` 空实现，后续阶段扩展） |
+| `Level_04_UIBuilder.gd` | NarrativePanel / GlitchOverlay / EndingPrompt |
+| `Level04Data.gd` + `.tres` | 五阶段叙事文案 + 敌人刷新点 + 空间碎片坐标 |
+| `Level04Config.tres` | 地图尺寸/相机边界/出生点 |
+
+### 7D.2 2 态状态机
+
+```gdscript
+enum LevelState {
+    HOMOMORPHIC_COMBAT,   # 地图切换阶段（赛博1-1 ↔ 岭南1-2 瞬移 + 闪帧）
+    LEVEL_END_TRANSIT     # 关卡结束转场
+}
+```
+
+### 7D.3 核心机制（阶段1）
+
+#### 地图切换（HOMOMORPHIC_COMBAT）
+
+```
+_current_world: 0=赛博(1-1) / 1=岭南(1-2)
+战斗交互触发 → _swap_count++ → 在两个世界间瞬移玩家 + 闪帧(Glitch)
+  赛博世界: CYBER_TELEPORT(2298,-75), cam=[-50,2500,-900,1200]
+  岭南世界: LNGN_POSITIONS[] 三处坐标轮换, cam=[-50,4000,600,2500]
+  每次切换播放 LNGN_DIALOGS 推进叙事
+```
+
+#### 玩家皮肤
+
+- 初始：`_setup_player()` 硬编码 `Player_Warrior_Cyber.tscn`（赛博皮肤）
+- `_swap_player_skin(skin: String)`：通用皮肤切换（保存血量/朝向/位置，断连旧 InputManager 信号，register_player 重建），与 Level_03 `_swap_player_to_cyber` 同模式
+
+### 7D.4 Level04Data 五阶段规划（部分待实现）
+
+| 阶段 | 内容 | 状态 |
+|------|------|------|
+| 阶段0 起始地 | 维度异常预警叙事 | 文案就绪 |
+| 阶段1 境域置换 | 半对半空间硬切 + 表层敌人(surface_enemy_count=5) | **已实现** |
+| 阶段2 异质渗透 | 异世界碎片侵入 + 6敌人 | 待开发 |
+| 阶段3 空间撕裂 | 维度融合 + 8敌人 + 2空间碎片(tear_fragment) | 待开发 |
+| 阶段4 终焉之域 | 碎片汇聚 + Boss降临 + Override Protocol | 待开发 |
+
+### 7D.5 关键流程 API
+
+| API | 触发 | 用途 |
+|---|---|---|
+| `_setup_player()` | _on_ready | 创建赛博皮肤玩家（硬编码 Cyber 路径） |
+| `_swap_player_skin(skin)` | 阶段切换 | 通用运行时皮肤切换 |
+| `_swap_world()` | 战斗交互 | 赛博↔岭南瞬移 + 闪帧 + 叙事推进 |
+| `_emit_level_complete()` | 终局 | force_unblock_all→emit LEVEL_COMPLETE |
+
+---
+
+## 7E. 关卡主控 `Level_02_03` 拆解（v0.10.0 新增）
+
+> Level_02_02 出口指向 Level_02_03.tscn。玩家从梯子谜题段进入断崖场景，经历坠落循环→干扰期→长按Tab睁眼→现实房间(Level_02_sub01.tscn)→手机→电脑(IDE)→自由对话→配置编辑→重编译→床→切换到 Level_03。
+
+### 7E.1 文件结构
+
+| 文件 | 职责 |
+|---|---|
+| `Level_02_03.gd` | 主控（10态状态机：梦境街区 → 断崖 → 干扰 → 睁眼 → 现实房间 → IDE对话 → 自由对话 → 配置编辑 → 重编译 → 床） |
+| `Level_02_03.tscn` | 场景文件（DreamWorldRoot 碰撞体/触发器/出生点 + PixelworkMapStitch 视觉层） |
+| `Level_02_sub01.tscn` | 现实房间子场景（手机/电脑/床 交互物 + 地形） |
+| `Level02Data.tres` | 备份叙事文案（断崖独白/干扰短信/IDE对话/配置谜题/编译日志等） |
+| `Level02Config.tres` | 地图尺寸/相机边界/出生点/玩家皮肤 |
+
+### 7E.2 状态机
+
+```gdscript
+enum LevelState {
+    DREAM_STREET,            # 梦境街区（初始）
+    DREAM_CLIFF_LOOP,        # 断崖坠落循环
+    DREAM_INTERFERENCE,      # 现实干扰：红光、短信、阴影敌人、沉重化
+    WAKING_HOLD_TAB,         # 长按 Tab 睁眼
+    REALITY_PHONE_LOCKED,    # 现实房间：仅手机可交互
+    REALITY_PHONE_READ,      # 已读短信，电脑解锁
+    REALITY_IDE_CHAT,        # CodeBuddy 预写对话
+    REALITY_FREE_CHAT,       # CodeBuddy 自由对话（底部输入→主区显示→AI回复）
+    REALITY_CONFIG_EDIT,     # 配置篡改解谜
+    REALITY_RECOMPILE,       # 重新编译日志播放
+    REALITY_BED_READY,       # 床解锁
+}
+```
+
+### 7E.3 场景布局
+
+- 地图范围：0–1136
+- 地面 Y=576，相机 top=0, bottom=640
+- 断崖坠落区域 x=432~922（无地面碰撞体，玩家坠落触发重置循环）
+- 现实房间场景 `Level_02_sub01.tscn`（睁眼转场后动态加载为子节点）
+
+### 7E.4 核心机制
+
+| 机制 | 描述 |
+|---|---|
+| **断崖坠落循环** | `CliffApproachTrigger`(x=344) → 独白 → 走入深渊 → `FallPitTrigger` → 黑屏重置到 `CliffSafeSpawn(232,440)`，`fall_count++`，达阈值触发干扰 |
+| **干扰期** | 红光循环闪烁(Tween loops) + 梦境灰化 + 短信回声 UI(右上角 870,30) + 阴影敌人刷新(Timer 1.5s) + 玩家沉重化(禁冲刺/技能/移速×0.55) + 死亡兜底(HP≤10强制睁眼) |
+| **长按Tab睁眼** | `_process` 轮询 `KEY_TAB`，4 块 ColorRect 向屏幕中心收拢，蓄满 1.5s 完成睁眼转场 |
+| **睁眼转场** | 隐藏梦境 → `_swap_to_reality_player(Player_Warrior)` → 加载 sub01 → `apply_level01_dot_visual()` → `_apply_reality_player_rules`（禁用攻击/跳跃/闪身/技能，移速×0.5） |
+| **现实交互** | 手机(短信)→电脑(IDE预写对话)→自由对话→`/config`→配置编辑器(3项参数修改)→重编译→床→黑屏过渡 |
+| **IDE CODE-BUDDY** | 左侧 220px 深色边栏 + 主对话区 + 底部 LineEdit。预写对话按 Enter 确认；自由对话输入→AI关键词回复(7类+默认) |
+| **对话动画** | 所有预写对话行均 1.2s 延迟后显示，阿明对话需先按 Enter 确认 |
+| **床过渡** | 黑屏淡入(0.8s, TRANS_SINE) → 居中文字(2.5s) → 黑屏中 `LEVEL_COMPLETE` → MainEntry 转场加载 Level_03 |
+| **\`_emit_level_complete\`** | `force_unblock_all` → `EventBus.emit(LEVEL_COMPLETE)`(先于清理) → `_is_loaded_under_main_entry()` 双模切换 |
+
+### 7E.5 UI 结构
+
+Canvas 节点树（约 20 个节点，纯代码构建）：
+
+```
+CanvasLayerUI (layer=10)
+├── BlackoutOverlay (ColorRect, 全屏, 淡入淡出/终局共用)
+├── RedWarningOverlay (ColorRect, 红光循环闪烁)
+├── NarrativePanel (Panel, 底部200px, 锚定, StyleBoxFlat 圆角半透明)
+├── WakeHintLabel (Label, 440,70, "长按【Tab】睁开眼睛")
+├── PhoneMessageOverlay (Panel, 870,30, 380×180, 红边深色, 干扰期短信)
+├── EyeCloseOverlay (Control, 4块ColorRect黑边向中心收缩)
+├── LeftEdgeFlash + LeftEdgeGlow (ColorRect, PRESET_LEFT_WIDE, 黄色闪烁)
+├── IdeUI (Control, 全屏, CODE-BUDDY 风格)
+│   ├── Background (ColorRect, #0F111A)
+│   ├── Sidebar (Panel, 220×720, #11131F, 细右边框)
+│   │   ├── LogoBg + "CODE-BUDDY" 18号蓝 + ">_ v1.4.2" 11号灰
+│   │   ├── "PROJECT" / "▣ Xiguan_Dream"
+│   │   ├── "FILES" + 4 个文件项
+│   │   └── "SESSION: RECOVERED"
+│   ├── ChatPanel (Panel, x=220, 1060×720, #1A1C29)
+│   │   ├── ChatWindow (RichTextLabel, pos(20,20), 1040×660, 14号, BBCode)
+│   │   └── ChatInput (LineEdit, pos(10,684), 1040×28, 圆角深蓝边框)
+├── ConfigEditorUI (Panel, 840×460, 绿边框, 3行配置)
+├── RecompileLogPanel (Panel, 840×420, 深绿边框)
+└── 信号连接: 3个修改按钮 + 重编译按钮
+```
+
+### 7E.6 玩家参数
+
+| 参数 | 值 |
+|---|---|
+| 默认皮肤 | `level_config.player_scene_path`（回退 `Player_Warrior_Lingnan`，`WarriorConfig.tres move_speed=250`） |
+| 干扰期移速 | 250 × 0.55 ≈ 137.5 |
+| 现实房间移速 | 250 × 0.5 = 125 |
+| 现实房间禁用 | 攻击/跳跃/闪身/技能（`block_action` + `can_* = false`） |
+| 断崖安全出生点 | `CliffSafeSpawn(232, 440)` |
 
 ---
 
@@ -1504,10 +1752,17 @@ CanvasLayerUI (CanvasLayer, layer=2, PROCESS_MODE_ALWAYS)
 | `attack_damage` | 25 |
 | `attack_range` | 80.0 圆心判定 |
 | `hurt_invincible_time` | 1.0s |
+| `runtime_move_speed_multiplier` | 1.0（关卡1=0.5）★ v0.9.0 |
 
-**关卡运行时可调用的开关**（`Level_01._restrict_player_mechanics` 用到）：
+**关卡运行时可调用的控制方式**（v0.9.0 新增 action 级禁用替代旧 `_restrict_player_mechanics`）：
 
 ```gdscript
+# 方式1（推荐 v0.9.0）: Action 级禁用 — 从 InputManager 源头发起阻断
+InputManager.block_action(&"player_attack", "关卡叙事期禁用")
+InputManager.block_action(&"player_jump", "关卡叙事期禁用")
+player.runtime_move_speed_multiplier = 0.5  # 叙事期减速
+
+# 方式2（传统）: Player 开关（已被 action 级禁用替代，保留兼容）
 player.can_jump = false
 player.can_dash = false
 player.can_attack = false
@@ -1536,7 +1791,7 @@ player.can_skill = false
   # jump 和 direction 仍保留轮询（需连续状态/向量值）
 ```
 
-> Level_01 全程禁用战斗，叙事结束后通常不再恢复。战斗能力由 InputManager.block_input() 在需要时阻断。
+> **v0.9.0 Level_01 输入策略变更**：Level_01 现在永久禁用 `player_attack` 和 `player_jump`（通过 `InputManager.block_action()` 在 `_on_ready` 中设置），并设置 `runtime_move_speed_multiplier = 0.5` 实现叙事期减速。`_enforce_level_restrictions()` 在 `_process()` 中每帧强制维持此状态。叙事/IDE/睡眠等临时场景通过 `InputManager.block_input()` 栈式屏蔽所有游戏操作。`_exit_tree()` 中通过 `_clear_level_input_rules()` + `_disconnect_input_manager()` 清理。
 
 ---
 
@@ -1547,12 +1802,16 @@ player.can_skill = false
 | 敌人 | 场景路径 | 使用关卡 | 配置 |
 |------|---------|---------|------|
 | **Slime** | `res://EnemyModule/Formal/Enemy_Slime.tscn` | 自测 | SlimeConfig.tres |
-| **LanternGhost** | `res://EnemyModule/Formal/Enemy_LanternGhost.tscn` | Level_02 (老街) | LanternGhostConfig.tres / StreetSlimeConfig.tres |
-| **CyberWolf** | `res://EnemyModule/Formal/Enemy_CyberWolf.tscn` | Level_02 (阴影) / Level_03 (岭南+赛博) | ShadowConfig.tres / CleanerConfig.tres / SecurityConfig.tres |
+| **LanternGhost** | `res://EnemyModule/Formal/Enemy_LanternGhost.tscn` | Level_02 分段0/1/2 (老街+梯子段) | LanternGhostConfig.tres / StreetSlimeConfig.tres |
+| **CyberWolf** | `res://EnemyModule/Formal/Enemy_CyberWolf.tscn` | Level_03 (岭南+赛博) / Level_04 | ShadowConfig.tres / CleanerConfig.tres / SecurityConfig.tres |
 | **CyberBull** | `res://EnemyModule/Formal/Enemy_CyberBull.tscn` | *(预留)* | CyberBullConfig.tres |
-| **PaperEffigy** | `res://EnemyModule/Formal/Enemy_PaperEffigy.tscn` | *(预留)* | PaperEffigyConfig.tres |
+| **PaperEffigy** | `res://EnemyModule/Formal/Enemy_PaperEffigy.tscn` | Level_02_01/02 (老街+梯子段) ★ v0.9.0 投入使用 | PaperEffigyConfig.tres |
 
-> **设计**：Enemy_CyberWolf 是复用度最高的敌人场景，通过不同的 EnemyConfig 注入不同数值和外观（modulate 颜色区分）。关卡2老街用 LanternGhost，阴影用 CyberWolf+ShadowConfig；关卡3岭南用 CyberWolf+CleanerConfig（暗紫色），赛博用 CyberWolf+CleanerConfig（灰色）+SecurityConfig（红色）。
+> **设计**：Enemy_CyberWolf 是复用度最高的敌人场景，通过不同的 EnemyConfig 注入不同数值和外观（modulate 颜色区分）。关卡3岭南用 CyberWolf+CleanerConfig（暗紫色），赛博用 CyberWolf+CleanerConfig（灰色）+SecurityConfig（红色）。
+>
+> **LanternGhost AI（v0.9.0 完全实现）**：空中漂浮敌人（`MOTION_MODE_FLOATING`，重力免疫），行为包括 IDLE（缓慢等待）→ PATROL（水平巡逻+漂浮）→ CHASE（保持 150-300px 悬停距离）→ ATTACK（发射火球 `FireballProjectile.gd`）。火球弹体含代码粒子拖尾、命中闪光、最大飞行距离消散。`deals_contact_damage()=false`（无接触伤害）。Level_02 分段0 老街以 `StreetSlimeConfig.tres` 配置生成。
+>
+> **v0.9.0 刷新约束**：Level_02 分段1/2 老街与梯子段使用 LanternGhost + PaperEffigy 定点生成（无 Timer），且 `_load_capped_enemy_config()` 将 `detect_range` 上限截断至 500（防止小地图缩放下敌人过远追击）。
 
 ### 9.2 关卡级敌人生成
 
@@ -1570,7 +1829,8 @@ func _spawn_enemy_with_config(scene: PackedScene, spawn_pos: Vector2, config: En
 
 | 关卡 | 刷新机制 | 总存活上限 | 同屏上限 | 刷新间隔 |
 |------|---------|-----------|---------|---------|
-| Level_02 阴影 | ShadowSpawnTimer | 8 | 6 | 1.5s |
+| Level_02 阴影 | *(v0.9.0 已备份，正式版无阴影刷新机制)* | — | — | — |
+| Level_02_01/02 | 定点刷新（无 Timer） | — | — | 进入分段时一次性生成 |
 | Level_03 赛博 | EnemySpawnTimer | 6 | 4 | 2.5s |
 
 ### 9.4 基类 API
@@ -1581,7 +1841,7 @@ enemy.current_health / max_health / current_state
 enemy.config: EnemyConfig
 ```
 
-> **当前 Level_01 不用任何敌人**（叙事型关卡）。Level_02 在老街和干扰期使用敌人，Level_03 在岭南街巷和赛博城使用敌人。
+> **当前 Level_01 不用任何敌人**（叙事型关卡）。Level_02 分段1/2（老街+梯子段）使用 LanternGhost + PaperEffigy（定点生成，无 Timer），Level_03 在岭南街巷和赛博城使用 CyberWolf，Level_04 使用 CyberWolf。
 
 ---
 
@@ -1624,7 +1884,14 @@ enemy.config: EnemyConfig
 ```
 关卡1:       res://LevelModule/Formal/Level_01.tscn
 关卡2:       res://LevelModule/Formal/Level_02.tscn    ★ v0.8.0 新增
-关卡3:       res://LevelModule/Formal/Level_03.tscn    ★ v0.8.0 新增
+关卡3:       res://LevelModule/Formal/Level_03.tscn
+关卡2分段0:  res://LevelModule/Formal/Level_02.tscn         ★ v0.9.0 分段重构
+关卡2分段1:  res://LevelModule/Formal/Level_02_01.tscn      ★ v0.9.0 新增
+关卡2分段2:  res://LevelModule/Formal/Level_02_02.tscn      ★ v0.9.0 新增
+关卡2分段3:  res://LevelModule/Formal/Level_02_03.tscn      ★ v0.10.0 新增
+关卡2子场景:  res://LevelModule/Formal/Level_02_sub01.tscn / Level_02_sub02.tscn
+关卡4:       res://LevelModule/Formal/Level_04.tscn         ★ v0.9.0 新增
+梯子:        res://LevelModule/Formal/Ladder.gd             ★ v0.9.0 新增
 玩家:        res://PlayerModule/Formal/Player_Warrior.tscn
 赛博皮肤:     res://PlayerModule/Formal/Player_Warrior_Cyber.tscn
 岭南皮肤:     res://PlayerModule/Formal/Player_Warrior_Lingnan.tscn
@@ -1633,20 +1900,23 @@ enemy.config: EnemyConfig
 赛博狼:      res://EnemyModule/Formal/Enemy_CyberWolf.tscn     ★ v0.8.0
 赛博牛:      res://EnemyModule/Formal/Enemy_CyberBull.tscn     ★ v0.8.0
 纸扎人:      res://EnemyModule/Formal/Enemy_PaperEffigy.tscn   ★ v0.8.0
+火球弹体:     res://Tools/FireballProjectile.gd                 ★ v0.9.0 新增
 HUD:         res://UI/HUD.tscn
 启动入口:     res://UI/TitleScreen.tscn
 正式入口:     res://Global/MainEntry.tscn
-自测关卡:     res://LevelModule/SelfTest/LevelTest.tscn
-预览世界:     res://LevelModule/SelfTest/MiniTestWorld.tscn
-测试角色:     res://LevelModule/SelfTest/TestRunnerCharacter.tscn
-像素地图:     res://LevelModule/Scenes/PixelworkMapStitch/     ★ v0.8.0
+自测关卡:     *(v0.9.0 SelfTest 目录已删除)*
+预览世界:     *(v0.9.0 已删除；Level_01 IDE 预览引用路径可能悬空)*
+测试角色:     *(v0.9.0 已删除)*
+像素地图:     res://LevelModule/Scenes/PixelworkMapStitch/     ★ v0.9.0 Level_02 实际使用
 
 关卡1配置:    res://DataConfig/Level/Level01Config.tres
 关卡1叙事:    res://DataConfig/Level/Level01Data.tres
 关卡2配置:    res://DataConfig/Level/Level02Config.tres          ★ v0.8.0
 关卡2叙事:    res://DataConfig/Level/Level02Data.tres           ★ v0.8.0
 关卡3配置:    res://DataConfig/Level/Level03Config.tres          ★ v0.8.0
-关卡3叙事:    res://DataConfig/Level/Level03Data.tres           ★ v0.8.0
+关卡3叙事:    res://DataConfig/Level/Level03Data.tres
+关卡4配置:    res://DataConfig/Level/Level04Config.tres          ★ v0.9.0 新增
+关卡4叙事:    res://DataConfig/Level/Level04Data.tres           ★ v0.9.0 新增
 玩家配置:    res://DataConfig/Player/WarriorConfig.tres
 敌人配置:    res://DataConfig/Enemy/SlimeConfig.tres
            res://DataConfig/Enemy/LanternGhostConfig.tres      ★ v0.8.0
@@ -1727,23 +1997,35 @@ LevelBase (基类)
   ├── _setup_enemies      → InteractiveObject / Enemy_*.tscn
   └── EventBus  ←→ 全局
 
-Level_01 (子类)
+Level_01 (子类) ★ v0.9.0 增强
   ├── extends LevelBase
   ├── _on_ready
   │     ├── Level_01_SceneBuilder.build_all
-  │     │     └── Level_01_UIBuilder.build_all
-  │     ├── _setup_camera_limits → Player_Warrior.SmoothCamera (配置 limit)
-  │     ├── _all_interactives 初始化
+  │     │     └── Level_01_UIBuilder.build_all (含 CodeScrollPanel + LeftEdgeFlash)
+  │     ├── _setup_camera_limits → Player_Warrior.SmoothCamera (配置 limit, zoom=2, lerp_speed=2.5)
+  │     ├── _apply_level_input_rules()
+  │     │     └── block_action(&"player_attack"), block_action(&"player_jump")
+  │     │     └── runtime_move_speed_multiplier = 0.5
+  │     ├── _all_interactives 初始化 (7个交互物)
   │     ├── EventBus.subscribe(INTERACTIVE_OBJECT_TRIGGERED)
   │     ├── Level_01_FSM.new(self)
-  │     └── InputManager block/unblock 联动点注册
-  ├── _on_game_action  ★ v0.6.0: 替代 _input 中的 ui_accept 处理
-  │     └── InputManager.game_action 回调
+  │     ├── InputManager.game_action.connect(_on_game_action)
+  │     └── _load_hud()
+  ├── _process: cooldown + _enforce_level_restrictions + IDE超时 + 交互物轮询 + 防御性自愈 + 代码滚动 + 左侧闪烁检测
+  ├── _on_game_action  ★ v0.6.0: InputManager.game_action 回调
+  │     └── _handle_accept_input()
   ├── _show_narrative / _trigger_sleep_cycle / _enter_ide_mode
   │     └── Level01Data (文案)
   │     └── InputManager.block/unblock 配对调用
-  └── _start_glitch_shader_effect
-        └── EventBus.emit(LEVEL_COMPLETE)
+  ├── _start_code_scroll / _advance_code_scroll / _colorize_code_line (★ v0.9.0)
+  ├── _start_left_edge_flash / _stop_left_edge_flash / _check_flash_target_in_view (★ v0.9.0)
+  ├── _start_flicker_effect (★ v0.9.0: GLITCH_TRANSIT 眨眼效果)
+  ├── _start_glitch_shader_effect
+  │     └── EventBus.emit(LEVEL_COMPLETE)
+  ├── _cleanup_input_before_level_switch (★ v0.9.0: action清+force_unblock+信号断开)
+  │     └── _disconnect_input_manager()
+  └── _exit_tree
+        └── _clear_level_input_rules() + _disconnect_input_manager()
 
 Level_02 (子类) ★ v0.8.0
   ├── extends LevelBase
@@ -2202,30 +2484,36 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 
 ### 18.1 当前可立即使用
 
-- 7 态叙事状态机（LIVING_ROOM → GLITCH_TRANSIT）
-- **11 态双空间状态机（DREAM_ATTIC → LEVEL_END_TRANSIT）** ★ v0.8.0
+- **7 态叙事状态机**（LIVING_ROOM → GLITCH_TRANSIT）
+- **Level_02 分段串联架构（3段：Level_02 → Level_02_01 → Level_02_02）** ★ v0.9.0
 - **6 态无缝空间状态机（TEA_SHOP_FRONT → LEVEL_END_TRANSIT）** ★ v0.8.0
+- **Level_04 维度侵蚀关卡（2态，阶段1 半对半空间硬切已实现）** ★ v0.9.0
+- **Ladder 梯子攀爬机制（双向 W/S，player_up/player_down）** ★ v0.9.0
+- **关卡级输入策略**：`_apply_level_input_rules()` action 级禁用（block_action）+ `runtime_move_speed_multiplier` 减速 ★ v0.9.0
+- **代码滚动面板**：`CODE_SCROLL_LINES` 伪代码 + BBCode 语法高亮 + 定时滚动 ★ v0.9.0
+- **左侧边缘闪烁光效**：`_left_edge_flash` / `_left_edge_glow` 手机位置提示 ★ v0.9.0
+- **眨眼视觉效果**：`_start_flicker_effect()` GLITCH_TRANSIT 意识模糊演出 ★ v0.9.0
+- **LanternGhost 完整 AI**：`MOTION_MODE_FLOATING` + 悬停距离保持 + 火球远程攻击（`FireballProjectile.gd` 含粒子拖尾+命中效果）★ v0.9.0
+- **分段控制器双模切换**：MainEntry 托管模式 + 独立 `change_scene_to_file` 模式，`_is_loaded_under_main_entry()` 判断 ★ v0.9.0
+- **InputManager 动作级禁用**：`block_action/unblock_action` + `clear_action_blocks` + 鼠标悬停 GUI 检测 ★ v0.9.0
 - InteractiveObject 交互物系统（带幂等性 + 重复交互 + 前置解锁）
 - **触发区系统（Area2D TriggerZone，自动检测+状态推进）** ★ v0.8.0
-- **单场景双空间架构（梦境/现实 显隐+碰撞联动切换）** ★ v0.8.0
 - **无缝单坐标空间（四区域左右相连，无传送/无黑屏）** ★ v0.8.0
 - **关卡级技能限制守卫（_enforce_level_restrictions）** ★ v0.8.0
-- **运行时玩家皮肤切换（_swap_player_to_cyber）** ★ v0.8.0
+- **运行时玩家皮肤切换（_swap_player_to_cyber / _swap_player_skin）** ★ v0.8.0（Level_03/04 共用模式）
 - **画面抖动（SmoothCamera.offset 随机偏移）** ★ v0.8.0
-- **击退反转（赛博阶段向左击退+跨关卡伤害减免）** ★ v0.8.0
-- **音效安全降级（_play_sfx_loop_safe）** ★ v0.8.0
+- **击退反转（赛博阶段向左击退+跨关卡伤害减免）** ★ v0.8.0（Level_03）
 - **跨关卡配置（GameManager.dream_runtime_flags）** ★ v0.8.0
-- **配置篡改解谜（ConfigEditor + Recompile）** ★ v0.8.0
-- **5 种敌人场景 + 7 种敌人配置** ★ v0.8.0
-- **PixelworkMapStitch 像素地图拼接系统** ★ v0.8.0
+- **5 种敌人场景 + 7 种敌人配置** ★ v0.8.0（PaperEffigy / LanternGhost v0.9.0 已投入使用）
+- **PixelworkMapStitch 像素地图拼接系统** ★ v0.8.0（v0.9.0 Level_02 实际使用）
 - SmoothCamera v2.0（转向清零 + lookahead无硬边界 + Y轴死区 + 三外观预制体内置）
-- Canvas UI 纯代码构建（Narrative / Sleep / IDE / Glitch / RedWarning / EyeClose / ConfigEditor / RecompileLog / CodeRain / WarmGlow / EndingPrompt）
+- Canvas UI 纯代码构建（Narrative / Sleep / IDE / Glitch / CodeScrollPanel / LeftEdgeFlash / FlickerEffect / CodeRain / WarmGlow / EndingPrompt）
 - SubViewport 嵌入预览世界并跨场景通信（`prototype_crashed` 信号）
 - Glitch 终局着色器（色相分离 + 噪声 + 渐强）
 - EventBus 事件驱动通信（自动清理失效订阅）
 - 双运行模式（FORMAL / SELF_TEST）
 - 三外观支持（Warrior / Cyber / Lingnan 均含 SmoothCamera）
-- InputManager 统一输入管理（信号分发 + block/unblock + ESC独占）
+- InputManager 统一输入管理（信号分发 + block/unblock + action 级禁用 + ESC独占 + 鼠标 GUI 检测）
 - LevelConfig（数值+玩家皮肤路径）与 LevelData（叙事+谜题+音效）分离
 - `_all_interactives` 统一管理（消除硬编码重复）
 
@@ -2238,8 +2526,12 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 | BGM | 字段为 null | 接 `.ogg` 资源并 AudioStreamPlayer |
 | 伤害数字飘屏 | 无 | 需在 `PlayerBase` 攻击反馈里加 |
 | 环境声效交叉渐变 | `_fade_ambient_audio()` 占位接口 | 接入 AudioStreamPlayer 列表 |
-| **Enemy_CyberBull / PaperEffigy** | 场景+配置已就绪，尚未被关卡使用 | 关卡4+战斗设计 |
-| **PixelworkMapStitch** | 运行时脚本已生成，未被关卡引用 | 可作为视觉增强接入 SceneBuilder |
+| **Enemy_CyberBull** | 场景+配置已就绪，尚未被关卡使用 | 关卡4+战斗设计 |
+| **Enemy_PaperEffigy** | **v0.9.0 已被 Level_02_01/02 投入使用** | — |
+| **PixelworkMapStitch** | **v0.9.0 已被 Level_02_SceneBuilder 实际使用**（reparent 到 DreamWorldRoot） | — |
+| **Enemy_LanternGhost AI + FireballProjectile** | **v0.9.0 完全实现**（漂浮 + 火球远程攻击） | — |
+| **Level_01 输入策略 action 级禁用** | **v0.9.0 已实现**（`block_action` 替代 `_restrict_player_mechanics`） | — |
+| **Level_01 代码滚动面板** | **v0.9.0 已实现**（`CODE_SCROLL_LINES` + BBCode 语法高亮） | — |
 
 ### 18.2.1 已实现的运行流程
 
@@ -2247,7 +2539,7 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 |---|---|
 | 工程启动入口 | `project.godot` 指向 `res://UI/TitleScreen.tscn`，标题页提供开始游戏、自测和退出入口 |
 | 正式入口 | `TitleScreen` 点击开始游戏后进入 `res://Global/MainEntry.tscn`，由 `MainEntry` 设置 `FORMAL` 模式并发射 `GAME_START` |
-| 多关卡切换 | `MainEntry._on_level_complete()` 监听 `LEVEL_COMPLETE`，按 `next_level` 加载下一关，并在切换前清理旧关卡、玩家/敌人引用和输入屏蔽 |
+| 多关卡切换 | `MainEntry._on_level_complete()` 监听 `LEVEL_COMPLETE`，按 `next_level` 加载下一关；切换前显示转场遮罩（CanvasLayer+ColorRect 淡入淡出 0.8s，支持 `transition_white` 白屏）、清理旧关卡/玩家/敌人引用、`InputManager.force_unblock_all()` 解除输入屏蔽 ★ v0.9.0 增强 |
 
 ### 18.3 已解决的技术债务
 
@@ -2266,6 +2558,9 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 | **运行时皮肤切换幽灵订阅** | 高危 | _swap_player_to_cyber() 先断连旧 InputManager.game_action 信号再 queue_free | v0.8.0 |
 | **关卡级技能限制被意外恢复** | 中危 | _enforce_level_restrictions() 每帧强制维持 | v0.8.0 |
 | **ColorRect 拦截鼠标攻击** | 中危 | _set_all_color_rect_mouse_ignore() 递归设置 MOUSE_FILTER_IGNORE | v0.8.0 |
+| **Level_01 输入策略陈旧** | 中危 | 改用 _apply_level_input_rules() + block_action 替代旧 _restrict_player_mechanics | v0.9.0 |
+| **关卡退出信号泄漏** | 中危 | 增加 _disconnect_input_manager() + _cleanup_input_before_level_switch() 三件套清理 | v0.9.0 |
+| **HUD 分散加载** | 低 | Level_01/02/03/04 各自调用 _load_hud()（统一由 MainEntry 或 LevelBase 管理为更佳方案） | v0.9.0 |
 
 ### 18.4 已知技术限制
 
@@ -2290,7 +2585,8 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 │   ├── KeybindManager.gd                # 键位配置/重绑定持久化
 │   └── MainEntry.gd / .tscn             # 正式入口 (v0.5.0: 不创建Camera/HUD)
 ├── Tools/
-│   └── DamageCalculator.gd              # 静态伤害计算
+│   ├── DamageCalculator.gd              # 静态伤害计算
+│   └── FireballProjectile.gd            # ★ 灯笼鬼火球弹体 (v0.9.0: 拖尾粒子+命中效果)
 ├── UI/
 │   ├── TitleScreen.gd / .tscn           # 工程启动入口/主菜单（开始游戏+自测按钮入口）
 │   ├── KeybindSettingsScreen.gd / .tscn # 键位设置界面
@@ -2300,10 +2596,11 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 │   ├── Enemy/  SlimeConfig   (.gd/.tres)
 │   ├── Skill/  SlashConfig   (.gd/.tres)
 │   └── Level/
-│       ├── LevelConfig.gd / Level01Config.tres / Level02Config.tres ★ / Level03Config.tres ★
+│       ├── LevelConfig.gd / Level01Config.tres / Level02Config.tres / Level03Config.tres / Level04Config.tres ★
 │       ├── Level01Data.gd / Level01Data.tres
-│       ├── Level02Data.gd / Level02Data.tres ★ (叙事+谜题+音效挂点)
-│       └── Level03Data.gd / Level03Data.tres ★ (对话+战斗+光团坐标)
+│       ├── Level02Data.gd / Level02Data.tres ★ (阁楼/老街叙事)
+│       ├── Level03Data.gd / Level03Data.tres ★ (对话+战斗+光团坐标)
+│       └── Level04Data.gd / Level04Data.tres ★ (v0.9.0: 五阶段维度侵蚀文案)
 ├── PlayerModule/
 │   ├── Formal/
 │   │   ├── PlayerBase.gd                # 玩家基类 (v0.6.0: game_action 信号驱动)
@@ -2331,29 +2628,37 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 │   │   ├── Level_01_SceneBuilder.gd
 │   │   ├── Level_01_FSM.gd
 │   │   ├── Level_01_UIBuilder.gd
-│   │   ├── Level_02.gd / .tscn          # ★ 关卡2主控 (v0.8.0: 双空间+坠落+干扰+睁眼+配置篡改)
-│   │   ├── Level_02_SceneBuilder.gd     # ★ 梦境+现实双空间构建
-│   │   ├── Level_02_FSM.gd              # ★ 11态双空间状态机
-│   │   ├── Level_02_UIBuilder.gd        # ★ 干扰/睁眼/配置/重编UI
-│   │   ├── Level_03.gd / .tscn          # ★ 关卡3主控 (v0.8.0: 无缝空间+异化+皮肤切换+击退反转)
+│   │   ├── Level_02.gd / .tscn          # ★ 关卡2分段0 (v0.9.0: 阁楼→老街, 3态)
+│   │   ├── Level_02_SceneBuilder.gd     # ★ 梦境世界构建 (简化版, 含 PixelworkMapStitch 挂载)
+│   │   ├── Level_02_FSM.gd              # ★ 3态状态机 (简化版)
+│   │   ├── Level_02_UIBuilder.gd        # ★ 黑屏/叙事/终局 (简化版, 旧UI已备份)
+│   │   ├── Level_02_01.gd / .tscn       # ★ 关卡2分段1 (v0.9.0: 老街战斗, 白屏转场)
+│   │   ├── Level_02_02.gd / .tscn       # ★ 关卡2分段2 (v0.9.0: 梯子谜题)
+│   │   ├── Level_02_03.gd / .tscn       # ★ 关卡2分段3 (v0.10.0: 断崖→干扰→现实→IDE→床)
+│   │   ├── Level_02_sub01.tscn / _sub02.tscn  # ★ 关卡2子场景 / 现实房间子场景
+│   │   ├── Ladder.gd                    # ★ 梯子攀爬 Area2D (v0.9.0)
+│   │   ├── Level_03.gd / .tscn          # ★ 关卡3主控 (无缝空间+异化+皮肤切换+击退反转)
 │   │   ├── Level_03_SceneBuilder.gd     # ★ 四区域单坐标空间构建
 │   │   ├── Level_03_FSM.gd              # ★ 6态战斗+收集状态机
 │   │   ├── Level_03_UIBuilder.gd        # ★ 代码雨/Glitch/温暖光晕
+│   │   ├── Level_04.gd / .tscn          # ★ 关卡4主控 (v0.9.0: 维度侵蚀, 阶段1已实现)
+│   │   ├── Level_04_SceneBuilder.gd     # ★ 容器+UI (v0.9.0)
+│   │   ├── Level_04_FSM.gd              # ★ 占位待扩展 (v0.9.0)
+│   │   ├── Level_04_UIBuilder.gd        # ★ 叙事/Glitch/终局 (v0.9.0)
 │   │   └── Narrative/                   # 叙事资源目录（空）
+│   ├── Backup/                          # ★ v0.9.0 旧版归档
+│   │   └── Level_02_CliffReality/       #   旧11态双空间 Level_02 (snapshots/ + README)
 │   ├── Common/
 │   ├── Scenes/
-│   │   └── PixelworkMapStitch/          # ★ 像素地图拼接系统 (v0.8.0)
-│   ├── SelfTest/
-│   │   ├── LevelTest.gd / .tscn         # 关卡模块自测
-│   │   ├── MiniTestWorld.gd / .tscn     # IDE 预览微型世界（生产依赖）
-│   │   └── TestRunnerCharacter.gd/.tscn # 测试角色（生产依赖）
+│   │   └── PixelworkMapStitch/          # ★ 像素地图拼接系统 (v0.9.0 Level_02 实际使用)
+│   ├── SelfTest/                        # (v0.9.0 已清空/删除)
 │   └── Background images/               # JPG 背景
 └── Assets/Sprites/                      # 玩家动画 PNG
 ```
 
 ---
 
-**此报告已同步至 v0.8.0（三关卡完成 + 双空间架构 + 跨关卡配置 + 玩家皮肤切换 + 5种敌人 + 像素地图拼接）。关卡设计时请严格遵循：**
+**此报告已同步至 v0.9.0（Level_02 分段重构 + Level_04 维度侵蚀 + Ladder 梯子 + Level_01 代码滚动/输入策略重构 + InputManager action 级禁用 + LanternGhost 火球AI + 旧双空间归档）。关卡设计时请严格遵循：**
 
 1. **代码构建**地形/UI，不在 `.tscn` 拖拽
 2. **`.tres` 编辑**文案与数值，不改 `.gd` 写死字符串
@@ -2370,3 +2675,8 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 13. **皮肤切换安全**: 运行时换皮前断连旧 InputManager 信号，防止幽灵订阅 ★ v0.8.0
 14. **关卡级限制守卫**: _enforce_level_restrictions() 每帧强制维持被禁技能 ★ v0.8.0
 15. **ColorRect 鼠标穿透**: 纯视觉 ColorRect 必须 MOUSE_FILTER_IGNORE ★ v0.8.0
+16. **关卡分段串联**: 大型关卡拆为分段控制器（Level_02 → 02_01 → 02_02），各段通过 LEVEL_COMPLETE.next_level 串联，分段控制器支持 MainEntry 托管与 change_scene_to_file 双模式，出口统一 force_unblock_all + unsubscribe_all ★ v0.9.0
+17. **梯子/瞬时动作轮询**: Ladder 等 Area2D 攀爬类交互直接轮询 player_up/player_down/player_jump（与 jump 同类），不走 InputManager.game_action 信号 ★ v0.9.0
+18. **白屏转场**: 出口可携带 `transition_white=true`，MainEntry 据此将转场遮罩置白（Level_02_01 白屏4s出口）★ v0.9.0
+19. **Action 级禁用优先于 Block 级**: 关卡级长期禁用（如 Level_01 禁攻击/跳跃）用 `InputManager.block_action()`，叙事期临时禁用用 `InputManager.block_input()`。前者从信号源头阻断，适合永久性限制；后者栈式引用计数，适合临时性屏蔽 ★ v0.9.0
+20. **关卡退出三件套**: `_emit_level_complete()` 前必须调用 `force_unblock_all()` + `_disconnect_input_manager()` + `EventBus.unsubscribe_all(self)`，确保无任何输入/事件/信号泄漏到下一关 ★ v0.9.0
