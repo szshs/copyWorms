@@ -8,10 +8,10 @@
 [ext_resource type="Texture2D" uid="uid://bvrmrgf5vb200" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 5.png" id="6_bg5_bg"]
 
 [sub_resource type="RectangleShape2D" id="floor_shape"]
-size = Vector2(5561, 66)
+size = Vector2(4672, 26)
 
 [sub_resource type="RectangleShape2D" id="wall_shape"]
-size = Vector2(25, 800)
+size = Vector2(8, 800)
 
 [sub_resource type="RectangleShape2D" id="cy_p1"]
 size = Vector2(978, 25)
@@ -35,7 +35,7 @@ size = Vector2(235, 25)
 size = Vector2(194, 25)
 
 [sub_resource type="RectangleShape2D" id="boss_floor"]
-size = Vector2(1160, 25)
+size = Vector2(1128, 38.5)
 
 [sub_resource type="RectangleShape2D" id="ln_p1"]
 size = Vector2(1360, 25)
@@ -50,7 +50,7 @@ size = Vector2(408, 11.5)
 size = Vector2(197, 18)
 
 [sub_resource type="RectangleShape2D" id="bg5_floor"]
-size = Vector2(1760, 40)
+size = Vector2(1640, 40)
 
 [sub_resource type="RectangleShape2D" id="bg5_wall"]
 size = Vector2(40, 905.75)
@@ -76,7 +76,7 @@ texture = ExtResource("2_lingnan_bg")
 position = Vector2(640, 440)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Floor" unique_id=878131168]
-position = Vector2(429.5, 207)
+position = Vector2(0, 187)
 shape = SubResource("floor_shape")
 
 [node name="CyberCollisions" type="Node2D" parent="." unique_id=580123456]
@@ -85,12 +85,14 @@ shape = SubResource("floor_shape")
 position = Vector2(-1702, 360)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/LeftWall" unique_id=580123459]
+position = Vector2(14, 0)
 shape = SubResource("wall_shape")
 
 [node name="RightWall" type="StaticBody2D" parent="CyberCollisions" unique_id=580123460]
 position = Vector2(2982, 360)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/RightWall" unique_id=580123461]
+position = Vector2(-4.25, 0)
 shape = SubResource("wall_shape")
 
 [node name="CY_P1" type="StaticBody2D" parent="CyberCollisions" unique_id=580123490]
@@ -147,21 +149,21 @@ texture = ExtResource("4_boss_bg")
 position = Vector2(712, 5004)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BossCollisions/LeftWall" unique_id=580200003]
-position = Vector2(-94, -290)
+position = Vector2(-80.875, -292)
 shape = SubResource("wall_shape")
 
 [node name="RightWall" type="StaticBody2D" parent="BossCollisions" unique_id=580200004]
 position = Vector2(1466, 5004)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BossCollisions/RightWall" unique_id=580200005]
-position = Vector2(291, -289)
+position = Vector2(278, -284)
 shape = SubResource("wall_shape")
 
 [node name="Floor" type="StaticBody2D" parent="BossCollisions" unique_id=580200006]
 position = Vector2(1089, 5199)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BossCollisions/Floor" unique_id=580200007]
-position = Vector2(99, -89)
+position = Vector2(99, -82.25)
 shape = SubResource("boss_floor")
 
 [node name="LingnanCollisions" type="Node2D" parent="." unique_id=580123457]
@@ -219,21 +221,21 @@ texture = ExtResource("6_bg5_bg")
 position = Vector2(1291.6001, 8182.8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5Collisions/Floor" unique_id=580300003]
-position = Vector2(10.399902, 47.200195)
+position = Vector2(0.39990234, 47.200195)
 shape = SubResource("bg5_floor")
 
 [node name="LeftWall" type="StaticBody2D" parent="Bg5Collisions" unique_id=580300004]
 position = Vector2(611.6001, 7882.8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5Collisions/LeftWall" unique_id=580300005]
-position = Vector2(-155.6001, -22.924805)
+position = Vector2(-123.6001, -26.799805)
 shape = SubResource("bg5_wall")
 
 [node name="RightWall" type="StaticBody2D" parent="Bg5Collisions" unique_id=580300006]
 position = Vector2(1971.6001, 7882.8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5Collisions/RightWall" unique_id=580300007]
-position = Vector2(148.3999, -65.549805)
+position = Vector2(124.3999, -66.799805)
 shape = SubResource("bg5_wall")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=258921447]

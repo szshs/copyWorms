@@ -20,8 +20,6 @@ var _wall_dialog_shown: bool = false
 var _cyber_return_dialog_shown: bool = false
 var _swap_cooldown: float = 0.0
 const CYBER_TELEPORT := Vector2(2298, -75)
-const CYBER_CAM = [-50, 2500, -900, 1200]
-const LNGN_CAM  = [-50, 4000,  600, 2500]
 const LNGN_POSITIONS: Array[Vector2] = [
 	Vector2(524, 2060), Vector2(3564, 2073), Vector2(1631, 1316)
 ]
@@ -29,8 +27,6 @@ const LNGN_DIALOGS: Array[String] = [
 	"不太对，我需要到上面的阁楼看看", "还是不对", ""
 ]
 const STAGE2_SPAWN := Vector2(242, 4333)
-const STAGE2_CAM = [50, 7450, 3450, 5100]
-const STAGE2_CYBER_CAM = [50, 7450, 6450, 7600]
 var _stage1_enemies: Array[Node2D] = []
 var _stage2_entered: bool = false
 
@@ -154,7 +150,7 @@ func _on_ready() -> void:
 
 	Level_04_SceneBuilder.new(self).build_all()
 	_setup_camera_limits()
-	_set_camera_limits(CYBER_CAM[0], CYBER_CAM[1], CYBER_CAM[2], CYBER_CAM[3])
+	_set_cam_from_group($Stage1Collisions, -696)
 	_cache_ui_refs()
 	# 收集交互物引用 + 启动闪烁动画
 	for c in get_node_or_null("Interactives").get_children():
@@ -380,6 +376,28 @@ func _set_camera_limits(l: int, r: int, t: int, b: int) -> void:
 	var c = p.get_node_or_null("SmoothCamera") as SmoothCamera; if not c: return
 	c.limit_left = l; c.limit_right = r; c.limit_top = t; c.limit_bottom = b
 
+## 遍历容器内所有 StaticBody2D 的 RectangleShape2D，取世界坐标 AABB 并集
+func _collision_group_rect(group: Node) -> Rect2:
+	var rect := Rect2()
+	var first := true
+	if not group or not is_instance_valid(group): return rect
+	for body in group.get_children():
+		if body is StaticBody2D:
+			for c in body.get_children():
+				if c is CollisionShape2D and c.shape is RectangleShape2D:
+					var rs := c.shape as RectangleShape2D
+					var center: Vector2 = (body as Node2D).global_position + (c as CollisionShape2D).position
+					var r := Rect2(center - rs.size / 2.0, rs.size)
+					if first: rect = r; first = false
+					else: rect = rect.merge(r)
+	return rect
+
+## 从碰撞体容器自动计算 AABB 设置摄像机边界（左边界统一 0，上边界手动指定）
+func _set_cam_from_group(group: Node, top: int) -> void:
+	if not group or not is_instance_valid(group): return
+	var rect := _collision_group_rect(group)
+	_set_camera_limits(0, int(rect.end.x), top, int(rect.end.y))
+
 func _restore_combat_mechanics() -> void:
 	var p = GameManager.player_ref; if not p: return
 	p.can_attack = true; p.can_dash = true; p.can_skill = true
@@ -442,7 +460,7 @@ func _swap_world() -> void:
 		_swap_player_skin("Lingnan"); p = GameManager.player_ref
 		p.velocity = Vector2.ZERO
 		_snap_camera(p)
-		_set_camera_limits(LNGN_CAM[0], LNGN_CAM[1], LNGN_CAM[2], LNGN_CAM[3])
+		_set_cam_from_group($LingnanCollisions, 904)
 		if not _lingnan_intro_done:
 			_lingnan_intro_done = true
 			_pan_camera_to(Vector2(1581, 1320))
@@ -457,7 +475,7 @@ func _swap_world() -> void:
 		_swap_player_skin("Cyber"); p = GameManager.player_ref
 		p.velocity = Vector2.ZERO
 		_snap_camera(p)
-		_set_camera_limits(CYBER_CAM[0], CYBER_CAM[1], CYBER_CAM[2], CYBER_CAM[3])
+		_set_cam_from_group($Stage1Collisions, -696)
 		if not _cyber_return_dialog_shown:
 			_cyber_return_dialog_shown = true
 			get_tree().create_timer(1.0).timeout.connect(func():
@@ -488,7 +506,7 @@ func _enter_stage2() -> void:
 		blk.queue_free(); _freeze_player(false); _is_interacting = false; return
 	p.global_position = STAGE2_SPAWN; p.velocity = Vector2.ZERO
 	_snap_camera(p)
-	_set_camera_limits(STAGE2_CAM[0], STAGE2_CAM[1], STAGE2_CAM[2], STAGE2_CAM[3])
+	_set_cam_from_group($Stage2Collisions, 4000)
 	_swap_player_skin("Lingnan")
 	p = GameManager.player_ref
 	current_state = LevelState.STAGE2
@@ -600,7 +618,7 @@ func _perform_stage2_swap() -> void:
 		p = GameManager.player_ref
 		if p and is_instance_valid(p):
 			p.velocity = old_vel
-		_set_camera_limits(STAGE2_CYBER_CAM[0], STAGE2_CYBER_CAM[1], STAGE2_CYBER_CAM[2], STAGE2_CYBER_CAM[3])
+		_set_cam_from_group($Stage2_CyberCollisions, 6504)
 	else:
 		# 赛博 → 岭南
 		_stage2_current_map = 0
@@ -609,7 +627,7 @@ func _perform_stage2_swap() -> void:
 		p = GameManager.player_ref
 		if p and is_instance_valid(p):
 			p.velocity = old_vel
-		_set_camera_limits(STAGE2_CAM[0], STAGE2_CAM[1], STAGE2_CAM[2], STAGE2_CAM[3])
+		_set_cam_from_group($Stage2Collisions, 4000)
 
 	if p and is_instance_valid(p):
 		_snap_camera(p)
@@ -963,7 +981,7 @@ func _debug_switch_to_stage1() -> void:
 		p.global_position = CYBER_TELEPORT
 		p.velocity = Vector2.ZERO
 		_snap_camera(p)
-	_set_camera_limits(CYBER_CAM[0], CYBER_CAM[1], CYBER_CAM[2], CYBER_CAM[3])
+	_set_cam_from_group($Stage1Collisions, -696)
 	_swap_player_skin("Cyber")
 
 	# 重置敌人
@@ -990,7 +1008,7 @@ func _debug_switch_to_stage2() -> void:
 	p.global_position = STAGE2_SPAWN
 	p.velocity = Vector2.ZERO
 	_snap_camera(p)
-	_set_camera_limits(STAGE2_CAM[0], STAGE2_CAM[1], STAGE2_CAM[2], STAGE2_CAM[3])
+	_set_cam_from_group($Stage2Collisions, 4000)
 	_swap_player_skin("Lingnan")
 	p = GameManager.player_ref
 
