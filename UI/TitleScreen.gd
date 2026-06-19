@@ -83,20 +83,21 @@ func _connect_signals() -> void:
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/SettingsButton)
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/QuitButton)
 
-## TextureButton hover/pressed 动效：用 modulate 区分亮暗
+## TextureButton hover/pressed 动效：用 self_modulate 给底板染淡蓝色（不影响文字）
 func _connect_btn_hover_modulate(btn: TextureButton) -> void:
+	btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0)
 	btn.mouse_entered.connect(func() -> void:
 		if not btn.disabled:
-			btn.modulate = Color(1.1, 1.1, 1.1, 1.0)
+			btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0)
 	)
 	btn.mouse_exited.connect(func() -> void:
-		btn.modulate = Color(0.95, 0.95, 0.95, 1.0)
+		btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0)
 	)
 	btn.button_down.connect(func() -> void:
-		btn.modulate = Color(0.8, 0.8, 0.8, 1.0)
+		btn.self_modulate = Color(0.45, 0.6, 0.85, 1.0)
 	)
 	btn.button_up.connect(func() -> void:
-		btn.modulate = Color(1.1, 1.1, 1.1, 1.0)
+		btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0)
 	)
 
 # ============================================================

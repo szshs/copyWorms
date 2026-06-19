@@ -285,6 +285,8 @@ func _on_ready() -> void:
 				"max_health": pp.max_health
 			})
 		print("[Level_05] 从检查点恢复：直接进入bg4 Boss战")
+		# 显示"按G切换人物外观"指引
+		_show_skin_hint()
 
 
 ## 入场黑屏遮罩：创建满黑 CanvasLayer，覆盖整个初始化过程
@@ -500,7 +502,50 @@ func _on_object_interacted(data: Dictionary) -> void:
 	if oid == "enter_boss":
 		_enter_boss_arena()
 	elif oid == "grandpa":
-		_show_dialog(["爷爷？"], Callable())
+		_show_dialog(["爷爷？"], _play_grandpa_video)
+
+## 播放视频演出（爷爷交互后）：先淡入黑屏，再播放视频
+func _play_grandpa_video() -> void:
+	var stream := load("res://Assets/视频演出.ogv") as VideoStream
+	if stream == null:
+		push_error("[Level_05] 视频演出.ogv 加载失败")
+		_show_dialog(["（视频加载失败）"], Callable())
+		return
+	# 屏蔽游戏输入
+	InputManager.block_input("视频演出", self)
+	# 用 CanvasLayer 确保在最上层
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	# 淡入黑屏
+	var black_bg := ColorRect.new()
+	black_bg.color = Color(0, 0, 0, 0)  # 初始透明
+	black_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	black_bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	black_bg.z_index = 200
+	layer.add_child(black_bg)
+	var fade_tween := black_bg.create_tween()
+	fade_tween.tween_property(black_bg, "color:a", 1.0, 1.0)  # 1秒淡入到全黑
+	await fade_tween.finished
+	print("[Level_05] 淡入黑屏完成，开始播放视频")
+	# 视频播放器
+	var vp := VideoStreamPlayer.new()
+	vp.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vp.expand = true
+	vp.autoplay = true
+	vp.stream = stream
+	vp.mouse_filter = Control.MOUSE_FILTER_STOP
+	black_bg.add_child(vp)
+	print("[Level_05] 视频演出开始播放")
+	# 等待视频播放结束
+	await vp.finished
+	# 清理
+	InputManager.unblock_input("视频演出")
+	layer.queue_free()
+	print("[Level_05] 视频演出播放结束，切换到 Level_final")
+	# 切换到终局关卡
+	GameManager.run_mode = GlobalDefine.RunMode.FORMAL
+	get_tree().change_scene_to_file("res://LevelModule/Formal/Level_final.tscn")
 
 ## Boss死亡时缓结束后：恢复时缓，生成灯笼，显示死亡对话
 func _on_boss_death_recover(death_pos: Vector2) -> void:
@@ -659,6 +704,31 @@ func _teleport_to_boss() -> void:
 	_show_boss_bar()
 	# 更新检查点阶段为4（bg4），重新开始时直接回到bg4
 	GameManager.update_checkpoint_stage(4)
+	# 显示"按G切换人物外观"指引
+	_show_skin_hint()
+
+## bg4 指引提示："按G切换人物外观"，显示3秒后淡出
+func _show_skin_hint() -> void:
+	var cv = get_node_or_null("CanvasLayer")
+	if not cv: return
+	var hint = Label.new()
+	hint.name = "SkinHintLabel"
+	hint.text = "按 G 切换人物外观"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_color_override("font_color", Color(1, 0.9, 0.3, 0.95))
+	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	hint.add_theme_constant_override("outline_size", 4)
+	hint.position = Vector2(440, 650)
+	hint.size = Vector2(400, 30)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint.z_index = 150
+	cv.add_child(hint)
+	# 3秒后淡出删除
+	var tw = hint.create_tween()
+	tw.tween_interval(3.0)
+	tw.tween_property(hint, "modulate:a", 0.0, 1.0)
+	tw.tween_callback(hint.queue_free)
 
 func _spawn_all_enemies(lingnan_on_top: bool) -> void:
 	_clear_all_enemies()
@@ -704,25 +774,25 @@ func _build_erosion_bar() -> void:
 	if not cv: return
 	var bar = Control.new()
 	bar.name = "ErosionBar"
-	bar.position = Vector2(8, 52); bar.size = Vector2(280, 22)
+	bar.position = Vector2(20, 105); bar.size = Vector2(280, 28)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.z_index = 130
 	cv.add_child(bar)
 
 	_erosion_bar_bg = ColorRect.new()
-	_erosion_bar_bg.size = Vector2(280, 18); _erosion_bar_bg.position = Vector2(0, 2)
+	_erosion_bar_bg.size = Vector2(280, 24); _erosion_bar_bg.position = Vector2(0, 4)
 	_erosion_bar_bg.color = Color(0.1, 0.05, 0.12, 0.9)
 	_erosion_bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.add_child(_erosion_bar_bg)
 
 	_erosion_bar_fill = ColorRect.new()
-	_erosion_bar_fill.size = Vector2(0, 18); _erosion_bar_fill.position = Vector2(0, 2)
+	_erosion_bar_fill.size = Vector2(0, 24); _erosion_bar_fill.position = Vector2(0, 4)
 	_erosion_bar_fill.color = Color(0.65, 0.15, 0.8, 0.95)
 	_erosion_bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.add_child(_erosion_bar_fill)
 
 	_erosion_label = Label.new()
-	_erosion_label.size = Vector2(280, 18); _erosion_label.position = Vector2(0, 2)
+	_erosion_label.size = Vector2(280, 24); _erosion_label.position = Vector2(0, 4)
 	_erosion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_erosion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_erosion_label.add_theme_font_size_override("font_size", 11)
