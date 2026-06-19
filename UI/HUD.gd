@@ -187,8 +187,7 @@ func _on_resume_pressed() -> void:
 	GameManager.toggle_pause()
 
 func _on_restart_pressed() -> void:
-	get_tree().paused = false
-	get_tree().reload_current_scene()
+	GameManager.restart_from_checkpoint()
 
 func _on_back_pressed() -> void:
 	get_tree().paused = false

@@ -5,7 +5,7 @@
 [ext_resource type="Resource" uid="uid://cvkk15exlxv4n" path="res://DataConfig/Level/Level03Data.tres" id="3_data"]
 [ext_resource type="Script" uid="uid://b8ncuf7p5o5rh" path="res://LevelModule/Formal/InteractiveObject.gd" id="4_bfbdy"]
 [ext_resource type="PackedScene" uid="uid://celewb5gfbt4d" path="res://LevelModule/Scenes/PixelworkMapStitch/Level_03_determined/Level_03_base_20260618_191924_077.tscn" id="5_df3eu"]
-[ext_resource type="Texture2D" uid="uid://cfg5wm6yj84f6" path="res://Assets/Grandpa.png" id="6_grandpa"]
+[ext_resource type="Texture2D" uid="uid://bh3xqwgijt61j" path="res://Assets/Sprites/grandpa/爷爷待机.png" id="6_grandpa"]
 [ext_resource type="Texture2D" uid="uid://cykr2oqnidc5w" path="res://Assets/Effects/时空裂缝final.png" id="7_echo"]
 [ext_resource type="Shader" uid="uid://0r38tgualfae" path="res://LevelModule/Formal/memory_echo_effect.gdshader" id="memory_echo_shader"]
 
@@ -73,6 +73,98 @@ size = Vector2(80, 452)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_v73f7"]
 size = Vector2(80, 460)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_0"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_1"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_2"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_3"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_4"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(0, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_5"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(64, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_6"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(128, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_7"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(192, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_8"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(0, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_9"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(64, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_10"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(128, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_11"]
+atlas = ExtResource("6_grandpa")
+region = Rect2(192, 128, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_grandpa"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_11")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}]
 
 [node name="Level_03" type="Node2D" unique_id=1356346773]
 script = ExtResource("1_script")
@@ -178,10 +270,11 @@ prompt_text = "按 Enter 与爷爷对话"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractiveObjects/Grandpa" unique_id=581014448]
 shape = SubResource("RectangleShape2D_k2v8w")
 
-[node name="Sprite" type="Sprite2D" parent="InteractiveObjects/Grandpa" unique_id=345821957]
-position = Vector2(-9.059906e-06, -1.9073486e-05)
-scale = Vector2(1.7187505, 1.7187505)
-texture = ExtResource("6_grandpa")
+[node name="Sprite" type="AnimatedSprite2D" parent="InteractiveObjects/Grandpa" unique_id=345821957]
+scale = Vector2(-1.7187505, 1.7187505)
+sprite_frames = SubResource("SpriteFrames_grandpa")
+animation = &"idle"
+autoplay = "idle"
 
 [node name="InteractionPrompt" type="Label" parent="InteractiveObjects/Grandpa" unique_id=421120830]
 visible = false
