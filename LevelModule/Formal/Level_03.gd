@@ -71,12 +71,15 @@ const NARRATIVE_INPUT_TIMEOUT: float = 30.0
 
 # ---- 敌人管理 ----
 var _enemy_cyber_wolf_scene: PackedScene = null
+var _enemy_lantern_ghost_scene: PackedScene = null
+var _enemy_paper_effigy_scene: PackedScene = null
+var _enemy_cyber_bull_scene: PackedScene = null
 var _lingnan_enemies: Array[Node2D] = []
 var _cyber_enemies: Array[Node2D] = []
 var _enemy_spawn_timer: Timer = null
 const ENEMY_MAX_ALIVE: int = 6
 const ENEMY_MAX_ONSCREEN: int = 4
-const ENEMY_SPAWN_INTERVAL: float = 2.5
+const ENEMY_SPAWN_INTERVAL: float = 5.0
 
 # ---- 击退反转 ----
 const KNOCKBACK_REVERSE_FORCE: float = 350.0
@@ -117,6 +120,15 @@ func _on_ready() -> void:
 	var wolf_path = "res://EnemyModule/Formal/Enemy_CyberWolf.tscn"
 	if ResourceLoader.exists(wolf_path):
 		_enemy_cyber_wolf_scene = load(wolf_path)
+	var lantern_path = "res://EnemyModule/Formal/Enemy_LanternGhost.tscn"
+	if ResourceLoader.exists(lantern_path):
+		_enemy_lantern_ghost_scene = load(lantern_path)
+	var effigy_path = "res://EnemyModule/Formal/Enemy_PaperEffigy.tscn"
+	if ResourceLoader.exists(effigy_path):
+		_enemy_paper_effigy_scene = load(effigy_path)
+	var bull_path = "res://EnemyModule/Formal/Enemy_CyberBull.tscn"
+	if ResourceLoader.exists(bull_path):
+		_enemy_cyber_bull_scene = load(bull_path)
 
 	_apply_dream_runtime_flags()
 
@@ -272,12 +284,6 @@ func _bind_scene_nodes() -> void:
 	# 交互物
 	_grandpa_node = $InteractiveObjects/Grandpa
 	_grandpa_node.allow_repeat = false
-	# 爷爷贴图
-	var grandpa_sprite = Sprite2D.new()
-	grandpa_sprite.name = "Sprite"
-	grandpa_sprite.texture = load("res://Assets/Granda.png")
-	grandpa_sprite.position = Vector2(0, -40)
-	_grandpa_node.add_child(grandpa_sprite)
 
 	_memory_echo_1_node = $InteractiveObjects/MemoryEcho1
 	_memory_echo_1_node.is_active = false   # 初始禁用，CYBER_CITY 阶段才激活
@@ -371,8 +377,6 @@ func _swap_player_to_cyber() -> void:
 	var old_player = GameManager.player_ref
 	if not old_player or not is_instance_valid(old_player): return
 
-	var saved_health: int = old_player.current_health
-	var saved_max_health: int = old_player.max_health
 	var saved_facing_right: bool = old_player.is_facing_right
 
 	if InputManager.game_action.is_connected(old_player._on_game_action):
@@ -386,9 +390,8 @@ func _swap_player_to_cyber() -> void:
 		return
 	var new_player = load(cyber_path).instantiate()
 	add_child(new_player)
-	new_player.current_health = saved_health
-	new_player.max_health = saved_max_health
-	new_player.global_position = old_player.global_position
+	new_player.current_health = new_player.max_health  # 换皮后血条回满
+	new_player.global_position = Vector2(1792, 552)
 	new_player.velocity = Vector2.ZERO
 	new_player.is_facing_right = saved_facing_right
 	GameManager.register_player(new_player)
@@ -426,7 +429,7 @@ func _on_player_died(_data: Dictionary) -> void:
 	if current_state in [LevelState.LINGNAN_COMBAT]:
 		respawn_pos = Vector2(120, 512)   # 岭南区域重生点
 	elif current_state in [LevelState.CYBER_CITY, LevelState.MEMORY_COLLECTION]:
-		respawn_pos = Vector2(4912, 512)  # 赛博区域重生点
+		respawn_pos = Vector2(1792, 552)  # 赛博区域重生点
 	else:
 		return  # 非战斗状态不处理
 
@@ -661,11 +664,10 @@ func _trigger_lingnan_combat() -> void:
 	# 打开凉茶铺右墙 — 允许玩家进入街巷区域战斗
 	_remove_wall("SafeHavenRoot/HavenRightWall")
 
-	# 在墙后刷一只冲脸敌人，直接命令其朝玩家冲锋
-	var rush_config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
-	var rush_enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, Vector2(680, 540), rush_config)
+	# 在墙后刷一只冲脸纸扎人，直接命令其朝玩家冲锋
+	var rush_config = load("res://DataConfig/Enemy/PaperEffigyConfig.tres") as EnemyConfig
+	var rush_enemy = _spawn_enemy_with_config(_enemy_paper_effigy_scene, Vector2(680, 540), rush_config)
 	if rush_enemy:
-		rush_enemy.modulate = Color(0.25, 0.2, 0.35, 0.95)
 		_lingnan_enemies.append(rush_enemy)
 		# 为该敌人生成独立配置副本，扩大检测范围至 1000px
 		rush_enemy.config = rush_config.duplicate()
@@ -690,8 +692,8 @@ func _trigger_lingnan_combat() -> void:
 		_show_narrative("[color=yellow]空气中弥漫着不安的气息……有什么东西正在逼近！[/color]")
 
 func _spawn_lingnan_enemies() -> void:
-	if not _enemy_cyber_wolf_scene:
-		push_warning("[Level_03] Enemy_CyberWolf.tscn 缺失")
+	if not _enemy_paper_effigy_scene or not _enemy_lantern_ghost_scene:
+		push_warning("[Level_03] 敌人场景缺失")
 		return
 
 	var spawn_points = level_data.lingnan_enemy_spawn_points if level_data else []
@@ -699,12 +701,15 @@ func _spawn_lingnan_enemies() -> void:
 		spawn_points = [Vector2(955, 540), Vector2(1170, 540), Vector2(1385, 540), Vector2(1600, 540), Vector2(1815, 540)]
 
 	var count = level_data.lingnan_enemy_count if level_data else 5
-	var cleaner_config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
+	var effigy_config = load("res://DataConfig/Enemy/PaperEffigyConfig.tres") as EnemyConfig
+	var lantern_config = load("res://DataConfig/Enemy/LanternGhostConfig.tres") as EnemyConfig
 
 	for i in range(mini(spawn_points.size(), count)):
-		var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, spawn_points[i], cleaner_config)
+		var is_lantern = (i % 2 == 0)  # 交替：灯笼鬼, 纸扎人, 灯笼鬼...
+		var scene = _enemy_lantern_ghost_scene if is_lantern else _enemy_paper_effigy_scene
+		var config = lantern_config if is_lantern else effigy_config
+		var enemy = _spawn_enemy_with_config(scene, spawn_points[i], config)
 		if enemy:
-			enemy.modulate = Color(0.25, 0.2, 0.35, 0.95)  # 暗紫色（阴影感）
 			_lingnan_enemies.append(enemy)
 
 	_lingnan_enemies_alive = _lingnan_enemies.size()
@@ -755,6 +760,8 @@ func _on_lingnan_combat_complete() -> void:
 
 	_remove_wall("LingnanAlleyRoot/AlleyRightWall")
 	_remove_wall("TransitionCorridorRoot/CorridorRightWall")
+	# 走廊区域生成敌人（CyberBull + PaperEffigy 各2只）
+	_spawn_corridor_enemies()
 
 	# 赛博城显现 + 碰撞启用
 	if _cyber_city_root:
@@ -763,11 +770,10 @@ func _on_lingnan_combat_complete() -> void:
 		# 移除赛博城左墙（旧双空间架构遗留，与走廊右墙重叠，不拆除则阻挡通行）
 		_remove_wall("CyberCityRoot/CyberLeftWall")
 
-	# 6) 扩展相机到全地图 (CyberGround 末端=6816)
-	_set_camera_limits(0, 6816, 168, 608)
-
-	# 7) 玩家皮肤切换（赛博战斗系统）
+	# 6) 玩家皮肤切换（赛博战斗系统，摄像机保持与岭南阶段一致）
 	_swap_player_to_cyber()
+	# 新玩家自带新 SmoothCamera 会重置为默认值，重新应用相机设置
+	_set_camera_limits(1728, 6816, 168, 608)
 
 	# 8) Glitch渐退
 	if _glitch_overlay and _glitch_overlay.material:
@@ -932,6 +938,21 @@ func _spawn_cyber_enemies() -> void:
 			_cyber_enemies.append(enemy)
 
 	print("[Level_03] 赛博敌人生成: %d 只" % _cyber_enemies.size())
+
+func _spawn_corridor_enemies() -> void:
+	if not _enemy_cyber_bull_scene or not _enemy_paper_effigy_scene:
+		return
+	# 走廊区域 CorridorGroundCold: [2144, 4032]，4只均匀分布
+	var bull_config = load("res://DataConfig/Enemy/CyberBullConfig.tres") as EnemyConfig
+	var effigy_config = load("res://DataConfig/Enemy/PaperEffigyConfig.tres") as EnemyConfig
+	var positions = [Vector2(2612, 540), Vector2(2930, 540), Vector2(3248, 540), Vector2(3566, 540)]
+	var scenes = [_enemy_cyber_bull_scene, _enemy_paper_effigy_scene, _enemy_cyber_bull_scene, _enemy_paper_effigy_scene]
+	var configs = [bull_config, effigy_config, bull_config, effigy_config]
+	for i in range(4):
+		var enemy = _spawn_enemy_with_config(scenes[i], positions[i], configs[i])
+		if enemy:
+			_cyber_enemies.append(enemy)
+	print("[Level_03] 走廊敌人生成: 4 只 (CyberBull+PaperEffigy)")
 
 func _spawn_enemy_with_config(scene: PackedScene, spawn_pos: Vector2, config: EnemyConfig) -> Node2D:
 	if not scene: return null
