@@ -1,10 +1,11 @@
 [gd_scene format=3 uid="uid://c8o2fx2lfysgu"]
 
 [ext_resource type="Script" uid="uid://hlsg1p1xo7uc" path="res://LevelModule/Formal/Level_03.gd" id="1_script"]
-[ext_resource type="Resource" path="res://DataConfig/Level/Level03Config.tres" id="2_config"]
+[ext_resource type="Resource" uid="uid://dkjikksaoo1gg" path="res://DataConfig/Level/Level03Config.tres" id="2_config"]
 [ext_resource type="Resource" uid="uid://cvkk15exlxv4n" path="res://DataConfig/Level/Level03Data.tres" id="3_data"]
 [ext_resource type="Script" uid="uid://b8ncuf7p5o5rh" path="res://LevelModule/Formal/InteractiveObject.gd" id="4_bfbdy"]
 [ext_resource type="PackedScene" uid="uid://celewb5gfbt4d" path="res://LevelModule/Scenes/PixelworkMapStitch/Level_03_determined/Level_03_base_20260618_191924_077.tscn" id="5_df3eu"]
+[ext_resource type="Texture2D" uid="uid://cfg5wm6yj84f6" path="res://Assets/Grandpa.png" id="6_grandpa"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_3sg5s"]
 size = Vector2(640, 40)
@@ -153,14 +154,20 @@ object_id = "grandpa"
 prompt_text = "按 Enter 与爷爷对话"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractiveObjects/Grandpa" unique_id=581014448]
+position = Vector2(0, 40)
 shape = SubResource("RectangleShape2D_k2v8w")
+
+[node name="Sprite" type="Sprite2D" parent="InteractiveObjects/Grandpa" unique_id=345821957]
+position = Vector2(-7.000009, 62.99998)
+scale = Vector2(1.7187505, 1.7187505)
+texture = ExtResource("6_grandpa")
 
 [node name="InteractionPrompt" type="Label" parent="InteractiveObjects/Grandpa" unique_id=421120830]
 visible = false
 offset_left = -80.0
-offset_top = -55.0
+offset_top = -40.0
 offset_right = 80.0
-offset_bottom = -31.0
+offset_bottom = -16.0
 theme_override_colors/font_color = Color(1, 0.9, 0.2, 0.8454809)
 theme_override_font_sizes/font_size = 14
 text = "按 Enter 与爷爷对话"
