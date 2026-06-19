@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://dhq0arcnfe3r4" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 4.png" id="4_boss_bg"]
 [ext_resource type="Script" uid="uid://b8ncuf7p5o5rh" path="res://LevelModule/Formal/InteractiveObject.gd" id="5_interact"]
 [ext_resource type="Texture2D" uid="uid://bvrmrgf5vb200" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 5.png" id="6_bg5_bg"]
+[ext_resource type="Texture2D" uid="uid://bh3xqwgijt61j" path="res://Assets/Sprites/grandpa/爷爷待机.png" id="7_fmr2n"]
 
 [sub_resource type="RectangleShape2D" id="floor_shape"]
 size = Vector2(4672, 26)
@@ -48,6 +49,101 @@ size = Vector2(408, 11.5)
 
 [sub_resource type="RectangleShape2D" id="ln_p4"]
 size = Vector2(197, 18)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8o2ai"]
+size = Vector2(80, 120)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_0"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_1"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_2"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_3"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_4"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(0, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_5"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(64, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_6"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(128, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_7"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(192, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_8"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(0, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_9"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(64, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_10"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(128, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_11"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(192, 128, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u0vad"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_11")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}]
 
 [sub_resource type="RectangleShape2D" id="bg5_floor"]
 size = Vector2(1640, 40)
@@ -214,6 +310,35 @@ z_index = -5
 position = Vector2(1291.6001, 7904.8)
 scale = Vector2(1.2, 1.2)
 texture = ExtResource("6_bg5_bg")
+
+[node name="Grandpa" type="Area2D" parent="Bg5" unique_id=167424246]
+position = Vector2(536.9999, 219.33342)
+collision_layer = 0
+collision_mask = 4
+monitorable = false
+script = ExtResource("5_interact")
+object_id = "grandpa"
+prompt_text = "按 Enter 与爷爷对话"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5/Grandpa" unique_id=73358351]
+shape = SubResource("RectangleShape2D_8o2ai")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="Bg5/Grandpa" unique_id=193087788]
+scale = Vector2(-1.7187505, 1.7187505)
+sprite_frames = SubResource("SpriteFrames_u0vad")
+animation = &"idle"
+autoplay = "idle"
+
+[node name="InteractionPrompt" type="Label" parent="Bg5/Grandpa" unique_id=1406004082]
+visible = false
+offset_left = -88.0
+offset_top = 8.0
+offset_right = 72.0
+offset_bottom = 32.0
+theme_override_colors/font_color = Color(1, 0.9, 0.2, 0.8454809)
+theme_override_font_sizes/font_size = 14
+text = "按 Enter 与爷爷对话"
+horizontal_alignment = 1
 
 [node name="Bg5Collisions" type="Node2D" parent="." unique_id=580300001]
 

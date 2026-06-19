@@ -451,11 +451,14 @@ func _load_hud() -> void:
 
 func _cache_interactives() -> void:
 	_all_interactives.clear()
-	for child in get_children():
+	_collect_interactives_recursive(self)
+
+func _collect_interactives_recursive(node: Node) -> void:
+	for child in node.get_children():
 		if child is InteractiveObject:
 			_all_interactives.append(child)
-			# 复用关卡一的光点视觉
 			child.apply_level01_dot_visual()
+		_collect_interactives_recursive(child)
 
 func _find_nearby_interactive() -> InteractiveObject:
 	for obj in _all_interactives:
@@ -467,6 +470,8 @@ func _on_object_interacted(data: Dictionary) -> void:
 	var oid: String = data.get("object_id", "")
 	if oid == "enter_boss":
 		_enter_boss_arena()
+	elif oid == "grandpa":
+		_show_dialog(["爷爷？"], Callable())
 
 ## Boss死亡时缓结束后：恢复时缓，生成灯笼，显示死亡对话
 func _on_boss_death_recover(death_pos: Vector2) -> void:
@@ -589,13 +594,18 @@ func _teleport_to_bg5() -> void:
 	_hide_boss_bar()
 	print("[Level_05] 已进入 bg5 区域")
 
-## 激活/禁用bg5区域节点（背景显隐 + 碰撞体开关）
+## 激活/禁用bg5区域节点（背景显隐 + 碰撞体开关 + 爷爷交互物开关）
 func _set_bg5_area_active(active: bool) -> void:
 	if _bg5_bg:
 		_bg5_bg.visible = active
 	if _bg5_collisions:
 		_bg5_collisions.visible = active
 		_set_collision_group_active(_bg5_collisions, active)
+	# 爷爷交互物随 bg5 一起激活/禁用
+	var grandpa = _bg5_bg.get_node_or_null("Grandpa") if _bg5_bg else null
+	if grandpa is InteractiveObject:
+		(grandpa as InteractiveObject).is_active = active
+		(grandpa as Area2D).monitoring = active
 
 func _enter_boss_arena() -> void:
 	if _in_boss_arena: return
@@ -893,8 +903,14 @@ func _create_dialog_panel() -> void:
 	_dialog_panel = Panel.new()
 	_dialog_panel.name = "DialogPanel"
 	_dialog_panel.visible = false
-	_dialog_panel.size = Vector2(1280, 200)
-	_dialog_panel.position = Vector2(0, 520)
+	_dialog_panel.anchor_left = 0.0
+	_dialog_panel.anchor_top = 1.0
+	_dialog_panel.anchor_right = 1.0
+	_dialog_panel.anchor_bottom = 1.0
+	_dialog_panel.offset_left = 0.0
+	_dialog_panel.offset_top = -200.0
+	_dialog_panel.offset_right = 0.0
+	_dialog_panel.offset_bottom = 0.0
 	_dialog_panel.z_index = 200
 	_dialog_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# 仿照前三关 NarrativePanel 样式：纯黑半透背景 + 圆角，无紫色边框
@@ -906,8 +922,14 @@ func _create_dialog_panel() -> void:
 
 	_dialog_label = RichTextLabel.new()
 	_dialog_label.name = "RichTextLabel"
-	_dialog_label.size = Vector2(1240, 160)
-	_dialog_label.position = Vector2(20, 20)
+	_dialog_label.anchor_left = 0.0
+	_dialog_label.anchor_top = 0.0
+	_dialog_label.anchor_right = 1.0
+	_dialog_label.anchor_bottom = 1.0
+	_dialog_label.offset_left = 20.0
+	_dialog_label.offset_top = 20.0
+	_dialog_label.offset_right = -20.0
+	_dialog_label.offset_bottom = -20.0
 	_dialog_label.bbcode_enabled = true
 	_dialog_label.fit_content = true
 	_dialog_label.add_theme_font_size_override("normal_font_size", 18)
