@@ -10,10 +10,21 @@ var health_bar_max_width: float = 280.0
 var pause_panel: Panel
 var game_over_panel: Panel
 var _keybind_dim: Panel = null
+var _btn_tex: Texture2D = null
+
+# ---- 技能冷却UI ----
+var _skill_icon_container: Control = null   # 技能图标容器（右下角）
+var _skill_cooldown_overlay: ColorRect = null  # 冷却遮罩（从上往下收缩）
+var _skill_key_label: Label = null           # 按键提示"I"
+var _skill_cd_label: Label = null            # 冷却剩余秒数
+var _skill_ready_glow: ColorRect = null      # 就绪时边框高亮
+const SKILL_ICON_SIZE: float = 64.0
+const SKILL_ICON_PATH: String = "res://Assets/UI/skill_icon.png"  # 后续替换图片用
 
 func _ready() -> void:
 	# 关键：暂停时 HUD 必须继续运行，否则按钮无法响应
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_btn_tex = load("res://Assets/UI/btn.png") as Texture2D
 	_build_ui()
 	_connect_events()
 
@@ -91,29 +102,15 @@ func _build_ui() -> void:
 	pause_label.size = Vector2(400, 50)
 	pause_panel.add_child(pause_label)
 
-	var resume_btn = Button.new()
-	resume_btn.text = "继续游戏"
-	resume_btn.position = Vector2(540, 340)
-	resume_btn.size = Vector2(200, 44)
-	resume_btn.add_theme_font_size_override("font_size", 16)
-	resume_btn.focus_mode = Control.FOCUS_NONE
+	var resume_btn = _make_panel_btn("继续游戏", Vector2(540, 340), Vector2(200, 56))
 	resume_btn.pressed.connect(_on_resume_pressed)
 	pause_panel.add_child(resume_btn)
 
-	var keybind_btn = Button.new()
-	keybind_btn.text = "按键设置"
-	keybind_btn.position = Vector2(540, 400)
-	keybind_btn.size = Vector2(200, 44)
-	keybind_btn.add_theme_font_size_override("font_size", 16)
+	var keybind_btn = _make_panel_btn("按键设置", Vector2(540, 410), Vector2(200, 56))
 	keybind_btn.pressed.connect(_on_keybind_settings_pressed)
 	pause_panel.add_child(keybind_btn)
 
-	var back_btn2 = Button.new()
-	back_btn2.text = "返回主界面"
-	back_btn2.position = Vector2(540, 460)
-	back_btn2.size = Vector2(200, 44)
-	back_btn2.add_theme_font_size_override("font_size", 16)
-	back_btn2.focus_mode = Control.FOCUS_NONE
+	var back_btn2 = _make_panel_btn("返回主界面", Vector2(540, 480), Vector2(200, 56))
 	back_btn2.pressed.connect(_on_back_pressed)
 	pause_panel.add_child(back_btn2)
 
@@ -155,6 +152,136 @@ func _build_ui() -> void:
 	back_btn3.focus_mode = Control.FOCUS_NONE
 	back_btn3.pressed.connect(_on_back_pressed)
 	game_over_panel.add_child(back_btn3)
+
+	# === 右下角：技能冷却图标 ===
+	_build_skill_icon()
+
+## 构建技能冷却图标（右下角，便于后续替换图片）
+func _build_skill_icon() -> void:
+	_skill_icon_container = Control.new()
+	_skill_icon_container.name = "SkillIcon"
+	_skill_icon_container.position = Vector2(1200, 620)
+	_skill_icon_container.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	_skill_icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_skill_icon_container)
+
+	# 就绪高亮边框（就绪时呼吸闪烁，冷却时隐藏）
+	_skill_ready_glow = ColorRect.new()
+	_skill_ready_glow.name = "ReadyGlow"
+	_skill_ready_glow.color = Color(0.3, 0.9, 1.0, 0.0)
+	_skill_ready_glow.size = Vector2(SKILL_ICON_SIZE + 6, SKILL_ICON_SIZE + 6)
+	_skill_ready_glow.position = Vector2(-3, -3)
+	_skill_ready_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill_icon_container.add_child(_skill_ready_glow)
+
+	# 底框背景
+	var bg = ColorRect.new()
+	bg.name = "Bg"
+	bg.color = Color(0.12, 0.12, 0.18, 0.85)
+	bg.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill_icon_container.add_child(bg)
+
+	# 技能图标（TextureRect，后续替换图片只需改 SKILL_ICON_PATH 常量）
+	var tex = load(SKILL_ICON_PATH) as Texture2D
+	if tex:
+		var icon = TextureRect.new()
+		icon.name = "Icon"
+		icon.texture = tex
+		icon.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+		icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_skill_icon_container.add_child(icon)
+	else:
+		# 无图标资源时用文字占位
+		var placeholder = Label.new()
+		placeholder.name = "Placeholder"
+		placeholder.text = "技"
+		placeholder.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+		placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		placeholder.add_theme_font_size_override("font_size", 28)
+		placeholder.add_theme_color_override("font_color", Color(0.7, 0.7, 0.85))
+		placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_skill_icon_container.add_child(placeholder)
+
+	# 冷却遮罩（从上往下收缩，冷却中半透明黑覆盖）
+	_skill_cooldown_overlay = ColorRect.new()
+	_skill_cooldown_overlay.name = "CdOverlay"
+	_skill_cooldown_overlay.color = Color(0, 0, 0, 0.7)
+	_skill_cooldown_overlay.size = Vector2(SKILL_ICON_SIZE, 0)
+	_skill_cooldown_overlay.position = Vector2(0, 0)
+	_skill_cooldown_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill_icon_container.add_child(_skill_cooldown_overlay)
+
+	# 冷却剩余秒数文字
+	_skill_cd_label = Label.new()
+	_skill_cd_label.name = "CdLabel"
+	_skill_cd_label.text = ""
+	_skill_cd_label.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	_skill_cd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_skill_cd_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_skill_cd_label.add_theme_font_size_override("font_size", 24)
+	_skill_cd_label.add_theme_color_override("font_color", Color.WHITE)
+	_skill_cd_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_skill_cd_label.add_theme_constant_override("shadow_offset_x", 1)
+	_skill_cd_label.add_theme_constant_override("shadow_offset_y", 1)
+	_skill_cd_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill_icon_container.add_child(_skill_cd_label)
+
+	# 按键提示"I"（左下角小字）
+	_skill_key_label = Label.new()
+	_skill_key_label.name = "KeyHint"
+	_skill_key_label.text = "[I]"
+	_skill_key_label.size = Vector2(30, 18)
+	_skill_key_label.position = Vector2(-2, SKILL_ICON_SIZE - 16)
+	_skill_key_label.add_theme_font_size_override("font_size", 13)
+	_skill_key_label.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
+	_skill_key_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_skill_key_label.add_theme_constant_override("shadow_offset_x", 1)
+	_skill_key_label.add_theme_constant_override("shadow_offset_y", 1)
+	_skill_key_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill_icon_container.add_child(_skill_key_label)
+
+func _process(_delta: float) -> void:
+	_update_skill_cooldown()
+
+## 每帧更新技能冷却UI
+func _update_skill_cooldown() -> void:
+	if not _skill_icon_container: return
+	var p = GameManager.player_ref
+	if not p or not is_instance_valid(p):
+		_skill_icon_container.visible = false
+		return
+	# 仅 Player_Warrior 系列有 _skill_cooldown_timer
+	if not ("_skill_cooldown_timer" in p):
+		_skill_icon_container.visible = false
+		return
+	_skill_icon_container.visible = true
+
+	var cd_remaining: float = p.get("_skill_cooldown_timer")
+	# 获取冷却总时间（赛博4s/岭南5s/基类3s）
+	var cd_max: float = 3.0
+	if "CYBER_SKILL_CD" in p:
+		cd_max = p.get("CYBER_SKILL_CD")
+	elif "LINGNAN_SKILL_CD" in p:
+		cd_max = p.get("LINGNAN_SKILL_CD")
+	elif "SKILL_COOLDOWN" in p:
+		cd_max = p.get("SKILL_COOLDOWN")
+
+	if cd_remaining > 0.01:
+		# 冷却中：遮罩从上往下覆盖，高度按比例
+		var ratio = clampf(cd_remaining / cd_max, 0.0, 1.0)
+		_skill_cooldown_overlay.size.y = SKILL_ICON_SIZE * ratio
+		_skill_cd_label.text = "%.1f" % cd_remaining
+		_skill_ready_glow.color.a = 0.0
+	else:
+		# 就绪：遮罩清空，边框呼吸闪烁
+		_skill_cooldown_overlay.size.y = 0
+		_skill_cd_label.text = ""
+		var t = Time.get_ticks_msec() * 0.004
+		_skill_ready_glow.color.a = 0.15 + 0.2 * abs(sin(t))
 
 func _connect_events() -> void:
 	EventBus.subscribe(GlobalDefine.EventName.HEALTH_CHANGED, self, "_on_health_changed")
@@ -221,3 +348,31 @@ func _on_keybind_screen_closed() -> void:
 		_keybind_dim.queue_free()
 		_keybind_dim = null
 	pause_panel.show()
+
+## 创建带 btn.png 底板的纹理按钮（暂停面板等局内UI共用）
+func _make_panel_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton:
+	var btn := TextureButton.new()
+	btn.position = pos
+	btn.custom_minimum_size = size
+	btn.size = size
+	btn.focus_mode = Control.FOCUS_NONE
+	if _btn_tex:
+		btn.texture_normal = _btn_tex
+		btn.texture_hover = _btn_tex
+		btn.texture_pressed = _btn_tex
+	btn.ignore_texture_size = true
+	btn.stretch_mode = TextureButton.STRETCH_SCALE
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_color_override("font_color", Color.WHITE)
+	lbl.add_theme_font_size_override("font_size", 16)
+	btn.add_child(lbl)
+	btn.mouse_entered.connect(func() -> void: btn.modulate = Color(1.1, 1.1, 1.1, 1.0))
+	btn.mouse_exited.connect(func() -> void: btn.modulate = Color(0.95, 0.95, 0.95, 1.0))
+	btn.button_down.connect(func() -> void: btn.modulate = Color(0.8, 0.8, 0.8, 1.0))
+	btn.button_up.connect(func() -> void: btn.modulate = Color(1.1, 1.1, 1.1, 1.0))
+	return btn

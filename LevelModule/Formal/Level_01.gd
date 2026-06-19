@@ -380,7 +380,7 @@ func _apply_level_input_rules() -> void:
 	player.can_jump = false
 	player.can_attack = false
 	player.can_dash = false
-	player.can_skill = true
+	player.can_skill = false
 	player.runtime_move_speed_multiplier = LEVEL_01_MOVE_MULTIPLIER
 
 func _clear_level_input_rules() -> void:
