@@ -20,5 +20,5 @@ func handle_interaction(object_id: String) -> void:
 				level._handle_memory_echo_1()
 			elif object_id == "memory_echo_2":
 				level._handle_memory_echo_2()
-	# 二次幂等防线
-	level._is_interacting = false
+	# 不在此处重置 _is_interacting：叙事面板/回调链（含 _show_narrative）
+	# 是异步的（内部有 await），由 _show_narrative 和 _run_safely 自行管理状态

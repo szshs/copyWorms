@@ -6,6 +6,8 @@
 [ext_resource type="Script" uid="uid://b8ncuf7p5o5rh" path="res://LevelModule/Formal/InteractiveObject.gd" id="4_bfbdy"]
 [ext_resource type="PackedScene" uid="uid://celewb5gfbt4d" path="res://LevelModule/Scenes/PixelworkMapStitch/Level_03_determined/Level_03_base_20260618_191924_077.tscn" id="5_df3eu"]
 [ext_resource type="Texture2D" uid="uid://cfg5wm6yj84f6" path="res://Assets/Grandpa.png" id="6_grandpa"]
+[ext_resource type="Texture2D" uid="uid://cykr2oqnidc5w" path="res://Assets/Effects/时空裂缝final.png" id="7_echo"]
+[ext_resource type="Shader" uid="uid://0r38tgualfae" path="res://LevelModule/Formal/memory_echo_effect.gdshader" id="memory_echo_shader"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_3sg5s"]
 size = Vector2(640, 40)
@@ -43,14 +45,34 @@ size = Vector2(80, 120)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_7ym3o"]
 size = Vector2(60, 60)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_echo1"]
+shader = ExtResource("memory_echo_shader")
+shader_parameter/distort_strength = 0.4
+shader_parameter/distort_speed = 2.5
+shader_parameter/distort_freq = 8.0
+shader_parameter/flicker_intensity = 0.6
+shader_parameter/flicker_speed = 6.0
+shader_parameter/brightness = 0.3
+shader_parameter/tint_color = Color(0.6, 0.2, 0.95, 1)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_sshky"]
 size = Vector2(60, 60)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_echo2"]
+shader = ExtResource("memory_echo_shader")
+shader_parameter/distort_strength = 0.4
+shader_parameter/distort_speed = 2.5
+shader_parameter/distort_freq = 8.0
+shader_parameter/flicker_intensity = 0.6
+shader_parameter/flicker_speed = 6.0
+shader_parameter/brightness = 0.3
+shader_parameter/tint_color = Color(0.6, 0.2, 0.95, 1)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_uqinh"]
-size = Vector2(80, 360)
+size = Vector2(80, 452)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_v73f7"]
-size = Vector2(80, 360)
+size = Vector2(80, 460)
 
 [node name="Level_03" type="Node2D" unique_id=1356346773]
 script = ExtResource("1_script")
@@ -145,7 +167,7 @@ shape = SubResource("RectangleShape2D_ey11v")
 [node name="InteractiveObjects" type="Node2D" parent="." unique_id=421923524]
 
 [node name="Grandpa" type="Area2D" parent="InteractiveObjects" unique_id=275281000]
-position = Vector2(400, 504)
+position = Vector2(400, 568)
 collision_layer = 0
 collision_mask = 4
 monitorable = false
@@ -154,20 +176,19 @@ object_id = "grandpa"
 prompt_text = "按 Enter 与爷爷对话"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractiveObjects/Grandpa" unique_id=581014448]
-position = Vector2(0, 40)
 shape = SubResource("RectangleShape2D_k2v8w")
 
 [node name="Sprite" type="Sprite2D" parent="InteractiveObjects/Grandpa" unique_id=345821957]
-position = Vector2(-7.000009, 62.99998)
+position = Vector2(-9.059906e-06, -1.9073486e-05)
 scale = Vector2(1.7187505, 1.7187505)
 texture = ExtResource("6_grandpa")
 
 [node name="InteractionPrompt" type="Label" parent="InteractiveObjects/Grandpa" unique_id=421120830]
 visible = false
-offset_left = -80.0
-offset_top = -40.0
-offset_right = 80.0
-offset_bottom = -16.0
+offset_left = -88.0
+offset_top = 8.0
+offset_right = 72.0
+offset_bottom = 32.0
 theme_override_colors/font_color = Color(1, 0.9, 0.2, 0.8454809)
 theme_override_font_sizes/font_size = 14
 text = "按 Enter 与爷爷对话"
@@ -184,6 +205,13 @@ prompt_text = "按 Enter 触碰记忆"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractiveObjects/MemoryEcho1" unique_id=1265149454]
 shape = SubResource("RectangleShape2D_7ym3o")
+
+[node name="EchoSprite" type="Sprite2D" parent="InteractiveObjects/MemoryEcho1" unique_id=567097502]
+z_index = 8
+material = SubResource("ShaderMaterial_echo1")
+position = Vector2(-0.00021362305, 2)
+scale = Vector2(0.11197916, 0.111979164)
+texture = ExtResource("7_echo")
 
 [node name="InteractionPrompt" type="Label" parent="InteractiveObjects/MemoryEcho1" unique_id=1874597322]
 visible = false
@@ -208,6 +236,13 @@ prompt_text = "按 Enter 触碰记忆"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="InteractiveObjects/MemoryEcho2" unique_id=650958723]
 shape = SubResource("RectangleShape2D_sshky")
 
+[node name="EchoSprite" type="Sprite2D" parent="InteractiveObjects/MemoryEcho2" unique_id=2121544126]
+z_index = 8
+material = SubResource("ShaderMaterial_echo2")
+position = Vector2(0.00015258789, 0)
+scale = Vector2(0.17708333, 0.17708333)
+texture = ExtResource("7_echo")
+
 [node name="InteractionPrompt" type="Label" parent="InteractiveObjects/MemoryEcho2" unique_id=1359049002]
 visible = false
 offset_left = -80.0
@@ -228,6 +263,7 @@ collision_mask = 4
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TriggerZones/Warning1Trigger" unique_id=1541940820]
+position = Vector2(0, -46)
 shape = SubResource("RectangleShape2D_uqinh")
 
 [node name="Warning2Trigger" type="Area2D" parent="TriggerZones" unique_id=457370723]
@@ -237,6 +273,7 @@ collision_mask = 4
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TriggerZones/Warning2Trigger" unique_id=303707517]
+position = Vector2(0, -50)
 shape = SubResource("RectangleShape2D_v73f7")
 
 [node name="SpawnPoints" type="Node2D" parent="." unique_id=1438935996]
