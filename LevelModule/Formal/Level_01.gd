@@ -233,6 +233,9 @@ func _load_hud() -> void:
 	if ResourceLoader.exists(hud_path):
 		var hud = load(hud_path).instantiate()
 		add_child(hud)
+		# 关卡1为叙事关卡，禁用技能图标显示
+		if hud.has_method("suppress_skill_icon"):
+			hud.suppress_skill_icon(true)
 		print("[Level_01] HUD 加载成功")
 	else:
 		push_warning("[Level_01] HUD.tscn 未找到，跳过")

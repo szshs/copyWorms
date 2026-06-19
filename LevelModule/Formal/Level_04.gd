@@ -141,6 +141,8 @@ func _swap_player_skin(skin: String) -> void:
 
 func _on_ready() -> void:
 	super._on_ready()
+	# 入场黑屏遮罩（初始化在黑屏下进行，末尾淡出呈现关卡）
+	_play_intro_fade_in()
 	if not level_config: level_config = load("res://DataConfig/Level/Level04Config.tres") as LevelConfig; _apply_config()
 	if not level_data:  level_data  = load("res://DataConfig/Level/Level04Data.tres") as Level04Data
 
@@ -186,6 +188,8 @@ func _on_ready() -> void:
 		InputManager.game_action.connect(_on_game_action)
 
 	_load_hud(); set_process(true)
+	# 初始化完成，淡出黑屏呈现关卡
+	_finish_intro_fade_in()
 
 	if level_data and level_data.anchor_narrative != "":
 		_show_narrative("[color=green]> User_Ming_Override_Protocol: Phase_Final.[/color]\n[color=green]> Target: REAL_EXIT.[/color]", func():
@@ -203,6 +207,31 @@ func _on_ready() -> void:
 func _get_or_create_child(node_name: String, node_type) -> Node:
 	var e = get_node_or_null(node_name); if e: return e
 	var n = node_type.new(); n.name = node_name; add_child(n); return n
+
+## 入场黑屏遮罩：创建满黑 CanvasLayer，覆盖整个初始化过程
+func _play_intro_fade_in() -> void:
+	var cv = CanvasLayer.new()
+	cv.name = "IntroFadeCanvas"
+	cv.layer = 2000
+	add_child(cv)
+	var black = ColorRect.new()
+	black.name = "IntroFadeBlack"
+	black.set_anchors_preset(Control.PRESET_FULL_RECT)
+	black.size = get_viewport_rect().size
+	black.position = Vector2.ZERO
+	black.color = Color(0, 0, 0, 1.0)
+	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cv.add_child(black)
+
+## 初始化完成后淡出黑屏（1.5s），完成后自动清理遮罩节点
+func _finish_intro_fade_in() -> void:
+	var cv = get_node_or_null("IntroFadeCanvas")
+	if not cv: return
+	var black = cv.get_node_or_null("IntroFadeBlack")
+	if not black: return
+	var tw = get_tree().create_tween()
+	tw.tween_property(black, "color:a", 0.0, 1.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_callback(cv.queue_free)
 
 func _load_hud() -> void:
 	var p = "res://UI/HUD.tscn"

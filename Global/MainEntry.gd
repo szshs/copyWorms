@@ -85,21 +85,26 @@ func _switch_to_level(next_path: String, overlay_color: Color = Color.BLACK) -> 
 func _show_level_switch_overlay(color: Color) -> void:
 	if not _transition_canvas or not is_instance_valid(_transition_canvas):
 		_transition_canvas = CanvasLayer.new()
-		_transition_canvas.layer = 100
+		_transition_canvas.layer = 1000
 		add_child(_transition_canvas)
 	if not _transition_black or not is_instance_valid(_transition_black):
 		_transition_black = ColorRect.new()
 		_transition_black.set_anchors_preset(Control.PRESET_FULL_RECT)
+		# CanvasLayer 不是 Control，anchors 无法自动撑满，需显式设置尺寸为视口大小
+		var vp_size = get_viewport_rect().size
+		_transition_black.size = vp_size
+		_transition_black.position = Vector2.ZERO
 		_transition_black.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_transition_canvas.add_child(_transition_black)
 	_transition_black.color = Color(color.r, color.g, color.b, 1.0)
 	_transition_black.show()
 
-func _fade_out_level_switch_overlay() -> void:
+func _fade_out_level_switch_overlay(duration: float = LEVEL_SWITCH_FADE_OUT_DURATION) -> void:
 	if not _transition_black or not is_instance_valid(_transition_black):
 		return
-	var tween = create_tween()
-	tween.tween_property(_transition_black, "color:a", 0.0, LEVEL_SWITCH_FADE_OUT_DURATION).set_trans(Tween.TRANS_SINE)
+	# 用 get_tree().create_tween() 绑定到 SceneTree，避免节点 process_mode 影响
+	var tween = get_tree().create_tween()
+	tween.tween_property(_transition_black, "color:a", 0.0, duration).set_trans(Tween.TRANS_SINE)
 	await tween.finished
 	if _transition_canvas and is_instance_valid(_transition_canvas):
 		_transition_canvas.queue_free()
@@ -129,12 +134,16 @@ func _load_formal_level() -> void:
 	# 尝试加载正式关卡
 	var level_path = "res://LevelModule/Formal/Level_01.tscn"
 	if ResourceLoader.exists(level_path):
+		# 先显示满黑遮罩，加载后淡出，呈现黑屏淡入效果
+		_show_level_switch_overlay(Color.BLACK)
 		var level = load(level_path).instantiate()
 		add_child(level)
 		_current_level_node = level
 		EventBus.emit(GlobalDefine.EventName.LEVEL_LOADED, { "level": level })
 		print("[MainEntry] 关卡加载成功: Level_01")
 		# HUD 由关卡模块自行管理，MainEntry 不再插手
+		await get_tree().process_frame
+		await _fade_out_level_switch_overlay(1.5)
 		return
 	else:
 		# 关卡不存在时加载临时占位场景

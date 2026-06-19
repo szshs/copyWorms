@@ -219,6 +219,9 @@ func _load_hud() -> void:
 	if ResourceLoader.exists(hud_path):
 		var hud = load(hud_path).instantiate()
 		add_child(hud)
+		# 现实房间为叙事段，禁用技能图标显示
+		if hud.has_method("suppress_skill_icon"):
+			hud.suppress_skill_icon(true)
 
 
 # ============================================================
