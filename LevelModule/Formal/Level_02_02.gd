@@ -327,6 +327,33 @@ func _build_exit_trigger() -> void:
 	_exit_trigger = _ensure_trigger_zone(container, "Level0202ExitTrigger", exit_trigger_position, exit_trigger_size)
 	if not _exit_trigger.body_entered.is_connected(_on_exit_trigger_body_entered):
 		_exit_trigger.body_entered.connect(_on_exit_trigger_body_entered)
+	_add_exit_dot_visual(_exit_trigger)
+
+
+## 给出口触发区添加关卡1同款闪烁光点（10px 黄点 + 24px 光晕 + 正弦闪烁）
+func _add_exit_dot_visual(area: Area2D) -> void:
+	var indicator = ColorRect.new()
+	indicator.name = "Indicator"
+	indicator.color = Color(1.0, 0.85, 0.2, 0.9)
+	indicator.size = Vector2(10, 10)
+	indicator.position = -indicator.size / 2
+	indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	indicator.z_index = 10
+	area.add_child(indicator)
+	var glow = ColorRect.new()
+	glow.name = "Glow"
+	glow.color = Color(1.0, 0.9, 0.3, 0.3)
+	glow.size = Vector2(24, 24)
+	glow.position = -glow.size / 2
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.z_index = 9
+	area.add_child(glow)
+	var tw = indicator.create_tween().set_loops()
+	tw.tween_property(indicator, "color:a", 0.2, 0.6).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(indicator, "color:a", 0.9, 0.6).set_trans(Tween.TRANS_SINE)
+	var tw2 = glow.create_tween().set_loops()
+	tw2.tween_property(glow, "color:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
+	tw2.tween_property(glow, "color:a", 0.3, 0.6).set_trans(Tween.TRANS_SINE)
 
 
 func _build_dynamic_actors_container() -> void:
