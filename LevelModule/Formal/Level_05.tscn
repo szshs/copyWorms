@@ -6,12 +6,13 @@
 [ext_resource type="Texture2D" uid="uid://dhq0arcnfe3r4" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 4.png" id="4_boss_bg"]
 [ext_resource type="Script" uid="uid://b8ncuf7p5o5rh" path="res://LevelModule/Formal/InteractiveObject.gd" id="5_interact"]
 [ext_resource type="Texture2D" uid="uid://bvrmrgf5vb200" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 5.png" id="6_bg5_bg"]
+[ext_resource type="Texture2D" uid="uid://bh3xqwgijt61j" path="res://Assets/Sprites/grandpa/爷爷待机.png" id="7_fmr2n"]
 
 [sub_resource type="RectangleShape2D" id="floor_shape"]
-size = Vector2(5561, 66)
+size = Vector2(4672, 26)
 
 [sub_resource type="RectangleShape2D" id="wall_shape"]
-size = Vector2(25, 800)
+size = Vector2(8, 800)
 
 [sub_resource type="RectangleShape2D" id="cy_p1"]
 size = Vector2(978, 25)
@@ -35,7 +36,7 @@ size = Vector2(235, 25)
 size = Vector2(194, 25)
 
 [sub_resource type="RectangleShape2D" id="boss_floor"]
-size = Vector2(1160, 25)
+size = Vector2(1128, 38.5)
 
 [sub_resource type="RectangleShape2D" id="ln_p1"]
 size = Vector2(1360, 25)
@@ -49,8 +50,103 @@ size = Vector2(408, 11.5)
 [sub_resource type="RectangleShape2D" id="ln_p4"]
 size = Vector2(197, 18)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8o2ai"]
+size = Vector2(80, 120)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_0"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_1"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_2"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_3"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_4"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(0, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_5"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(64, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_6"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(128, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_7"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(192, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_8"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(0, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_9"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(64, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_10"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(128, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grandpa_11"]
+atlas = ExtResource("7_fmr2n")
+region = Rect2(192, 128, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_u0vad"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grandpa_11")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 8.0
+}]
+
 [sub_resource type="RectangleShape2D" id="bg5_floor"]
-size = Vector2(1760, 40)
+size = Vector2(1640, 40)
 
 [sub_resource type="RectangleShape2D" id="bg5_wall"]
 size = Vector2(40, 905.75)
@@ -76,7 +172,7 @@ texture = ExtResource("2_lingnan_bg")
 position = Vector2(640, 440)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Floor" unique_id=878131168]
-position = Vector2(429.5, 207)
+position = Vector2(0, 187)
 shape = SubResource("floor_shape")
 
 [node name="CyberCollisions" type="Node2D" parent="." unique_id=580123456]
@@ -85,12 +181,14 @@ shape = SubResource("floor_shape")
 position = Vector2(-1702, 360)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/LeftWall" unique_id=580123459]
+position = Vector2(14, 0)
 shape = SubResource("wall_shape")
 
 [node name="RightWall" type="StaticBody2D" parent="CyberCollisions" unique_id=580123460]
 position = Vector2(2982, 360)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/RightWall" unique_id=580123461]
+position = Vector2(-4.25, 0)
 shape = SubResource("wall_shape")
 
 [node name="CY_P1" type="StaticBody2D" parent="CyberCollisions" unique_id=580123490]
@@ -147,21 +245,21 @@ texture = ExtResource("4_boss_bg")
 position = Vector2(712, 5004)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BossCollisions/LeftWall" unique_id=580200003]
-position = Vector2(-94, -290)
+position = Vector2(-80.875, -292)
 shape = SubResource("wall_shape")
 
 [node name="RightWall" type="StaticBody2D" parent="BossCollisions" unique_id=580200004]
 position = Vector2(1466, 5004)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BossCollisions/RightWall" unique_id=580200005]
-position = Vector2(291, -289)
+position = Vector2(278, -284)
 shape = SubResource("wall_shape")
 
 [node name="Floor" type="StaticBody2D" parent="BossCollisions" unique_id=580200006]
 position = Vector2(1089, 5199)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="BossCollisions/Floor" unique_id=580200007]
-position = Vector2(99, -89)
+position = Vector2(99, -82.25)
 shape = SubResource("boss_floor")
 
 [node name="LingnanCollisions" type="Node2D" parent="." unique_id=580123457]
@@ -213,27 +311,56 @@ position = Vector2(1291.6001, 7904.8)
 scale = Vector2(1.2, 1.2)
 texture = ExtResource("6_bg5_bg")
 
+[node name="Grandpa" type="Area2D" parent="Bg5" unique_id=167424246]
+position = Vector2(536.9999, 219.33342)
+collision_layer = 0
+collision_mask = 4
+monitorable = false
+script = ExtResource("5_interact")
+object_id = "grandpa"
+prompt_text = "按 Enter 与爷爷对话"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5/Grandpa" unique_id=73358351]
+shape = SubResource("RectangleShape2D_8o2ai")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="Bg5/Grandpa" unique_id=193087788]
+scale = Vector2(-1.7187505, 1.7187505)
+sprite_frames = SubResource("SpriteFrames_u0vad")
+animation = &"idle"
+autoplay = "idle"
+
+[node name="InteractionPrompt" type="Label" parent="Bg5/Grandpa" unique_id=1406004082]
+visible = false
+offset_left = -88.0
+offset_top = 8.0
+offset_right = 72.0
+offset_bottom = 32.0
+theme_override_colors/font_color = Color(1, 0.9, 0.2, 0.8454809)
+theme_override_font_sizes/font_size = 14
+text = "按 Enter 与爷爷对话"
+horizontal_alignment = 1
+
 [node name="Bg5Collisions" type="Node2D" parent="." unique_id=580300001]
 
 [node name="Floor" type="StaticBody2D" parent="Bg5Collisions" unique_id=580300002]
 position = Vector2(1291.6001, 8182.8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5Collisions/Floor" unique_id=580300003]
-position = Vector2(10.399902, 47.200195)
+position = Vector2(0.39990234, 47.200195)
 shape = SubResource("bg5_floor")
 
 [node name="LeftWall" type="StaticBody2D" parent="Bg5Collisions" unique_id=580300004]
 position = Vector2(611.6001, 7882.8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5Collisions/LeftWall" unique_id=580300005]
-position = Vector2(-155.6001, -22.924805)
+position = Vector2(-123.6001, -26.799805)
 shape = SubResource("bg5_wall")
 
 [node name="RightWall" type="StaticBody2D" parent="Bg5Collisions" unique_id=580300006]
 position = Vector2(1971.6001, 7882.8)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5Collisions/RightWall" unique_id=580300007]
-position = Vector2(148.3999, -65.549805)
+position = Vector2(124.3999, -66.799805)
 shape = SubResource("bg5_wall")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=258921447]

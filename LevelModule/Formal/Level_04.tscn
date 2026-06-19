@@ -131,10 +131,10 @@ size = Vector2(313, 25)
 size = Vector2(442, 25)
 
 [sub_resource type="RectangleShape2D" id="s2_wall_v"]
-size = Vector2(25, 1200)
+size = Vector2(25, 1068)
 
 [sub_resource type="RectangleShape2D" id="s2_wall_h"]
-size = Vector2(7500, 41.524902)
+size = Vector2(7472, 41.524902)
 
 [sub_resource type="RectangleShape2D" id="s2c_bot_1"]
 size = Vector2(3539, 18)
@@ -149,13 +149,13 @@ size = Vector2(1424, 26)
 size = Vector2(879, 26)
 
 [sub_resource type="RectangleShape2D" id="s2c_kz1"]
-size = Vector2(359, 96)
+size = Vector2(359, 7)
 
 [sub_resource type="RectangleShape2D" id="s2c_kz2"]
-size = Vector2(337, 112)
+size = Vector2(337, 8)
 
 [sub_resource type="RectangleShape2D" id="s2c_kz3"]
-size = Vector2(571, 76)
+size = Vector2(571, 6)
 
 [sub_resource type="RectangleShape2D" id="s2c_1"]
 size = Vector2(988, 25)
@@ -341,30 +341,30 @@ script = ExtResource("6_ladder")
 ladder_top_y = -164.0
 
 [node name="L_05" type="Area2D" parent="Ladders" unique_id=1358036913]
-position = Vector2(1165, 457.5)
+position = Vector2(1160, 472)
 script = ExtResource("6_ladder")
 ladder_top_y = 372.0
 ladder_bottom_y = 543.0
 
 [node name="L_06" type="Area2D" parent="Ladders" unique_id=2006239737]
-position = Vector2(1490, -254)
+position = Vector2(1488, -256)
 script = ExtResource("6_ladder")
 ladder_bottom_y = -164.0
 
 [node name="L_07" type="Area2D" parent="Ladders" unique_id=1507693896]
-position = Vector2(1973, 457.5)
+position = Vector2(1976, 464)
 script = ExtResource("6_ladder")
 ladder_top_y = 372.0
 ladder_bottom_y = 543.0
 
 [node name="L_08" type="Area2D" parent="Ladders" unique_id=1994024046]
-position = Vector2(2195, 281)
+position = Vector2(2192, 272)
 script = ExtResource("6_ladder")
 ladder_top_y = 190.0
 ladder_bottom_y = 372.0
 
 [node name="L_09" type="Area2D" parent="Ladders" unique_id=1885554655]
-position = Vector2(2141, 102.5)
+position = Vector2(2136, 96)
 script = ExtResource("6_ladder")
 ladder_top_y = 15.0
 ladder_bottom_y = 190.0
@@ -576,6 +576,7 @@ shape = SubResource("bdr_v2")
 position = Vector2(2000, 2500)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanBorders/LingnanBot" unique_id=1092313310]
+position = Vector2(-8, -316)
 shape = SubResource("bdr_h2")
 
 [node name="Stage2Collisions" type="Node2D" parent="." unique_id=-732062585]
@@ -718,19 +719,21 @@ shape = SubResource("s2_19")
 position = Vector2(0, 4518.5)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Borders/S2B_Left" unique_id=-376692795]
+position = Vector2(16, -42.5)
 shape = SubResource("s2_wall_v")
 
 [node name="S2B_Right" type="StaticBody2D" parent="Stage2Borders" unique_id=-770698991]
 position = Vector2(7474, 4518.5)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Borders/S2B_Right" unique_id=49339509]
+position = Vector2(-10, -20.5)
 shape = SubResource("s2_wall_v")
 
 [node name="S2B_Bot" type="StaticBody2D" parent="Stage2Borders" unique_id=996869105]
 position = Vector2(3737, 5037)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Borders/S2B_Bot" unique_id=892780709]
-position = Vector2(0, -23.762695)
+position = Vector2(-1, -23.762695)
 shape = SubResource("s2_wall_h")
 
 [node name="Stage2_CyberBorders" type="Node2D" parent="." unique_id=1872936451]
@@ -776,12 +779,12 @@ position = Vector2(0, -8)
 shape = SubResource("s2c_bot_4")
 
 [node name="S2C_KillZone_1" type="Area2D" parent="Stage2_CyberBorders" unique_id=2112345678]
-position = Vector2(3664, 7465)
+position = Vector2(3664, 7440)
 collision_layer = 0
 collision_mask = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberBorders/S2C_KillZone_1" unique_id=-2112345678]
-position = Vector2(10.5, 137)
+position = Vector2(10.5, 92.5)
 shape = SubResource("s2c_kz1")
 
 [node name="S2C_KillZone_2" type="Area2D" parent="Stage2_CyberBorders" unique_id=2112345679]
@@ -790,7 +793,7 @@ collision_layer = 0
 collision_mask = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberBorders/S2C_KillZone_2" unique_id=-2112345679]
-position = Vector2(-7, 137)
+position = Vector2(-10.5, 67)
 shape = SubResource("s2c_kz2")
 
 [node name="S2C_KillZone_3" type="Area2D" parent="Stage2_CyberBorders" unique_id=2112345680]
@@ -799,7 +802,7 @@ collision_layer = 0
 collision_mask = 4
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberBorders/S2C_KillZone_3" unique_id=-2112345680]
-position = Vector2(11, 122)
+position = Vector2(10.5, 68)
 shape = SubResource("s2c_kz3")
 
 [node name="Stage2_CyberCollisions" type="Node2D" parent="." unique_id=-1826953717]
