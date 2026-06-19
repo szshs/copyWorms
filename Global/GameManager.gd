@@ -21,6 +21,9 @@ var is_game_over: bool = false
 #       "allow_external_signal": false, "dream_version": "2.0" }
 var dream_runtime_flags: Dictionary = {}
 
+# Boss 战引用（关卡设置，用于弹体自动瞄准等）
+var boss_target: Node2D = null
+
 # ---- 生命周期 ----
 
 func _ready() -> void:

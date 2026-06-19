@@ -3,6 +3,9 @@
 [ext_resource type="Script" uid="uid://btcnf0oxghn5k" path="res://LevelModule/Formal/Level_05.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://bex5a88jduf35" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Lingnan/bg 3-2.png" id="2_lingnan_bg"]
 [ext_resource type="Texture2D" uid="uid://dr8bnyxhv05dp" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 3-1.png" id="3_cyber_bg"]
+[ext_resource type="Texture2D" uid="uid://by4nors0fg5jp" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 4.png" id="4_boss_bg"]
+[ext_resource type="Script" uid="uid://btk2x8ndpffig" path="res://LevelModule/Formal/InteractiveObject.gd" id="5_interact"]
+[ext_resource type="Texture2D" uid="uid://bvrmrgf5vb200" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 5.png" id="6_bg5_bg"]
 
 [sub_resource type="RectangleShape2D" id="floor_shape"]
 size = Vector2(5561, 66)
@@ -31,6 +34,9 @@ size = Vector2(235, 25)
 [sub_resource type="RectangleShape2D" id="cy_p7"]
 size = Vector2(194, 25)
 
+[sub_resource type="RectangleShape2D" id="boss_floor"]
+size = Vector2(1160, 25)
+
 [sub_resource type="RectangleShape2D" id="ln_p1"]
 size = Vector2(1360, 25)
 
@@ -42,6 +48,15 @@ size = Vector2(408, 11.5)
 
 [sub_resource type="RectangleShape2D" id="ln_p4"]
 size = Vector2(197, 18)
+
+[sub_resource type="RectangleShape2D" id="bg5_floor"]
+size = Vector2(1760, 40)
+
+[sub_resource type="RectangleShape2D" id="bg5_wall"]
+size = Vector2(40, 905.75)
+
+[sub_resource type="RectangleShape2D" id="boss_entry_shape"]
+size = Vector2(60, 120)
 
 [node name="Level_05" type="Node2D" unique_id=406911249]
 script = ExtResource("1_script")
@@ -184,6 +199,43 @@ offset_bottom = 12.5
 mouse_filter = 2
 color = Color(0.5, 0.5, 0.5, 0.3)
 
+[node name="BossBg" type="Sprite2D" parent="." unique_id=580200000]
+z_index = -5
+position = Vector2(1187, 4822)
+scale = Vector2(0.82, 0.82)
+texture = ExtResource("4_boss_bg")
+
+[node name="BossCollisions" type="Node2D" parent="." unique_id=580200001]
+
+[node name="LeftWall" type="StaticBody2D" parent="BossCollisions" unique_id=580200002]
+position = Vector2(712, 5004)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BossCollisions/LeftWall" unique_id=580200003]
+position = Vector2(-94, -290)
+shape = SubResource("wall_shape")
+
+[node name="RightWall" type="StaticBody2D" parent="BossCollisions" unique_id=580200004]
+position = Vector2(1466, 5004)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BossCollisions/RightWall" unique_id=580200005]
+position = Vector2(291, -289)
+shape = SubResource("wall_shape")
+
+[node name="Floor" type="StaticBody2D" parent="BossCollisions" unique_id=580200006]
+position = Vector2(1089, 5199)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BossCollisions/Floor" unique_id=580200007]
+position = Vector2(99, -89)
+shape = SubResource("boss_floor")
+
+[node name="Vis" type="ColorRect" parent="BossCollisions/Floor" unique_id=580200008]
+offset_left = -381.0
+offset_top = -29.0
+offset_right = 582.0
+offset_bottom = -4.0
+mouse_filter = 2
+color = Color(0.5, 0.5, 0.5, 0.3)
+
 [node name="LingnanCollisions" type="Node2D" parent="." unique_id=580123457]
 visible = false
 
@@ -259,6 +311,35 @@ offset_bottom = 12.5
 mouse_filter = 2
 color = Color(0.5, 0.5, 0.5, 0.3)
 
+[node name="Bg5" type="Sprite2D" parent="." unique_id=580300000]
+z_index = -5
+position = Vector2(1291.6001, 7904.8)
+scale = Vector2(1.2, 1.2)
+texture = ExtResource("6_bg5_bg")
+
+[node name="Bg5Collisions" type="Node2D" parent="." unique_id=580300001]
+
+[node name="Floor" type="StaticBody2D" parent="Bg5Collisions" unique_id=580300002]
+position = Vector2(1291.6001, 8182.8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5Collisions/Floor" unique_id=580300003]
+position = Vector2(10.399902, 47.200195)
+shape = SubResource("bg5_floor")
+
+[node name="LeftWall" type="StaticBody2D" parent="Bg5Collisions" unique_id=580300004]
+position = Vector2(611.6001, 7882.8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5Collisions/LeftWall" unique_id=580300005]
+position = Vector2(-155.6001, -22.924805)
+shape = SubResource("bg5_wall")
+
+[node name="RightWall" type="StaticBody2D" parent="Bg5Collisions" unique_id=580300006]
+position = Vector2(1971.6001, 7882.8)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Bg5Collisions/RightWall" unique_id=580300007]
+position = Vector2(148.3999, -65.549805)
+shape = SubResource("bg5_wall")
+
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=258921447]
 layer = 100
 
@@ -274,4 +355,13 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = 16.0
 offset_bottom = 16.0
-text = "← → 侵蚀 | E 换层"
+text = "侵蚀:0% | 战斗换层 | 上层:岭南"
+
+[node name="BossEntry" type="Area2D" parent="." unique_id=1973756917]
+position = Vector2(2842, 552)
+script = ExtResource("5_interact")
+object_id = "enter_boss"
+prompt_text = "按 Enter 进入深处"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="BossEntry" unique_id=2012836390]
+shape = SubResource("boss_entry_shape")

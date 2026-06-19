@@ -38,6 +38,11 @@ var attack_cooldown_timer: float = 0.0
 var dash_cooldown_timer: float = 0.0
 var invincible_timer: float = 0.0
 
+# 击退缓动
+var _knockback_force: float = 0.0
+var _knockback_timer: float = 0.0
+const KNOCKBACK_DURATION: float = 0.35
+
 # 冲刺
 var is_dashing: bool = false
 var dash_velocity: Vector2 = Vector2.ZERO
@@ -153,9 +158,12 @@ func _on_game_action(action: StringName, _event: InputEvent) -> void:
 	# 死亡状态不响应任何操作
 	if current_state == GlobalDefine.PlayerState.DEAD:
 		return
-	# 受击状态：hit 动画可被任意操作取消（子类 _has_hit_anim 控制是否启用）
-	if current_state == GlobalDefine.PlayerState.HURT and _can_cancel_hurt():
-		_cancel_hurt()
+	# 受击状态：击退期间锁定输入（防止瞬移式闪避/攻击取消）
+	if current_state == GlobalDefine.PlayerState.HURT:
+		if _knockback_force != 0.0:
+			return  # 击退缓动未结束，不接受任何操作
+		if _can_cancel_hurt():
+			_cancel_hurt()
 	# 攻击/冲刺中不允许发起攻击
 	if is_attacking or is_dashing:
 		return
@@ -364,7 +372,18 @@ func _handle_attack_state(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, _get_input_direction().x * _get_move_speed(), _get_move_speed() * 3 * delta)
 
 func _handle_hurt(delta: float) -> void:
-	velocity.x = move_toward(velocity.x, 0, _get_move_speed() * 5 * delta)
+	# 击退缓动：sin 曲线 0→max→0，避免瞬移
+	if _knockback_force != 0.0:
+		_knockback_timer += delta
+		var t = clampf(_knockback_timer / KNOCKBACK_DURATION, 0.0, 1.0)
+		var eased = sin(t * PI)
+		velocity.x = _knockback_force * eased
+		if t >= 1.0:
+			_knockback_force = 0.0
+			_knockback_timer = 0.0
+			velocity.x = 0.0
+	else:
+		velocity.x = move_toward(velocity.x, 0, _get_move_speed() * 5 * delta)
 	# hit 动画可被跳跃取消
 	if _can_cancel_hurt() and can_jump and _input_jump_just_pressed():
 		_cancel_hurt()
@@ -463,7 +482,10 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 	dash_timer = 0.0
 	attack_cooldown_timer = 0.0
 	if knockback_dir != Vector2.ZERO:
-		velocity = Vector2(knockback_dir.x * (config.hurt_knockback if config else 300.0), -150.0)
+		var kb_speed = config.hurt_knockback if config else 300.0
+		_knockback_force = signf(knockback_dir.x) * kb_speed
+		_knockback_timer = 0.0
+		velocity.y = -120.0
 	# 受击时推开周围敌人，防止贴身连击
 	_push_nearby_enemies(120.0)
 	EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": damage, "current_health": current_health})
