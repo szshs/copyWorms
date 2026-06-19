@@ -181,6 +181,9 @@ func _set_cam_from_group(group: Node, top: int, bottom: int = -1) -> void:
 func _on_ready() -> void:
 	super._on_ready()
 
+	# 入场黑屏遮罩（初始化在黑屏下进行，末尾淡出呈现关卡）
+	_play_intro_fade_in()
+
 	# 继承 lv4 的侵蚀值和血量
 	var flags = GameManager.dream_runtime_flags
 	if flags.has("erosion_value"):
@@ -254,6 +257,8 @@ func _on_ready() -> void:
 
 	set_process_input(true)
 	set_process(true)
+	# 初始化完成，淡出黑屏呈现关卡
+	_finish_intro_fade_in()
 
 	# 检查点恢复：如果之前在bg4死亡，直接传送玩家到bg4区域重新开始Boss战
 	print("[Level_05] 检查点阶段: %d, 路径: %s" % [GameManager.checkpoint_stage, GameManager.checkpoint_scene_path])
@@ -284,6 +289,30 @@ func _on_ready() -> void:
 		_show_skin_hint()
 
 
+## 入场黑屏遮罩：创建满黑 CanvasLayer，覆盖整个初始化过程
+func _play_intro_fade_in() -> void:
+	var cv = CanvasLayer.new()
+	cv.name = "IntroFadeCanvas"
+	cv.layer = 2000
+	add_child(cv)
+	var black = ColorRect.new()
+	black.name = "IntroFadeBlack"
+	black.set_anchors_preset(Control.PRESET_FULL_RECT)
+	black.size = get_viewport_rect().size
+	black.position = Vector2.ZERO
+	black.color = Color(0, 0, 0, 1.0)
+	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cv.add_child(black)
+
+## 初始化完成后淡出黑屏（1.5s），完成后自动清理遮罩节点
+func _finish_intro_fade_in() -> void:
+	var cv = get_node_or_null("IntroFadeCanvas")
+	if not cv: return
+	var black = cv.get_node_or_null("IntroFadeBlack")
+	if not black: return
+	var tw = get_tree().create_tween()
+	tw.tween_property(black, "color:a", 0.0, 1.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_callback(cv.queue_free)
 
 
 func _process(delta: float) -> void:
