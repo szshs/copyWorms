@@ -1,12 +1,12 @@
 [gd_scene format=3 uid="uid://qt1mo1kns0d0"]
 
-[ext_resource type="Script" uid="uid://g8jqg762mmyd" path="res://LevelModule/Formal/Level_04.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dvqek7qnvwf3c" path="res://LevelModule/Formal/Level_04.gd" id="1_script"]
 [ext_resource type="Resource" uid="uid://bj76way6vfj0n" path="res://DataConfig/Level/Level04Config.tres" id="2_config"]
 [ext_resource type="Resource" path="res://DataConfig/Level/Level04Data.tres" id="3_data"]
 [ext_resource type="PackedScene" path="res://LevelModule/Scenes/PixelworkMapStitch/Level04_Cyber/Level04_Cyber.tscn" id="4_cyber_bg"]
 [ext_resource type="PackedScene" path="res://LevelModule/Scenes/PixelworkMapStitch/Level04_Lingnan/Level04_Lingnan.tscn" id="5_lingnan_bg"]
-[ext_resource type="Script" uid="uid://dn1w0dycye66l" path="res://LevelModule/Formal/Ladder.gd" id="6_ladder"]
-[ext_resource type="Script" uid="uid://btk2x8ndpffig" path="res://LevelModule/Formal/InteractiveObject.gd" id="7_intobj"]
+[ext_resource type="Script" uid="uid://bwdmt74rhc8ng" path="res://LevelModule/Formal/Ladder.gd" id="6_ladder"]
+[ext_resource type="Script" uid="uid://b8ncuf7p5o5rh" path="res://LevelModule/Formal/InteractiveObject.gd" id="7_intobj"]
 [ext_resource type="Texture2D" uid="uid://b1pu2nwt2bwty" path="res://LevelModule/Scenes/PixelworkMapStitch/Level04_Cyber/images/overall/bg 2-2.png" id="8_cyber_bg2"]
 [ext_resource type="Texture2D" uid="uid://b0m20k3h0fvgf" path="res://LevelModule/Scenes/PixelworkMapStitch/Level04_Lingnan/images/overall/bg 2-1.png" id="9_lingnan_bg2"]
 
@@ -41,7 +41,7 @@ size = Vector2(25, 800)
 size = Vector2(60, 800)
 
 [sub_resource type="RectangleShape2D" id="ln1"]
-size = Vector2(3733, 25)
+size = Vector2(3776, 25)
 
 [sub_resource type="RectangleShape2D" id="ln2"]
 size = Vector2(813, 25)
@@ -74,7 +74,7 @@ size = Vector2(10, 2000)
 size = Vector2(4100, 10)
 
 [sub_resource type="RectangleShape2D" id="s2_1"]
-size = Vector2(790, 25)
+size = Vector2(787, 28.5)
 
 [sub_resource type="RectangleShape2D" id="s2_2"]
 size = Vector2(365, 25)
@@ -86,7 +86,7 @@ size = Vector2(129, 25)
 size = Vector2(810, 25)
 
 [sub_resource type="RectangleShape2D" id="s2_5"]
-size = Vector2(458, 25)
+size = Vector2(461, 20.5)
 
 [sub_resource type="RectangleShape2D" id="s2_6"]
 size = Vector2(779, 25)
@@ -107,19 +107,19 @@ size = Vector2(400, 25)
 size = Vector2(439, 25)
 
 [sub_resource type="RectangleShape2D" id="s2_12"]
-size = Vector2(1220, 25)
+size = Vector2(1220, 20.5)
 
 [sub_resource type="RectangleShape2D" id="s2_13"]
 size = Vector2(543, 25)
 
 [sub_resource type="RectangleShape2D" id="s2_14"]
-size = Vector2(634, 25)
+size = Vector2(634, 28.5)
 
 [sub_resource type="RectangleShape2D" id="s2_15"]
 size = Vector2(299, 25)
 
 [sub_resource type="RectangleShape2D" id="s2_16"]
-size = Vector2(892, 25)
+size = Vector2(616, 20.5)
 
 [sub_resource type="RectangleShape2D" id="s2_17"]
 size = Vector2(316, 25)
@@ -208,14 +208,14 @@ size = Vector2(797, 25)
 [sub_resource type="RectangleShape2D" id="s2c_16"]
 size = Vector2(216, 25)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ei20x"]
-size = Vector2(24, 100)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rtua0"]
+size = Vector2(36.5, 213.5)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_y2mcw"]
 size = Vector2(30.5, 371)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_rtua0"]
-size = Vector2(36.5, 213.5)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ei20x"]
+size = Vector2(24, 100)
 
 [node name="Level_04" type="Node2D" unique_id=81654247]
 script = ExtResource("1_script")
@@ -255,14 +255,6 @@ position = Vector2(650, 18)
 position = Vector2(0, 8.535)
 shape = SubResource("r1")
 
-[node name="Vis" type="ColorRect" parent="Stage1Collisions/P_Y15_L" unique_id=1533866690]
-offset_left = -650.0
-offset_top = -12.5
-offset_right = 650.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="P_Y15_R" type="StaticBody2D" parent="Stage1Collisions" unique_id=1620738868]
 position = Vector2(2080, 18)
 
@@ -270,41 +262,17 @@ position = Vector2(2080, 18)
 position = Vector2(0, 1.63)
 shape = SubResource("r2")
 
-[node name="Vis" type="ColorRect" parent="Stage1Collisions/P_Y15_R" unique_id=1541830779]
-offset_left = -310.0
-offset_top = -12.5
-offset_right = 310.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="P_Y190_L" type="StaticBody2D" parent="Stage1Collisions" unique_id=424260417]
 position = Vector2(235, 193)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage1Collisions/P_Y190_L" unique_id=132967997]
 shape = SubResource("r3")
 
-[node name="Vis" type="ColorRect" parent="Stage1Collisions/P_Y190_L" unique_id=2030964498]
-offset_left = -235.0
-offset_top = -12.5
-offset_right = 235.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="P_Y190_R" type="StaticBody2D" parent="Stage1Collisions" unique_id=2033978168]
 position = Vector2(1537, 193)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage1Collisions/P_Y190_R" unique_id=981458435]
 shape = SubResource("r4")
-
-[node name="Vis" type="ColorRect" parent="Stage1Collisions/P_Y190_R" unique_id=341750842]
-offset_left = -853.0
-offset_top = -12.5
-offset_right = 853.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="P_Ym164" type="StaticBody2D" parent="Stage1Collisions" unique_id=38951055]
 position = Vector2(1152, -161)
@@ -313,28 +281,12 @@ position = Vector2(1152, -161)
 position = Vector2(0, 10.745)
 shape = SubResource("r5")
 
-[node name="Vis" type="ColorRect" parent="Stage1Collisions/P_Ym164" unique_id=442576348]
-offset_left = -433.0
-offset_top = -12.5
-offset_right = 433.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="P_Y372" type="StaticBody2D" parent="Stage1Collisions" unique_id=1405519175]
 position = Vector2(1195, 375)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage1Collisions/P_Y372" unique_id=203453158]
 position = Vector2(0, 13.965)
 shape = SubResource("r6")
-
-[node name="Vis" type="ColorRect" parent="Stage1Collisions/P_Y372" unique_id=1496529280]
-offset_left = -1195.0
-offset_top = -12.5
-offset_right = 1195.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="P_Y543" type="StaticBody2D" parent="Stage1Collisions" unique_id=1758035645]
 position = Vector2(1195, 546)
@@ -343,14 +295,6 @@ position = Vector2(1195, 546)
 position = Vector2(0, 18.135)
 shape = SubResource("r7")
 
-[node name="Vis" type="ColorRect" parent="Stage1Collisions/P_Y543" unique_id=624553412]
-offset_left = -1195.0
-offset_top = -12.5
-offset_right = 1195.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="P_Ym344" type="StaticBody2D" parent="Stage1Collisions" unique_id=698414360]
 position = Vector2(1099.5, -341)
 
@@ -358,27 +302,11 @@ position = Vector2(1099.5, -341)
 position = Vector2(0, 5.775)
 shape = SubResource("r8")
 
-[node name="Vis" type="ColorRect" parent="Stage1Collisions/P_Ym344" unique_id=1658521915]
-offset_left = -435.5
-offset_top = -12.5
-offset_right = 435.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="CyberRightWall" type="StaticBody2D" parent="Stage1Collisions" unique_id=1253943071]
 position = Vector2(2400, 0)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage1Collisions/CyberRightWall" unique_id=526761121]
 shape = SubResource("wall")
-
-[node name="Vis" type="ColorRect" parent="Stage1Collisions/CyberRightWall" unique_id=1804228272]
-offset_left = -12.5
-offset_top = -400.0
-offset_right = 12.5
-offset_bottom = 400.0
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="WallTrigger" type="Area2D" parent="Stage1Collisions" unique_id=297257474]
 position = Vector2(2370, 0)
@@ -447,15 +375,8 @@ ladder_bottom_y = 190.0
 position = Vector2(1866.5, 2190)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LnC_Y2260" unique_id=507473198]
+position = Vector2(21.5, 0)
 shape = SubResource("ln1")
-
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LnC_Y2260" unique_id=1218670286]
-offset_left = -1866.5
-offset_top = -12.5
-offset_right = 1866.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="LnC_Y1666" type="StaticBody2D" parent="LingnanCollisions" unique_id=1452986707]
 position = Vector2(1189.5, 1596)
@@ -463,27 +384,11 @@ position = Vector2(1189.5, 1596)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LnC_Y1666" unique_id=2125416105]
 shape = SubResource("ln2")
 
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LnC_Y1666" unique_id=484710224]
-offset_left = -406.5
-offset_top = -12.5
-offset_right = 406.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="LnC_Y1528" type="StaticBody2D" parent="LingnanCollisions" unique_id=1589054379]
 position = Vector2(1631, 1458)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LnC_Y1528" unique_id=365553238]
 shape = SubResource("ln3")
-
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LnC_Y1528" unique_id=1145418526]
-offset_left = -206.0
-offset_top = -12.5
-offset_right = 206.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="LnC_Y1420" type="StaticBody2D" parent="LingnanCollisions" unique_id=399891007]
 position = Vector2(2164.5, 1350)
@@ -491,41 +396,17 @@ position = Vector2(2164.5, 1350)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LnC_Y1420" unique_id=118867739]
 shape = SubResource("ln4")
 
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LnC_Y1420" unique_id=1939667592]
-offset_left = -331.5
-offset_top = -12.5
-offset_right = 331.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="LnC_Y1319" type="StaticBody2D" parent="LingnanCollisions" unique_id=735133790]
 position = Vector2(2766.5, 1249)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LnC_Y1319" unique_id=133364317]
 shape = SubResource("ln5")
 
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LnC_Y1319" unique_id=495087236]
-offset_left = -248.5
-offset_top = -12.5
-offset_right = 248.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="LnC_Y1372" type="StaticBody2D" parent="LingnanCollisions" unique_id=334554008]
 position = Vector2(3183.5, 1302)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LnC_Y1372" unique_id=1989702311]
 shape = SubResource("ln6")
-
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LnC_Y1372" unique_id=1657674219]
-offset_left = -168.5
-offset_top = -12.5
-offset_right = 168.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="Interactives" type="Node2D" parent="." unique_id=785030847]
 
@@ -688,6 +569,7 @@ shape = SubResource("bdr_v2")
 position = Vector2(4000, 1600)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanBorders/LingnanRight" unique_id=1418146373]
+position = Vector2(-216, -24)
 shape = SubResource("bdr_v2")
 
 [node name="LingnanBot" type="StaticBody2D" parent="LingnanBorders" unique_id=1526984581]
@@ -702,113 +584,57 @@ shape = SubResource("bdr_h2")
 position = Vector2(395, 4357)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P1" unique_id=1274093521]
+position = Vector2(-4.5, 17.25)
 shape = SubResource("s2_1")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P1" unique_id=872345109]
-offset_left = -395.0
-offset_top = -12.5
-offset_right = 395.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P2" type="StaticBody2D" parent="Stage2Collisions" unique_id=-1102120795]
 position = Vector2(1062.5, 4473)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P2" unique_id=-2059052495]
+position = Vector2(1.5, 7)
 shape = SubResource("s2_2")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P2" unique_id=1982763401]
-offset_left = -182.5
-offset_top = -12.5
-offset_right = 182.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P3" type="StaticBody2D" parent="Stage2Collisions" unique_id=-27428095]
 position = Vector2(1485.5, 4528)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P3" unique_id=-1166491695]
+position = Vector2(2.5, 8)
 shape = SubResource("s2_3")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P3" unique_id=1098234101]
-offset_left = -64.5
-offset_top = -12.5
-offset_right = 64.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P4" type="StaticBody2D" parent="Stage2Collisions" unique_id=1598237401]
 position = Vector2(405, 4617)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P4" unique_id=-2111218095]
+position = Vector2(3, 7)
 shape = SubResource("s2_4")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P4" unique_id=1945823101]
-offset_left = -405.0
-offset_top = -12.5
-offset_right = 405.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P5" type="StaticBody2D" parent="Stage2Collisions" unique_id=-1403230795]
 position = Vector2(1079, 4677)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P5" unique_id=1365284901]
+position = Vector2(2.5, 5.25)
 shape = SubResource("s2_5")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P5" unique_id=1174638201]
-offset_left = -229.0
-offset_top = -12.5
-offset_right = 229.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P6" type="StaticBody2D" parent="Stage2Collisions" unique_id=-194034795]
 position = Vector2(1989.5, 4356)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P6" unique_id=-1376493695]
+position = Vector2(2.5, 20)
 shape = SubResource("s2_6")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P6" unique_id=1073482101]
-offset_left = -389.5
-offset_top = -12.5
-offset_right = 389.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P7" type="StaticBody2D" parent="Stage2Collisions" unique_id=-366792795]
 position = Vector2(1938, 4667)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P7" unique_id=1746293801]
+position = Vector2(-2, 13)
 shape = SubResource("s2_7")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P7" unique_id=1574926501]
-offset_left = -431.0
-offset_top = -12.5
-offset_right = 431.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P8" type="StaticBody2D" parent="Stage2Collisions" unique_id=-1455516095]
 position = Vector2(3177.5, 4363)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P8" unique_id=1267384501]
+position = Vector2(-1.5, 13)
 shape = SubResource("s2_8")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P8" unique_id=1938452101]
-offset_left = -594.5
-offset_top = -12.5
-offset_right = 594.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P9" type="StaticBody2D" parent="Stage2Collisions" unique_id=-566807995]
 position = Vector2(2984.5, 4653)
@@ -816,153 +642,75 @@ position = Vector2(2984.5, 4653)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P9" unique_id=-2111322195]
 shape = SubResource("s2_9")
 
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P9" unique_id=1468235101]
-offset_left = -320.5
-offset_top = -12.5
-offset_right = 320.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="S2_P10" type="StaticBody2D" parent="Stage2Collisions" unique_id=223269805]
 position = Vector2(3519, 4666)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P10" unique_id=-1200154995]
+position = Vector2(1, 22)
 shape = SubResource("s2_10")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P10" unique_id=1837456201]
-offset_left = -200.0
-offset_top = -12.5
-offset_right = 200.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P11" type="StaticBody2D" parent="Stage2Collisions" unique_id=968751105]
 position = Vector2(3939.5, 4516)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P11" unique_id=-465801895]
+position = Vector2(-11.5, 12)
 shape = SubResource("s2_11")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P11" unique_id=-1676530195]
-offset_left = -219.5
-offset_top = -12.5
-offset_right = 219.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P12" type="StaticBody2D" parent="Stage2Collisions" unique_id=1887970105]
 position = Vector2(4700, 4359)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P12" unique_id=443324305]
+position = Vector2(4, 11.25)
 shape = SubResource("s2_12")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P12" unique_id=-803139795]
-offset_left = -610.0
-offset_top = -12.5
-offset_right = 610.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P13" type="StaticBody2D" parent="Stage2Collisions" unique_id=-1461539991]
 position = Vector2(4595.5, 4659)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P13" unique_id=1534206105]
+position = Vector2(-3.5, -27)
 shape = SubResource("s2_13")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P13" unique_id=-11049795]
-offset_left = -271.5
-offset_top = -12.5
-offset_right = 271.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P14" type="StaticBody2D" parent="Stage2Collisions" unique_id=-298198091]
 position = Vector2(5202, 4667)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P14" unique_id=-1877539791]
+position = Vector2(-2, 19.25)
 shape = SubResource("s2_14")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P14" unique_id=887970105]
-offset_left = -317.0
-offset_top = -12.5
-offset_right = 317.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P15" type="StaticBody2D" parent="Stage2Collisions" unique_id=781891809]
 position = Vector2(5644.5, 4511)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P15" unique_id=-960751091]
+position = Vector2(3.5, 17)
 shape = SubResource("s2_15")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P15" unique_id=1743307605]
-offset_left = -149.5
-offset_top = -12.5
-offset_right = 149.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P16" type="StaticBody2D" parent="Stage2Collisions" unique_id=1049283751]
 position = Vector2(6178, 4667)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P16" unique_id=-50761991]
+position = Vector2(154, -40.75)
 shape = SubResource("s2_16")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P16" unique_id=-1631660491]
-offset_left = -446.0
-offset_top = -12.5
-offset_right = 446.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P17" type="StaticBody2D" parent="Stage2Collisions" unique_id=2139485761]
 position = Vector2(6804, 4684)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P17" unique_id=837249009]
+position = Vector2(4, 12)
 shape = SubResource("s2_17")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P17" unique_id=-770670091]
-offset_left = -158.0
-offset_top = -12.5
-offset_right = 158.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P18" type="StaticBody2D" parent="Stage2Collisions" unique_id=-1046791395]
 position = Vector2(6929.5, 4570)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P18" unique_id=1038472651]
+position = Vector2(6.5, 14)
 shape = SubResource("s2_18")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P18" unique_id=139429509]
-offset_left = -156.5
-offset_top = -12.5
-offset_right = 156.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2_P19" type="StaticBody2D" parent="Stage2Collisions" unique_id=62225505]
 position = Vector2(7252, 4356)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2Collisions/S2_P19" unique_id=2147385601]
+position = Vector2(4, 20)
 shape = SubResource("s2_19")
-
-[node name="Vis" type="ColorRect" parent="Stage2Collisions/S2_P19" unique_id=1047247809]
-offset_left = -221.0
-offset_top = -12.5
-offset_right = 221.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="Stage2Borders" type="Node2D" parent="." unique_id=1187950005]
 
@@ -1054,29 +802,14 @@ collision_mask = 4
 position = Vector2(11, 122)
 shape = SubResource("s2c_kz3")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberBorders/S2C_KillZone_3" unique_id=2112345683]
-offset_left = -266.5
-offset_top = 84.0
-offset_right = 274.5
-offset_bottom = 190.0
-mouse_filter = 2
-color = Color(1, 0.1, 0.1, 0.15)
-
 [node name="Stage2_CyberCollisions" type="Node2D" parent="." unique_id=-1826953717]
 
 [node name="S2C_P1" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1357924680]
 position = Vector2(494, 7156)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P1" unique_id=-565321013]
+position = Vector2(2, -20)
 shape = SubResource("s2c_1")
-
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P1" unique_id=545790088]
-offset_left = -494.0
-offset_top = -12.5
-offset_right = 494.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2C_P2" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=-1826831506]
 position = Vector2(2361.5, 7133)
@@ -1084,27 +817,11 @@ position = Vector2(2361.5, 7133)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P2" unique_id=1495279517]
 shape = SubResource("s2c_2")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P2" unique_id=-1788576668]
-offset_left = -1086.5
-offset_top = -12.5
-offset_right = 1086.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="S2C_P3" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=-715720483]
 position = Vector2(2933, 6833)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P3" unique_id=385279517]
 shape = SubResource("s2c_3")
-
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P3" unique_id=1496390628]
-offset_left = -520.0
-offset_top = -12.5
-offset_right = 520.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2C_P4" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=386390628]
 position = Vector2(3432.5, 7303)
@@ -1112,41 +829,18 @@ position = Vector2(3432.5, 7303)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P4" unique_id=1497500717]
 shape = SubResource("s2c_4")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P4" unique_id=-1787466457]
-offset_left = -237.5
-offset_top = -12.5
-offset_right = 237.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="S2C_P5" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1497500839]
 position = Vector2(4103, 7303)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P5" unique_id=-1786355568]
 shape = SubResource("s2c_5")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P5" unique_id=-676355568]
-offset_left = -255.0
-offset_top = -12.5
-offset_right = 255.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="S2C_P6" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=-1785254457]
 position = Vector2(4670.5, 7139)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P6" unique_id=-675254457]
+position = Vector2(1.5, -3)
 shape = SubResource("s2c_6")
-
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P6" unique_id=-564143235]
-offset_left = -638.5
-offset_top = -12.5
-offset_right = 638.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2C_P7" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=-674144346]
 position = Vector2(4178, 6827)
@@ -1154,27 +848,11 @@ position = Vector2(4178, 6827)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P7" unique_id=-563133235]
 shape = SubResource("s2c_7")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P7" unique_id=546866765]
-offset_left = -183.0
-offset_top = -12.5
-offset_right = 183.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="S2C_P8" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=-562022124]
 position = Vector2(4775, 6695)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P8" unique_id=547977876]
 shape = SubResource("s2c_8")
-
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P8" unique_id=1024791357]
-offset_left = -247.0
-offset_top = -12.5
-offset_right = 247.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2C_P8_Blocker" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=-984720495]
 position = Vector2(5022, 6655)
@@ -1184,27 +862,11 @@ position = Vector2(0, -51)
 scale = Vector2(1, 2.35)
 shape = SubResource("s2c_block")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P8_Blocker" unique_id=1237501605]
-offset_left = -12.5
-offset_top = -40.0
-offset_right = 12.5
-offset_bottom = 40.0
-mouse_filter = 2
-color = Color(1, 0.3, 0.3, 0.3)
-
 [node name="S2C_P9" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=548090088]
 position = Vector2(5579.5, 6938)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P9" unique_id=1024913579]
 shape = SubResource("s2c_9")
-
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P9" unique_id=1135924680]
-offset_left = -146.5
-offset_top = -12.5
-offset_right = 146.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2C_P9_Blocker" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=-1946355591]
 position = Vector2(5433, 6898)
@@ -1214,27 +876,11 @@ position = Vector2(0, -46)
 scale = Vector2(1, 2.225)
 shape = SubResource("s2c_block")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P9_Blocker" unique_id=275855531]
-offset_left = -12.5
-offset_top = -40.0
-offset_right = 12.5
-offset_bottom = 40.0
-mouse_filter = 2
-color = Color(1, 0.3, 0.3, 0.3)
-
 [node name="S2C_P10" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1024913580]
 position = Vector2(5562, 7300)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P10" unique_id=1136024680]
 shape = SubResource("s2c_10")
-
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P10" unique_id=1246913579]
-offset_left = -92.0
-offset_top = -12.5
-offset_right = 92.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2C_P11" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1136024681]
 position = Vector2(6156, 6691)
@@ -1242,27 +888,11 @@ position = Vector2(6156, 6691)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P11" unique_id=1247135790]
 shape = SubResource("s2c_11")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P11" unique_id=1357024680]
-offset_left = -148.0
-offset_top = -12.5
-offset_right = 148.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="S2C_P12" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1247135791]
 position = Vector2(6155.5, 6693)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P12" unique_id=1358246801]
 shape = SubResource("s2c_12")
-
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P12" unique_id=1468024680]
-offset_left = -147.5
-offset_top = -12.5
-offset_right = 147.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2C_P13" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1358246802]
 position = Vector2(6219.5, 7016)
@@ -1270,27 +900,11 @@ position = Vector2(6219.5, 7016)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P13" unique_id=1469135790]
 shape = SubResource("s2c_13")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P13" unique_id=1579024680]
-offset_left = -135.5
-offset_top = -12.5
-offset_right = 135.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="S2C_P14" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1469135791]
 position = Vector2(6761, 6697)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P14" unique_id=1580246801]
 shape = SubResource("s2c_14")
-
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P14" unique_id=1690135790]
-offset_left = -156.0
-offset_top = -12.5
-offset_right = 156.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2C_P14_Blocker" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1386866642]
 position = Vector2(6917, 6657)
@@ -1300,27 +914,11 @@ position = Vector2(0, -42)
 scale = Vector2(0.99, 2.875)
 shape = SubResource("s2c_block")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P14_Blocker" unique_id=1199023456]
-offset_left = -12.5
-offset_top = -40.0
-offset_right = 12.5
-offset_bottom = 40.0
-mouse_filter = 2
-color = Color(1, 0.3, 0.3, 0.3)
-
 [node name="S2C_P15" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1580246802]
 position = Vector2(7058.5, 7010)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P15" unique_id=1691357901]
 shape = SubResource("s2c_15")
-
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P15" unique_id=1801246801]
-offset_left = -398.5
-offset_top = -12.5
-offset_right = 398.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="S2C_P16" type="StaticBody2D" parent="Stage2_CyberCollisions" unique_id=1691357902]
 position = Vector2(6829, 7304)
@@ -1328,27 +926,27 @@ position = Vector2(6829, 7304)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Stage2_CyberCollisions/S2C_P16" unique_id=1802467901]
 shape = SubResource("s2c_16")
 
-[node name="Vis" type="ColorRect" parent="Stage2_CyberCollisions/S2C_P16" unique_id=1912357901]
-offset_left = -108.0
-offset_top = -12.5
-offset_right = 108.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
+[node name="StaticBody2D4" type="StaticBody2D" parent="." unique_id=1027745032]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=124659686]
-position = Vector2(1604, 1537)
-scale = Vector2(1, 2.225)
-shape = SubResource("s2c_block")
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="StaticBody2D4" unique_id=1818250480]
+position = Vector2(3373, 1206)
+shape = SubResource("RectangleShape2D_rtua0")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=845496823]
-position = Vector2(1848, 1411)
-shape = SubResource("RectangleShape2D_ei20x")
+[node name="StaticBody2D3" type="StaticBody2D" parent="." unique_id=1269717418]
 
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=935973169]
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="StaticBody2D3" unique_id=935973169]
 position = Vector2(772, 1408)
 shape = SubResource("RectangleShape2D_y2mcw")
 
-[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=1818250480]
-position = Vector2(3373, 1206)
-shape = SubResource("RectangleShape2D_rtua0")
+[node name="StaticBody2D2" type="StaticBody2D" parent="." unique_id=1302876374]
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="StaticBody2D2" unique_id=845496823]
+position = Vector2(1848, 1411)
+shape = SubResource("RectangleShape2D_ei20x")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=435195675]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" unique_id=124659686]
+position = Vector2(1604, 1537)
+scale = Vector2(1, 2.225)
+shape = SubResource("s2c_block")

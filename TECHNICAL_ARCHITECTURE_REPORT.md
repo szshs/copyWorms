@@ -3,7 +3,7 @@
 > **目标读者**：关卡设计师 / 下游 AI 关卡设计助手
 > **更新日期**：2026-06-19
 > **引擎版本**：Godot 4.6 (GL Compatibility, GDScript)
-> **项目版本**：v0.12.0（CodeRain 重写 + 警告防火墙 + 记忆光团特效 + 墙壁屏障）
+> **项目版本**：v0.12.0（CodeRain 重写 + 警告防火墙 + 墙壁屏障 + Level_05 双世界侵蚀 + BossHuadan 花旦BOSS）
 
 > **v0.12.0 变更摘要**：
 > - **CodeRain 完全重写**：新增 `Tools/CodeRain.gd`（Control 子类），改用 `_draw()` + `draw_char()` / `draw_string()` 实时渲染，不再使用静态 Label 节点双层架构：背景层 ~58 列单字符雨（片假名/数字/符号）+ 前景层 6 条项目函数名"数据包"缓慢穿行
@@ -140,6 +140,7 @@
 │   ├── Level_04_SceneBuilder.gd   (容器+UI, 后续扩展)     │
 │   ├── Level_04_FSM.gd            (占位, 待扩展)          │
 │   └── Level_04_UIBuilder.gd      (叙事/Glitch/终局)      │
+│   Level_05.gd / .tscn   (关卡5双世界侵蚀预览+Boss战)      │  ★ v0.12.0 新增
 ├──────────────────────────────────────────────────────────┤
 │ 角色层                                                   │
 │   Player_Warrior (.tscn)   - CharacterBody2D             │
@@ -1788,12 +1789,50 @@ CanvasLayerUI (layer=10)
 
 ---
 
+## 7F. 关卡主控 `Level_05` 拆解（v0.12.0 新增）
+
+> **双世界 PixelTearing 侵蚀预览关卡**。安全区跟随玩家，`player_uv` 映射到 TopSprite 的 UV 空间。最终 Boss 花旦战 + 侵蚀系统。**当前为核心机制已实现，完整叙事链条待接入。**
+
+### 7F.1 文件结构
+
+| 文件 | 职责 |
+|---|---|
+| `Level_05.gd` | 主控/双世界切换/侵蚀值系统/Boss战斗管理/Boss血条/对话框系统 |
+| `Level_05.tscn` | 场景文件（TopSprite/BotSprite 双世界地图 + CyberCollisions/LingnanCollisions 双碰撞层 + Bg5 区域） |
+
+### 7F.2 核心机制
+
+| 机制 | 描述 |
+|---|---|
+| **双世界地图** | `TopSprite`（当前可见层）和 `BotSprite`（隐藏层），空格键切换上层地图。切换时清空 `_all_enemies` 并重建 |
+| **侵蚀值系统** | `_erosion_value 0~100`，`EROSION_RATE=0.35/s` 持续增长；击杀敌人减少 15；`_process` 中更新 ColorRect 血条 |
+| **世界碰撞层** | `CyberCollisions` / `LingnanCollisions` 两个 Node2D 容器，切换时启用/禁用碰撞 |
+| **Boss 管理** | 双世界切换时自动检测 `BossArenaTrigger` 创建 `Enemy_BossHuadan`。Boss 血条 UI（`_boss_bar_container` 400px 宽） |
+| **Boss 花旦** | 600HP，4阶段 AI（75%/50%/25%），自定义决策树（APPROACH/RETREAT/RANGED/MELEE/EVADE/JUMP/HOVER），Phase3 悬停+3发剑气，Phase4 近战附带剑气 |
+| **对话框系统** | `_dialog_panel` + `_dialog_label(RichTextLabel)`，支持多条 `_dialog_lines` 逐条确认（Enter），`_dialog_close_cooldown` 防串扰 |
+| **皮肤切换** | `G` 键在 Cyber/Lingnan 间切换，`LAYER_SWAP_COOLDOWN=1.2s` 防战斗频繁切换 |
+
+### 7F.3 关键流程 API
+
+| API | 用途 |
+|---|---|
+| `_setup_player()` | 清除 Level_04 遗留旧引用，创建 `Player_Warrior` |
+| `_ready()` | 初始化地图/碰撞层/摄像机/交互物/侵蚀UI/Boss检测 |
+| `_swap_layer()` | `_top_is_lingnan` 翻转；清敌人生成点并重建；切换碰撞层；`_snap_camera()` |
+| `_spawn_layer_enemies()` | 根据当前层和位置生成 LanternGhost/PaperEffigy/CyberWolf/CyberBull |
+| `_try_spawn_boss()` | `BossArenaTrigger` → 创建 BossHuadan + 连接死亡信号 + 显示 Boss 血条 |
+| `_enter_bg5()` | Boss 击杀后灯笼对话跳转到 Bg5 区域 |
+| `_show_dialog()` | 弹出对话框面板，支持多行逐条确认 |
+| `_emit_level_complete()` | `force_unblock_all` + EventBus 清理 + LEVEL_COMPLETE |
+
+---
+
 ## 8. 玩家系统（关卡用到的接口）
 
 | 参数 | 默认值（Warrior） |
 |---|---|
 | `max_health` | 100 |
-| `move_speed` | 300.0 |
+| `move_speed` | 250.0（WarriorConfig 全局调整，旧值300） |
 | `jump_velocity` | -650.0 |
 | `dash_speed` / `dash_duration` | 800.0 / 0.2s（期间无敌） |
 | `attack_damage` | 25 |
@@ -1849,16 +1888,20 @@ player.can_skill = false
 | 敌人 | 场景路径 | 使用关卡 | 配置 |
 |------|---------|---------|------|
 | **Slime** | `res://EnemyModule/Formal/Enemy_Slime.tscn` | 自测 | SlimeConfig.tres |
-| **LanternGhost** | `res://EnemyModule/Formal/Enemy_LanternGhost.tscn` | Level_02 分段0/1/2 (老街+梯子段) | LanternGhostConfig.tres / StreetSlimeConfig.tres |
-| **CyberWolf** | `res://EnemyModule/Formal/Enemy_CyberWolf.tscn` | Level_03 (岭南+赛博) / Level_04 | ShadowConfig.tres / CleanerConfig.tres / SecurityConfig.tres |
-| **CyberBull** | `res://EnemyModule/Formal/Enemy_CyberBull.tscn` | *(预留)* | CyberBullConfig.tres |
-| **PaperEffigy** | `res://EnemyModule/Formal/Enemy_PaperEffigy.tscn` | Level_02_01/02 (老街+梯子段) ★ v0.9.0 投入使用 | PaperEffigyConfig.tres |
+| **LanternGhost** | `res://EnemyModule/Formal/Enemy_LanternGhost.tscn` | Level_02 分段0/1/2/3 / Level_03 岭南 / Level_05 | LanternGhostConfig.tres / StreetSlimeConfig.tres |
+| **CyberWolf** | `res://EnemyModule/Formal/Enemy_CyberWolf.tscn` | Level_03 (岭南+赛博) / Level_04 / Level_05 | ShadowConfig.tres / CleanerConfig.tres / SecurityConfig.tres |
+| **CyberBull** | `res://EnemyModule/Formal/Enemy_CyberBull.tscn` | Level_03 走廊 / Level_05 | CyberBullConfig.tres |
+| **PaperEffigy** | `res://EnemyModule/Formal/Enemy_PaperEffigy.tscn` | Level_02_01/02/03 / Level_03 走廊 / Level_05 | PaperEffigyConfig.tres |
+| **BossHuadan** | `res://EnemyModule/Formal/Enemy_BossHuadan.tscn` | Level_05 花旦Boss战 | 硬编码 `BOSS_MAX_HP=600`，4阶段AI自定义决策树 |
+| **SwordEnergy** | `res://EnemyModule/Formal/SwordEnergy.gd` | BossHuandan 剑气弹体 | Area2D，setup/setup_by_dir 双初始化 |
 
-> **设计**：Enemy_CyberWolf 是复用度最高的敌人场景，通过不同的 EnemyConfig 注入不同数值和外观（modulate 颜色区分）。关卡3岭南用 CyberWolf+CleanerConfig（暗紫色），赛博用 CyberWolf+CleanerConfig（灰色）+SecurityConfig（红色）。
+> **设计**：Enemy_CyberWolf 是复用度最高的敌人场景，通过不同的 EnemyConfig 注入不同数值和外观（modulate 颜色区分）。
 >
-> **LanternGhost AI（v0.9.0 完全实现）**：空中漂浮敌人（`MOTION_MODE_FLOATING`，重力免疫），行为包括 IDLE（缓慢等待）→ PATROL（水平巡逻+漂浮）→ CHASE（保持 150-300px 悬停距离）→ ATTACK（发射火球 `FireballProjectile.gd`）。火球弹体含代码粒子拖尾、命中闪光、最大飞行距离消散。`deals_contact_damage()=false`（无接触伤害）。Level_02 分段0 老街以 `StreetSlimeConfig.tres` 配置生成。
+> **LanternGhost AI（v0.9.0 完全实现）**：空中漂浮敌人（`MOTION_MODE_FLOATING`，重力免疫），行为包括 IDLE→PATROL→CHASE（保持 150-300px 悬停距离）→ATTACK（发射火球 `FireballProjectile.gd`）。火球弹体含代码粒子拖尾、命中闪光、最大飞行距离消散。
 >
-> **v0.9.0 刷新约束**：Level_02 分段1/2 老街与梯子段使用 LanternGhost + PaperEffigy 定点生成（无 Timer），且 `_load_capped_enemy_config()` 将 `detect_range` 上限截断至 500（防止小地图缩放下敌人过远追击）。
+> **BossHuadan（v0.12.0 新增）**：花旦 BOSS（600HP），4阶段完全自定义决策树AI（完全覆盖 EnemyBase 默认行为）。阶段触发：75%HP→免疫打断，50%HP→跳跃悬停+3发独立瞄准剑气（`SwordEnergy.gd`），25%HP→近战附带剑气+移速跳跃提升。动作枚举 `BossAction` 包含 IDLE/APPROACH/RETREAT/RANGED/MELEE/EVADE/JUMP/HOVER，决策树每 0.3s 评估一次。
+>
+> **v0.9.0 刷新约束**：Level_02 分段1/2 老街与梯子段使用 LanternGhost + PaperEffigy 定点生成（无 Timer），`_load_capped_enemy_config()` 将 `detect_range` 上限截断至 500。
 
 ### 9.2 关卡级敌人生成
 
@@ -1878,7 +1921,9 @@ func _spawn_enemy_with_config(scene: PackedScene, spawn_pos: Vector2, config: En
 |------|---------|-----------|---------|---------|
 | Level_02 阴影 | *(v0.9.0 已备份，正式版无阴影刷新机制)* | — | — | — |
 | Level_02_01/02 | 定点刷新（无 Timer） | — | — | 进入分段时一次性生成 |
-| Level_03 赛博 | EnemySpawnTimer | 6 | 4 | 2.5s |
+| Level_02_03 干扰 | ShadowSpawnTimer | 8 | 6 | 1.5s |
+| Level_03 赛博 | EnemySpawnTimer | 6 | 4 | 5.0s |
+| Level_05 | 双世界切换时重建 + 定点刷新 | — | — | 切换层时重建 |
 
 ### 9.4 基类 API
 
@@ -1888,7 +1933,7 @@ enemy.current_health / max_health / current_state
 enemy.config: EnemyConfig
 ```
 
-> **当前 Level_01 不用任何敌人**（叙事型关卡）。Level_02 分段1/2（老街+梯子段）使用 LanternGhost + PaperEffigy（定点生成，无 Timer），Level_03 在岭南街巷和赛博城使用 CyberWolf，Level_04 使用 CyberWolf。
+> **当前 Level_01 不用任何敌人**（叙事型关卡）。Level_02 分段1/2/3 使用 LanternGhost + PaperEffigy 混合；Level_03 岭南使用 LanternGhost + PaperEffigy，走廊使用 CyberBull + PaperEffigy，赛博使用 CyberWolf（动态刷新 Timer 5s）；Level_04 使用 CyberWolf；Level_05 使用全部 6 种敌人（含 BossHuadan）。
 
 ---
 
@@ -1938,6 +1983,7 @@ enemy.config: EnemyConfig
 关卡2分段3:  res://LevelModule/Formal/Level_02_03.tscn      ★ v0.10.0 新增
 关卡2子场景:  res://LevelModule/Formal/Level_02_sub01.tscn / Level_02_sub02.tscn
 关卡4:       res://LevelModule/Formal/Level_04.tscn         ★ v0.9.0 新增
+关卡5:       res://LevelModule/Formal/Level_05.tscn         ★ v0.12.0 新增
 梯子:        res://LevelModule/Formal/Ladder.gd             ★ v0.9.0 新增
 玩家:        res://PlayerModule/Formal/Player_Warrior.tscn
 赛博皮肤:     res://PlayerModule/Formal/Player_Warrior_Cyber.tscn
@@ -1947,7 +1993,14 @@ enemy.config: EnemyConfig
 赛博狼:      res://EnemyModule/Formal/Enemy_CyberWolf.tscn     ★ v0.8.0
 赛博牛:      res://EnemyModule/Formal/Enemy_CyberBull.tscn     ★ v0.8.0
 纸扎人:      res://EnemyModule/Formal/Enemy_PaperEffigy.tscn   ★ v0.8.0
+花旦Boss:    res://EnemyModule/Formal/Enemy_BossHuadan.tscn   ★ v0.12.0 新增
+剑气弹体:     res://EnemyModule/Formal/SwordEnergy.gd          ★ v0.12.0 新增
 火球弹体:     res://Tools/FireballProjectile.gd                 ★ v0.9.0 新增
+代码雨:      res://Tools/CodeRain.gd                            ★ v0.12.0 重写
+防火墙:      res://Tools/WarningBarrier.gd                      ★ v0.12.0 新增
+像素崩坏:     res://Tools/PixelGlitch.gd                        ★ v0.12.0 新增
+刀光特效:     res://Tools/SlashEffect.gd                        ★ v0.12.0 新增
+闪电剑气:     res://Tools/SwordQiProjectile.gd                  ★ v0.12.0 新增
 HUD:         res://UI/HUD.tscn
 启动入口:     res://UI/TitleScreen.tscn
 正式入口:     res://Global/MainEntry.tscn
@@ -1989,6 +2042,8 @@ Glitch Shader: res://LevelModule/Formal/glitch_effect.gdshader
 
 - `res://LevelModule/Background images/` — 4 张 JPG（关卡背景图）
 - `res://Assets/Sprites/player Ani/` — 6 张 PNG（玩家动画）
+- `res://LevelModule/Formal/warning_barrier.gdshader` — 系统入侵防火墙 Glitch 特效 ★ v0.12.0
+- `res://LevelModule/Formal/memory_echo_effect.gdshader` — 记忆光团紫色扭曲+闪烁特效 ★ v0.12.0
 
 ---
 
@@ -2542,7 +2597,9 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 ### 18.1 当前可立即使用
 
 - **7 态叙事状态机**（LIVING_ROOM → GLITCH_TRANSIT）
-- **Level_02 分段串联架构（3段：Level_02 → Level_02_01 → Level_02_02）** ★ v0.9.0
+- **Level_02 分段串联架构（4段：Level_02 → 02_01 → 02_02 → 02_03 → Level_03）** ★ v0.9.0
+- **Level_02_03 断崖坠落→干扰→睁眼→现实房间→IDE→配置→床**（10态完整叙事） ★ v0.10.0
+- **Level_05 双世界侵蚀预览关卡**（PixelTearing + BossHuadan 战） ★ v0.12.0
 - **6 态无缝空间状态机（含开场叙事、重生系统、走廊敌人）** ★ v0.11.0
 - **Level_04 维度侵蚀关卡（2态，阶段1 半对半空间硬切已实现）** ★ v0.9.0
 - **Ladder 梯子攀爬机制（双向 W/S，player_up/player_down）** ★ v0.9.0
@@ -2551,6 +2608,10 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 - **左侧边缘闪烁光效**：`_left_edge_flash` / `_left_edge_glow` 手机位置提示 ★ v0.9.0
 - **眨眼视觉效果**：`_start_flicker_effect()` GLITCH_TRANSIT 意识模糊演出 ★ v0.9.0
 - **LanternGhost 完整 AI**：`MOTION_MODE_FLOATING` + 悬停距离保持 + 火球远程攻击（`FireballProjectile.gd` 含粒子拖尾+命中效果）★ v0.9.0
+- **BossHuadan 花旦Boss 4阶段AI**：600HP，自定义决策树（APPROACH/RETREAT/RANGED/MELEE/EVADE/JUMP/HOVER），Phase3 悬停+3发剑气，Phase4 近战附带剑气 ★ v0.12.0
+- **CodeRain 双层面板代码雨**：`Tools/CodeRain.gd` 基于 `_draw()` 实时渲染，背景单字符列+前景函数名数据包 ★ v0.12.0
+- **WarningBarrier 防火墙特效**：`Tools/WarningBarrier.gd` 状态机（HIDDEN/ALERT/BREACHED/DISABLED）+ `warning_barrier.gdshader` Glitch 结界 ★ v0.12.0
+- **PixelGlitch 像素崩坏** + **SlashEffect 刀光** + **SwordQiProjectile 闪电剑气** 特效工具 ★ v0.12.0
 - **分段控制器双模切换**：MainEntry 托管模式 + 独立 `change_scene_to_file` 模式，`_is_loaded_under_main_entry()` 判断 ★ v0.9.0
 - **InputManager 动作级禁用**：`block_action/unblock_action` + `clear_action_blocks` + 鼠标悬停 GUI 检测 ★ v0.9.0
 - InteractiveObject 交互物系统（带幂等性 + 重复交互 + 前置解锁）
@@ -2593,11 +2654,14 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 | 伤害数字飘屏 | 无 | 需在 `PlayerBase` 攻击反馈里加 |
 | 环境声效交叉渐变 | `_fade_ambient_audio()` 占位接口 | 接入 AudioStreamPlayer 列表 |
 | **Enemy_CyberBull** | 场景+配置已就绪，尚未被关卡使用 | 关卡4+战斗设计 |
-| **Enemy_PaperEffigy** | **v0.9.0 已被 Level_02_01/02 投入使用** | — |
+| **Enemy_PaperEffigy** | **v0.9.0 已被使用**（Level_02 多分段 + Level_03 走廊 + Level_05） | — |
 | **PixelworkMapStitch** | **v0.9.0 已被 Level_02_SceneBuilder 实际使用**（reparent 到 DreamWorldRoot） | — |
 | **Enemy_LanternGhost AI + FireballProjectile** | **v0.9.0 完全实现**（漂浮 + 火球远程攻击） | — |
 | **Level_01 输入策略 action 级禁用** | **v0.9.0 已实现**（`block_action` 替代 `_restrict_player_mechanics`） | — |
 | **Level_01 代码滚动面板** | **v0.9.0 已实现**（`CODE_SCROLL_LINES` + BBCode 语法高亮） | — |
+| **Level_02_03 断崖→干扰→睁眼→现实房间→IDE→床** | **v0.10.0 已实现**（10态完整叙事） | — |
+| **Level_05 双世界侵蚀预览 + BossHuadan** | **v0.12.0 已实现**（PixelTearing + 4阶段Boss战） | — |
+| **CodeRain / WarningBarrier / PixelGlitch / SlashEffect / SwordQiProjectile** | **v0.12.0 已实现**（全部特效工具） | — |
 
 ### 18.2.1 已实现的运行流程
 
@@ -2626,7 +2690,9 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 | **ColorRect 拦截鼠标攻击** | 中危 | _set_all_color_rect_mouse_ignore() 递归设置 MOUSE_FILTER_IGNORE | v0.8.0 |
 | **Level_01 输入策略陈旧** | 中危 | 改用 _apply_level_input_rules() + block_action 替代旧 _restrict_player_mechanics | v0.9.0 |
 | **关卡退出信号泄漏** | 中危 | 增加 _disconnect_input_manager() + _cleanup_input_before_level_switch() 三件套清理 | v0.9.0 |
-| **HUD 分散加载** | 低 | Level_01/02/03/04 各自调用 _load_hud()（统一由 MainEntry 或 LevelBase 管理为更佳方案） | v0.9.0 |
+| **HUD 分散加载** | 低 | Level_01~05 各自调用 _load_hud()（统一由 MainEntry 或 LevelBase 管理为更佳方案） | v0.9.0 |
+| **ColorRect 视觉效果过时** | 低 | CodeRain / WarningBarrier / PixelGlitch 等工具级特效已独立为正式 Tools 模块，不再依赖关卡内嵌静态节点 | v0.12.0 |
+| **Boss 系统新增** | 新 | Enemy_BossHuadan 4阶段自定义决策树 + SwordEnergy 剑气弹体，敌人系统支持BOSS级独立AI | v0.12.0 |
 
 ### 18.4 已知技术限制
 
@@ -2652,7 +2718,12 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 │   └── MainEntry.gd / .tscn             # 正式入口 (v0.5.0: 不创建Camera/HUD)
 ├── Tools/
 │   ├── DamageCalculator.gd              # 静态伤害计算
-│   └── FireballProjectile.gd            # ★ 灯笼鬼火球弹体 (v0.9.0: 拖尾粒子+命中效果)
+│   ├── FireballProjectile.gd            # ★ 灯笼鬼火球弹体 (v0.9.0: 拖尾粒子+命中效果)
+│   ├── CodeRain.gd                      # ★ Matrix 代码雨 (v0.12.0: draw_char 实时渲染)
+│   ├── WarningBarrier.gd                # ★ 防火墙 (v0.12.0: 状态机+Shader结界+粒子)
+│   ├── PixelGlitch.gd                   # ★ 像素崩坏覆盖层 (v0.12.0)
+│   ├── SlashEffect.gd                   # ★ 刀光特效 (v0.12.0)
+│   └── SwordQiProjectile.gd            # ★ 闪电剑气弹体 (v0.12.0)
 ├── UI/
 │   ├── TitleScreen.gd / .tscn           # 工程启动入口/主菜单（开始游戏+自测按钮入口）
 │   ├── KeybindSettingsScreen.gd / .tscn # 键位设置界面
@@ -2682,7 +2753,9 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 │   │   ├── Enemy_LanternGhost.gd/.tscn  ★ v0.8.0
 │   │   ├── Enemy_CyberWolf.gd/.tscn     ★ v0.8.0
 │   │   ├── Enemy_CyberBull.gd/.tscn     ★ v0.8.0
-│   │   └── Enemy_PaperEffigy.gd/.tscn   ★ v0.8.0
+│   │   ├── Enemy_PaperEffigy.gd/.tscn   ★ v0.8.0
+│   │   ├── Enemy_BossHuadan.gd/.tscn    ★ v0.12.0 花旦BOSS
+│   │   └── SwordEnergy.gd               ★ v0.12.0 Boss剑气弹体
 │   └── SelfTest/
 │       └── EnemyTest.gd / .tscn        # 敌人模块自测
 ├── LevelModule/
@@ -2711,6 +2784,9 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 │   │   ├── Level_04_SceneBuilder.gd     # ★ 容器+UI (v0.9.0)
 │   │   ├── Level_04_FSM.gd              # ★ 占位待扩展 (v0.9.0)
 │   │   ├── Level_04_UIBuilder.gd        # ★ 叙事/Glitch/终局 (v0.9.0)
+│   │   ├── Level_05.gd / .tscn          # ★ 关卡5 (v0.12.0: 双世界侵蚀+Boss花旦)
+│   │   ├── warning_barrier.gdshader     # ★ 防火墙Glitch特效 (v0.12.0)
+│   │   ├── memory_echo_effect.gdshader  # ★ 记忆光团特效 (v0.12.0)
 │   │   └── Narrative/                   # 叙事资源目录（空）
 │   ├── Backup/                          # ★ v0.9.0 旧版归档
 │   │   └── Level_02_CliffReality/       #   旧11态双空间 Level_02 (snapshots/ + README)
@@ -2724,7 +2800,7 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 
 ---
 
-**此报告已同步至 v0.9.0（Level_02 分段重构 + Level_04 维度侵蚀 + Ladder 梯子 + Level_01 代码滚动/输入策略重构 + InputManager action 级禁用 + LanternGhost 火球AI + 旧双空间归档）。关卡设计时请严格遵循：**
+**此报告已同步至 v0.12.0（Level_02 分段重构+Level_04+Level_05双世界侵蚀+BossHuadan花旦+CodeRain/WarningBarrier等特效工具+Level_02_03断崖关卡+InputManager action级禁用+旧双空间归档）。关卡设计时请严格遵循：**
 
 1. **代码构建**地形/UI，不在 `.tscn` 拖拽
 2. **`.tres` 编辑**文案与数值，不改 `.gd` 写死字符串
