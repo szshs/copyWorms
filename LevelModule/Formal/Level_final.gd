@@ -12,7 +12,7 @@ var _dialog_lines: Array[String] = []
 var _dialog_index: int = 0
 
 const PLAYER_SPAWN := Vector2(320, 616)
-const INTERACT_POS := Vector2(192, 584)
+const INTERACT_POS := Vector2(192, 592)
 const INTERACT_ID := "final_sun"
 
 func _ready() -> void:
@@ -20,6 +20,16 @@ func _ready() -> void:
 	if GameManager.player_ref and is_instance_valid(GameManager.player_ref):
 		GameManager.player_ref.queue_free()
 		GameManager.player_ref = null
+	# 背景色
+	var bg = ColorRect.new()
+	bg.name = "Background"
+	bg.size = Vector2(400, 720)
+	bg.position = Vector2(0, 0)
+	bg.color = Color(0.769, 0.6, 0.286, 1.0)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.z_index = -10
+	add_child(bg)
+
 	# 创建玩家（普通外观，非赛博非岭南）
 	var path := "res://PlayerModule/Formal/Player_Warrior.tscn"
 	if ResourceLoader.exists(path):
@@ -27,19 +37,21 @@ func _ready() -> void:
 		p.position = PLAYER_SPAWN
 		add_child(p)
 		GameManager.register_player(p)
+
 		# 禁用跳跃/攻击/闪避/技能
 		p.can_jump = false
 		p.can_dash = false
 		p.can_attack = false
 		p.can_skill = false
+		p.runtime_move_speed_multiplier = 0.2
 		var cam = p.get_node_or_null("SmoothCamera") as SmoothCamera
 		if cam:
-			# 完全复用关卡1：zoom 2倍 + lerp_speed 2.5 + 边界
+			# 摄像机配置
 			cam.limit_left = 0
 			cam.limit_right = 400
-			cam.limit_top = 504
+			cam.limit_top = 314
 			cam.limit_bottom = 640
-			cam.zoom = Vector2(2, 2)
+			cam.zoom = Vector2(3.5, 3.5)
 			cam.offset = Vector2.ZERO
 			cam.lerp_speed = 2.5
 			cam.bind_target(p)
@@ -56,15 +68,17 @@ func _ready() -> void:
 
 func _create_interactive() -> void:
 	var obj = InteractiveObject.new()
+	obj.name = "FinalSun"
 	obj.object_id = INTERACT_ID
 	obj.is_active = true
-	obj.prompt_text = "按 Enter 交互"
+	obj.prompt_text = ""
 	obj.position = INTERACT_POS
 	obj.collision_layer = 0
 	obj.collision_mask = GlobalDefine.Collision.PLAYER
 	var col = CollisionShape2D.new()
+	col.name = "CollisionShape2D"
 	var rect = RectangleShape2D.new()
-	rect.size = Vector2(80, 80)
+	rect.size = Vector2(100, 80)
 	col.shape = rect
 	obj.add_child(col)
 	add_child(obj)
@@ -80,12 +94,9 @@ func _process(_delta: float) -> void:
 				obj.check_player_in_range(pl)
 
 func _input(event: InputEvent) -> void:
-	var is_left_click = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	if _dialog_open:
-		if (event is InputEventKey and event.pressed and event.keycode == KEY_ENTER) or is_left_click:
-			_advance_dialog()
-			get_viewport().set_input_as_handled()
 		return
+	var is_left_click = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	if event.is_action_pressed("ui_accept") or is_left_click:
 		var obj = _find_nearby_interactive()
 		if obj:
@@ -101,22 +112,42 @@ func _find_nearby_interactive() -> InteractiveObject:
 func _on_object_interacted(data: Dictionary) -> void:
 	var oid = data.get("object_id", "")
 	if oid == INTERACT_ID:
-		_show_dialog(["太阳照常升起"])
+		_trigger_ending()
 
-# ============================================================
-# 对话框
-# ============================================================
-
-func _show_dialog(lines: Array[String]) -> void:
-	_dialog_lines = lines
-	_dialog_index = 0
+## 交互触发：锁定交互 + 显示文本框5s + 同时渐入黑屏5s → 切回标题界面
+func _trigger_ending() -> void:
+	# 锁定交互物
+	for obj in _all_interactives:
+		if is_instance_valid(obj):
+			obj.mark_completed()
+			obj.set_active(false)
 	_dialog_open = true
-	InputManager.block_input("对话", self)
+	InputManager.block_input("终局", self)
+	# 显示文本框
 	if not _dialog_panel:
 		_create_dialog_panel()
 	_dialog_panel.visible = true
-	_show_dialog_line()
+	_dialog_label.text = "太阳照常升起"
+	# 同时开始5s黑屏渐入
+	var cv = CanvasLayer.new()
+	cv.name = "FadeCanvas"
+	cv.layer = 2000
+	add_child(cv)
+	var black = ColorRect.new()
+	black.set_anchors_preset(Control.PRESET_FULL_RECT)
+	black.size = get_viewport_rect().size
+	black.position = Vector2.ZERO
+	black.color = Color(0, 0, 0, 0.0)
+	black.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cv.add_child(black)
+	# 5s 渐入满黑 → 切回标题界面
+	var tw = get_tree().create_tween()
+	tw.tween_property(black, "color:a", 1.0, 5.0).set_trans(Tween.TRANS_SINE)
+	tw.tween_callback(func():
+		get_tree().change_scene_to_file("res://UI/TitleScreen.tscn")
+	)
 
+## 创建文本框面板
 func _create_dialog_panel() -> void:
 	var cv = CanvasLayer.new()
 	cv.name = "DialogLayer"
@@ -144,18 +175,3 @@ func _create_dialog_panel() -> void:
 	_dialog_label.add_theme_color_override("default_color", Color(0.95, 0.9, 0.8))
 	_dialog_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dialog_panel.add_child(_dialog_label)
-
-func _show_dialog_line() -> void:
-	if _dialog_index < _dialog_lines.size():
-		_dialog_label.text = _dialog_lines[_dialog_index]
-	else:
-		_close_dialog()
-
-func _advance_dialog() -> void:
-	_dialog_index += 1
-	_show_dialog_line()
-
-func _close_dialog() -> void:
-	_dialog_open = false
-	_dialog_panel.visible = false
-	InputManager.unblock_input("对话")
