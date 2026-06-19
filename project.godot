@@ -24,6 +24,7 @@ EventBus="*res://Global/EventBus.gd"
 GameManager="*res://Global/GameManager.gd"
 InputManager="*res://Global/InputManager.gd"
 KeybindManager="*res://Global/KeybindManager.gd"
+MusicManager="*res://Global/MusicManager.gd"
 
 [display]
 

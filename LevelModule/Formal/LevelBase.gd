@@ -58,6 +58,12 @@ func _ready() -> void:
 func _apply_config() -> void:
 	if level_config and level_config.bg_color:
 		RenderingServer.set_default_clear_color(level_config.bg_color)
+	# 自动播放 BGM（bgm_resource 优先，fallback 到 bgm_path）
+	if level_config:
+		if level_config.bgm_resource:
+			MusicManager.play_bgm_from_stream(level_config.bgm_resource)
+		elif level_config.bgm_path != "":
+			MusicManager.play_bgm(level_config.bgm_path)
 
 func _setup_camera() -> void:
 	# 相机管理已移交 SmoothCamera（Player_Warrior 预制体子节点）
