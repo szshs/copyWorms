@@ -297,6 +297,30 @@ func _change_state(new_state: int) -> void:
 	current_state = new_state
 	EventBus.emit(GlobalDefine.EventName.PLAYER_STATE_CHANGED, {"state": new_state, "player": self})
 
+## 统一冻结/解冻玩家（关卡 _freeze_player 应委托到此方法）
+## 修复：旧实现 set_physics_process(false) 会连带禁用子类 _on_physics_process 中的
+## _update_animation()，导致 _change_state(IDLE) 后无人切动画，walk 动画持续循环。
+## 本方法在禁用 physics_process 后显式调用 _update_animation() 刷新到 idle。
+##
+## [旧实现 - 保留以备回退]
+##   player.velocity = Vector2.ZERO
+##   player.set_physics_process(false)
+##   player.set_process_input(false)
+##   player._change_state(GlobalDefine.PlayerState.IDLE)
+## 回退方式：将各关卡 _freeze_player 中的 player.set_frozen(freeze) 替换回上述 4 行
+func set_frozen(freeze: bool) -> void:
+	if freeze:
+		velocity = Vector2.ZERO
+		set_physics_process(false)
+		set_process_input(false)
+		_change_state(GlobalDefine.PlayerState.IDLE)
+		# 显式刷新动画到 idle（_physics_process 已禁用，子类 _update_animation 不会再被自动调用）
+		if has_method("_update_animation"):
+			call("_update_animation")
+	else:
+		set_physics_process(true)
+		set_process_input(true)
+
 # ---- 状态处理 ----
 
 func _handle_idle(delta: float) -> void:

@@ -17,6 +17,7 @@ func build_all() -> void:
 	_build_narrative_panel()
 	_build_ide_ui()
 	_build_left_edge_flash()
+	_build_right_edge_flash()
 	_build_glitch_overlay()
 
 func _build_sleep_overlay() -> void:
@@ -198,6 +199,30 @@ func _build_left_edge_flash() -> void:
 	glow.z_index = 99
 	canvas.add_child(glow)
 	level._left_edge_glow = glow
+
+func _build_right_edge_flash() -> void:
+	# 主光条（窄、亮）
+	var flash = ColorRect.new()
+	flash.name = "RightEdgeFlash"
+	flash.color = Color(1.0, 0.85, 0.2, 0.0)
+	flash.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	flash.offset_left = -8
+	flash.visible = false
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 100
+	canvas.add_child(flash)
+	level._right_edge_flash = flash
+	# 扩散光晕（宽、淡）
+	var glow = ColorRect.new()
+	glow.name = "RightEdgeGlow"
+	glow.color = Color(1.0, 0.9, 0.3, 0.0)
+	glow.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
+	glow.offset_left = -30
+	glow.visible = false
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.z_index = 99
+	canvas.add_child(glow)
+	level._right_edge_glow = glow
 
 func _build_glitch_overlay() -> void:
 	var overlay = ColorRect.new()
