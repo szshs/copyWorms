@@ -30,10 +30,6 @@ func _build_dream_world() -> void:
 
 	# ---- B 老街 (424-5328) ----
 	_ensure_static_body(collision_container, "StreetGround", Vector2(2876, 620), Vector2(4904, 40))
-	_ensure_static_body(collision_container, "StreetBlocker01", Vector2(2468, 472), Vector2(264, 16))
-	_ensure_static_body(collision_container, "StreetBlocker02", Vector2(2369, 332), Vector2(110, 40))
-	_ensure_static_body(collision_container, "StreetBlocker03", Vector2(2528, 344), Vector2(144, 16))
-	_ensure_static_body(collision_container, "StreetBlocker04", Vector2(2612, 344), Vector2(24, 272))
 
 	_attach_dream_visual_layers(dream)
 
@@ -68,12 +64,6 @@ func _build_interactives() -> void:
 	if chair_indicator:
 		chair_indicator.queue_free()
 	level._rattan_chair_node.prompt_text = "按 Enter 回忆"
-
-	level._sub02_portal_node = _ensure_interactive(container, "Sub02Portal", "sub02_portal", Vector2(2584, 304), Vector2(80, 80))
-	var portal_indicator = level._sub02_portal_node.get_node_or_null("Indicator")
-	if portal_indicator:
-		portal_indicator.queue_free()
-	level._sub02_portal_node.prompt_text = "按 Enter 进入"
 
 	level._chips_cat_node = _ensure_interactive(container, "ChipsCat", "chips_cat", Vector2(2824, 552), Vector2(80, 60))
 	var cat_indicator = level._chips_cat_node.get_node_or_null("Indicator")
