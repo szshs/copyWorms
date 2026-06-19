@@ -7,8 +7,6 @@ extends CanvasLayer
 var health_bar: ColorRect          # 血条填充（改为ColorRect）
 var health_label: Label
 var health_bar_max_width: float = 280.0
-var state_label: Label
-var mode_label: Label
 var pause_panel: Panel
 var game_over_panel: Panel
 var _keybind_dim: Panel = null
@@ -18,7 +16,6 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_ui()
 	_connect_events()
-	_update_mode_label()
 
 func _build_ui() -> void:
 	# === 左上角：血条容器 ===
@@ -61,26 +58,6 @@ func _build_ui() -> void:
 
 	# 把 health_bar 变量重新指向 bar_fill 用于后续更新
 	health_bar = bar_fill
-
-	# === 状态文字 ===
-	state_label = Label.new()
-	state_label.name = "StateLabel"
-	state_label.position = Vector2(20, 62)
-	state_label.text = "待机"
-	state_label.add_theme_font_size_override("font_size", 14)
-	state_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	state_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(state_label)
-
-	# === 模式标签 ===
-	mode_label = Label.new()
-	mode_label.name = "ModeLabel"
-	mode_label.position = Vector2(20, 82)
-	mode_label.text = "[模式]"
-	mode_label.add_theme_font_size_override("font_size", 12)
-	mode_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
-	mode_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(mode_label)
 
 	# === 返回主界面按钮（右上角） ===
 	var back_btn = Button.new()
@@ -181,14 +158,9 @@ func _build_ui() -> void:
 
 func _connect_events() -> void:
 	EventBus.subscribe(GlobalDefine.EventName.HEALTH_CHANGED, self, "_on_health_changed")
-	EventBus.subscribe(GlobalDefine.EventName.PLAYER_STATE_CHANGED, self, "_on_player_state_changed")
 	EventBus.subscribe(GlobalDefine.EventName.GAME_PAUSE, self, "_on_game_pause")
 	EventBus.subscribe(GlobalDefine.EventName.GAME_RESUME, self, "_on_game_resume")
 	EventBus.subscribe(GlobalDefine.EventName.GAME_OVER, self, "_on_game_over")
-
-func _update_mode_label() -> void:
-	var mode_text = "[自测模式]" if GameManager.is_self_test() else "[正式模式]"
-	mode_label.text = mode_text
 
 # ---- 事件回调 ----
 
@@ -200,9 +172,6 @@ func _on_health_changed(data: Dictionary) -> void:
 		health_bar.size.x = health_bar_max_width * ratio
 		health_label.text = "%d / %d" % [hp, max_hp]
 
-func _on_player_state_changed(data: Dictionary) -> void:
-	state_label.text = _state_to_string(data.get("state", 0))
-
 func _on_game_pause(_data: Dictionary = {}) -> void:
 	pause_panel.show()
 
@@ -211,19 +180,6 @@ func _on_game_resume(_data: Dictionary = {}) -> void:
 
 func _on_game_over(_data: Dictionary = {}) -> void:
 	game_over_panel.show()
-
-func _state_to_string(state: int) -> String:
-	match state:
-		GlobalDefine.PlayerState.IDLE: return "待机"
-		GlobalDefine.PlayerState.RUN: return "奔跑"
-		GlobalDefine.PlayerState.JUMP: return "跳跃"
-		GlobalDefine.PlayerState.FALL: return "下落"
-		GlobalDefine.PlayerState.DASH: return "冲刺"
-		GlobalDefine.PlayerState.ATTACK: return "攻击"
-		GlobalDefine.PlayerState.SKILL: return "技能"
-		GlobalDefine.PlayerState.HURT: return "受伤"
-		GlobalDefine.PlayerState.DEAD: return "死亡"
-	return "未知"
 
 # ---- 按钮回调 ----
 

@@ -34,7 +34,7 @@ func _ready() -> void:
 	add_child(col)
 
 	var vis = ColorRect.new()
-	vis.color = Color(0.25, 0.55, 0.25, 0.35)
+	vis.color = Color(1.0, 0.95, 0.6, 0.35)  # 很淡的黄色
 	vis.size = Vector2(40, h)
 	vis.position = Vector2(-20, -h / 2.0)
 	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE

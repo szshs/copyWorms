@@ -8,7 +8,6 @@ class_name Level_05
 
 @onready var _top_sprite: Sprite2D = $TopSprite
 @onready var _bot_sprite: Sprite2D = $BotSprite
-@onready var _label: Label = $CanvasLayer/InfoLabel
 @onready var _cyber_collisions: Node2D = $CyberCollisions
 @onready var _lingnan_collisions: Node2D = $LingnanCollisions
 
@@ -230,10 +229,6 @@ func _on_ready() -> void:
 	# 侵蚀进度条
 	_build_erosion_bar()
 
-	_label.add_theme_font_size_override("font_size", 16)
-	_label.add_theme_color_override("font_color", Color.WHITE)
-	_update_label()
-
 	set_process_input(true)
 	set_process(true)
 
@@ -408,8 +403,7 @@ func _set_collision_group_active(group: Node2D, active: bool) -> void:
 					c.set_deferred("disabled", not active)
 
 func _update_label() -> void:
-	var top_name = "岭南" if _top_is_lingnan else "赛博"
-	_label.text = "侵蚀:%.0f%% | 战斗换层 | 上层:%s" % [_erosion_value, top_name]
+	pass  # InfoLabel 已移除，侵蚀信息由 _erosion_label 显示
 
 func _load_scene(path: String) -> PackedScene:
 	if ResourceLoader.exists(path):
