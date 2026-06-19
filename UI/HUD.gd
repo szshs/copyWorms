@@ -11,6 +11,9 @@ var pause_panel: Panel
 var game_over_panel: Panel
 var _keybind_dim: Panel = null
 var _btn_tex: Texture2D = null
+var _health_frame: TextureRect = null   # 血条外框
+var _health_frame_lingnan: Texture2D = null
+var _health_frame_cyber: Texture2D = null
 
 # ---- 技能冷却UI ----
 var _skill_icon_container: Control = null   # 技能图标容器（右下角）
@@ -32,6 +35,8 @@ func _ready() -> void:
 	# 关键：暂停时 HUD 必须继续运行，否则按钮无法响应
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_btn_tex = load("res://Assets/UI/btn.png") as Texture2D
+	_health_frame_lingnan = load("res://Assets/UI/血条岭南.png") as Texture2D
+	_health_frame_cyber = load("res://Assets/UI/血条赛博.png") as Texture2D
 	_build_ui()
 	_connect_events()
 
@@ -76,6 +81,19 @@ func _build_ui() -> void:
 
 	# 把 health_bar 变量重新指向 bar_fill 用于后续更新
 	health_bar = bar_fill
+
+	# 血条外框（覆盖在填充条和文字之上，随皮肤切换）
+	# 外框图 1408×768(比例1.83:1)，保持比例放大到宽280→高约153，垂直居中包住血条
+	_health_frame = TextureRect.new()
+	_health_frame.name = "HealthFrame"
+	_health_frame.size = Vector2(360, 197)
+	_health_frame.position = Vector2(-40, -80)
+	_health_frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_health_frame.stretch_mode = TextureRect.STRETCH_SCALE
+	_health_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_health_frame.z_index = 10
+	bar_container.add_child(_health_frame)
+	_update_health_frame()
 
 	# === 返回主界面按钮（右上角） ===
 	var back_btn = Button.new()
@@ -308,6 +326,20 @@ func _on_health_changed(data: Dictionary) -> void:
 		var ratio = clampf(float(hp) / float(max_hp), 0.0, 1.0)
 		health_bar.size.x = health_bar_max_width * ratio
 		health_label.text = "%d / %d" % [hp, max_hp]
+		_update_health_frame()
+
+## 根据当前玩家皮肤切换血条外框
+func _update_health_frame() -> void:
+	if not _health_frame: return
+	var p = GameManager.player_ref
+	if not p or not is_instance_valid(p): return
+	var tex: Texture2D = null
+	# 判断皮肤类型（Player_Warrior_Cyber / Player_Warrior_Lingnan）
+	if p is Player_Warrior_Lingnan:
+		tex = _health_frame_lingnan
+	elif p is Player_Warrior_Cyber:
+		tex = _health_frame_cyber
+	_health_frame.texture = tex
 
 func _on_game_pause(_data: Dictionary = {}) -> void:
 	pause_panel.show()
@@ -381,8 +413,10 @@ func _make_panel_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton
 	lbl.add_theme_color_override("font_color", Color.WHITE)
 	lbl.add_theme_font_size_override("font_size", 16)
 	btn.add_child(lbl)
-	btn.mouse_entered.connect(func() -> void: btn.modulate = Color(1.1, 1.1, 1.1, 1.0))
-	btn.mouse_exited.connect(func() -> void: btn.modulate = Color(0.95, 0.95, 0.95, 1.0))
-	btn.button_down.connect(func() -> void: btn.modulate = Color(0.8, 0.8, 0.8, 1.0))
-	btn.button_up.connect(func() -> void: btn.modulate = Color(1.1, 1.1, 1.1, 1.0))
+	# hover/pressed 动效：self_modulate 染底板淡蓝色，不影响文字
+	btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0)
+	btn.mouse_entered.connect(func() -> void: btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0))
+	btn.mouse_exited.connect(func() -> void: btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0))
+	btn.button_down.connect(func() -> void: btn.self_modulate = Color(0.45, 0.6, 0.85, 1.0))
+	btn.button_up.connect(func() -> void: btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0))
 	return btn
