@@ -341,30 +341,30 @@ script = ExtResource("6_ladder")
 ladder_top_y = -164.0
 
 [node name="L_05" type="Area2D" parent="Ladders" unique_id=1358036913]
-position = Vector2(1165, 457.5)
+position = Vector2(1160, 472)
 script = ExtResource("6_ladder")
 ladder_top_y = 372.0
 ladder_bottom_y = 543.0
 
 [node name="L_06" type="Area2D" parent="Ladders" unique_id=2006239737]
-position = Vector2(1490, -254)
+position = Vector2(1488, -256)
 script = ExtResource("6_ladder")
 ladder_bottom_y = -164.0
 
 [node name="L_07" type="Area2D" parent="Ladders" unique_id=1507693896]
-position = Vector2(1973, 457.5)
+position = Vector2(1976, 464)
 script = ExtResource("6_ladder")
 ladder_top_y = 372.0
 ladder_bottom_y = 543.0
 
 [node name="L_08" type="Area2D" parent="Ladders" unique_id=1994024046]
-position = Vector2(2195, 281)
+position = Vector2(2192, 272)
 script = ExtResource("6_ladder")
 ladder_top_y = 190.0
 ladder_bottom_y = 372.0
 
 [node name="L_09" type="Area2D" parent="Ladders" unique_id=1885554655]
-position = Vector2(2141, 102.5)
+position = Vector2(2136, 96)
 script = ExtResource("6_ladder")
 ladder_top_y = 15.0
 ladder_bottom_y = 190.0

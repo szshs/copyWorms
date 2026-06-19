@@ -87,12 +87,12 @@ func _setup_player() -> void:
 		GameManager.register_player(p)
 		var cam = p.get_node_or_null("SmoothCamera") as SmoothCamera
 		if cam:
-			cam.limit_left = -1702; cam.limit_right = 2982
-			cam.limit_top = 210; cam.limit_bottom = 540
-			cam.zoom = Vector2(1.25, 1.25)
+			cam.zoom = Vector2(1.33, 1.33)
 			cam.bind_target(p)
 			cam.follow_enabled = true
 			cam.make_current()
+		# 摄像机边界从碰撞体读取（bg3 区域，上边界 80）
+		_set_cam_from_group($CyberCollisions, 80, 648)
 		# 推送血量到 HUD
 		EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
 			"target": p,
@@ -125,7 +125,7 @@ func _swap_player_skin(skin: String) -> void:
 		if saved_limits:
 			cam.limit_left = saved_limits[0]; cam.limit_right = saved_limits[1]
 			cam.limit_top = saved_limits[2]; cam.limit_bottom = saved_limits[3]
-		cam.zoom = Vector2(1.25, 1.25)
+		cam.zoom = Vector2(1.33, 1.33)
 		cam.bind_target(p)
 		cam.follow_enabled = true
 		cam.make_current()
@@ -154,6 +154,29 @@ func _set_camera_limits(l: int, r: int, t: int, b: int) -> void:
 	var p = GameManager.player_ref; if not p or not is_instance_valid(p): return
 	var c = p.get_node_or_null("SmoothCamera") as SmoothCamera; if not c: return
 	c.limit_left = l; c.limit_right = r; c.limit_top = t; c.limit_bottom = b
+
+## 遍历容器内所有 StaticBody2D 的 RectangleShape2D，取世界坐标 AABB 并集
+func _collision_group_rect(group: Node) -> Rect2:
+	var rect := Rect2()
+	var first := true
+	if not group or not is_instance_valid(group): return rect
+	for body in group.get_children():
+		if body is StaticBody2D:
+			for c in body.get_children():
+				if c is CollisionShape2D and c.shape is RectangleShape2D:
+					var rs := c.shape as RectangleShape2D
+					var center: Vector2 = (body as Node2D).global_position + (c as CollisionShape2D).position
+					var r := Rect2(center - rs.size / 2.0, rs.size)
+					if first: rect = r; first = false
+					else: rect = rect.merge(r)
+	return rect
+
+## 从碰撞体容器设摄像机边界（左/右从碰撞体读，上边界手动指定，下边界可选手动指定）
+func _set_cam_from_group(group: Node, top: int, bottom: int = -1) -> void:
+	if not group or not is_instance_valid(group): return
+	var rect := _collision_group_rect(group)
+	var b: int = bottom if bottom >= 0 else int(rect.end.y)
+	_set_camera_limits(int(rect.position.x), int(rect.end.x), top, b)
 
 func _on_ready() -> void:
 	super._on_ready()
@@ -531,7 +554,8 @@ func _teleport_to_bg5() -> void:
 	_set_boss_area_active(false)
 	_set_map_sprites_visible(false)
 	_set_bg5_area_active(true)
-	_teleport_and_setup_camera(BG5_PLAYER_POS, BG5_CAM_LEFT, BG5_CAM_RIGHT, BG5_CAM_TOP, BG5_CAM_BOTTOM, 1.5)
+	_teleport_and_setup_camera(BG5_PLAYER_POS, BG5_CAM_LEFT, BG5_CAM_RIGHT, 7448, BG5_CAM_BOTTOM, 1.33)
+	_set_cam_from_group($Bg5Collisions, 7448)
 	_hide_boss_bar()
 	print("[Level_05] 已进入 bg5 区域")
 
@@ -558,7 +582,8 @@ func _enter_boss_arena() -> void:
 	], _teleport_to_boss)
 
 func _teleport_to_boss() -> void:
-	_teleport_and_setup_camera(Vector2(931, 5037), 620, 1710, 4509, 5135, 1.5)
+	_teleport_and_setup_camera(Vector2(931, 5037), 620, 1710, 4512, 5135, 1.33)
+	_set_cam_from_group($BossCollisions, 4512)
 	_set_boss_area_active(true)
 	_set_map_sprites_visible(false)
 	_spawn_boss()
@@ -732,7 +757,8 @@ func _debug_to_bg3() -> void:
 	_in_bg5 = false
 	_hide_boss_bar()
 	GameManager.boss_target = null
-	_teleport_and_setup_camera(Vector2(-1603, 380), -1702, 2982, 210, 540, 1.25)
+	_teleport_and_setup_camera(Vector2(-1603, 380), -1702, 2982, 80, 540, 1.33)
+	_set_cam_from_group($CyberCollisions, 80, 648)
 	_set_boss_area_active(false)
 	_set_bg5_area_active(false)
 	_set_map_sprites_visible(true)
@@ -743,7 +769,8 @@ func _debug_to_bg4() -> void:
 	_in_boss_arena = true
 	_in_bg5 = false
 	_set_bg5_area_active(false)
-	_teleport_and_setup_camera(Vector2(931, 5037), 620, 1710, 4509, 5135, 1.5)
+	_teleport_and_setup_camera(Vector2(931, 5037), 620, 1710, 4512, 5135, 1.33)
+	_set_cam_from_group($BossCollisions, 4512)
 	_set_boss_area_active(true)
 	_set_map_sprites_visible(false)
 	_spawn_boss()
@@ -759,7 +786,8 @@ func _debug_to_bg5() -> void:
 	_hide_boss_bar()
 	GameManager.boss_target = null
 	_despawn_boss()
-	_teleport_and_setup_camera(BG5_PLAYER_POS, BG5_CAM_LEFT, BG5_CAM_RIGHT, BG5_CAM_TOP, BG5_CAM_BOTTOM, 1.5)
+	_teleport_and_setup_camera(BG5_PLAYER_POS, BG5_CAM_LEFT, BG5_CAM_RIGHT, 7448, BG5_CAM_BOTTOM, 1.33)
+	_set_cam_from_group($Bg5Collisions, 7448)
 
 func _spawn_boss() -> void:
 	if _boss_instance and is_instance_valid(_boss_instance):
@@ -781,7 +809,7 @@ func _despawn_boss() -> void:
 		_boss_instance = null
 	GameManager.boss_target = null
 
-func _teleport_and_setup_camera(pos: Vector2, lim_l: int, lim_r: int, lim_t: int, lim_b: int, z: float = 1.25) -> void:
+func _teleport_and_setup_camera(pos: Vector2, lim_l: int, lim_r: int, lim_t: int, lim_b: int, z: float = 1.33) -> void:
 	var p = GameManager.player_ref
 	if not p or not is_instance_valid(p): return
 	p.global_position = pos
