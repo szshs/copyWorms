@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://dieflbt74wljk"]
 
-[ext_resource type="Script" uid="uid://btcnf0oxghn5k" path="res://LevelModule/Formal/Level_05.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://bex5a88jduf35" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Lingnan/bg 3-2.png" id="2_lingnan_bg"]
-[ext_resource type="Texture2D" uid="uid://dr8bnyxhv05dp" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 3-1.png" id="3_cyber_bg"]
-[ext_resource type="Texture2D" uid="uid://by4nors0fg5jp" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 4.png" id="4_boss_bg"]
-[ext_resource type="Script" uid="uid://btk2x8ndpffig" path="res://LevelModule/Formal/InteractiveObject.gd" id="5_interact"]
+[ext_resource type="Script" uid="uid://bbb5sibxa7a0l" path="res://LevelModule/Formal/Level_05.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://de3u0a322bj7o" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Lingnan/bg 3-2.png" id="2_lingnan_bg"]
+[ext_resource type="Texture2D" uid="uid://nxiyg46unm8d" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 3-1.png" id="3_cyber_bg"]
+[ext_resource type="Texture2D" uid="uid://dhq0arcnfe3r4" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 4.png" id="4_boss_bg"]
+[ext_resource type="Script" uid="uid://b8ncuf7p5o5rh" path="res://LevelModule/Formal/InteractiveObject.gd" id="5_interact"]
 [ext_resource type="Texture2D" uid="uid://bvrmrgf5vb200" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 5.png" id="6_bg5_bg"]
 
 [sub_resource type="RectangleShape2D" id="floor_shape"]
@@ -79,14 +79,6 @@ position = Vector2(640, 440)
 position = Vector2(429.5, 207)
 shape = SubResource("floor_shape")
 
-[node name="Vis" type="ColorRect" parent="Floor" unique_id=812184798]
-offset_left = -643.0
-offset_top = 104.0
-offset_right = 637.0
-offset_bottom = 129.0
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="CyberCollisions" type="Node2D" parent="." unique_id=580123456]
 
 [node name="LeftWall" type="StaticBody2D" parent="CyberCollisions" unique_id=580123458]
@@ -107,27 +99,11 @@ position = Vector2(-1214, 461)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/CY_P1" unique_id=580123491]
 shape = SubResource("cy_p1")
 
-[node name="Vis" type="ColorRect" parent="CyberCollisions/CY_P1" unique_id=580123492]
-offset_left = -489.0
-offset_top = -12.5
-offset_right = 489.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="CY_P2" type="StaticBody2D" parent="CyberCollisions" unique_id=580123493]
 position = Vector2(277.5, 460)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/CY_P2" unique_id=580123494]
 shape = SubResource("cy_p2")
-
-[node name="Vis" type="ColorRect" parent="CyberCollisions/CY_P2" unique_id=580123495]
-offset_left = -424.5
-offset_top = -12.5
-offset_right = 424.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="CY_P3" type="StaticBody2D" parent="CyberCollisions" unique_id=580123496]
 position = Vector2(971.5, 397)
@@ -135,27 +111,11 @@ position = Vector2(971.5, 397)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/CY_P3" unique_id=580123497]
 shape = SubResource("cy_p3")
 
-[node name="Vis" type="ColorRect" parent="CyberCollisions/CY_P3" unique_id=580123498]
-offset_left = -185.5
-offset_top = -12.5
-offset_right = 185.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="CY_P4" type="StaticBody2D" parent="CyberCollisions" unique_id=580123499]
 position = Vector2(1300, 368)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/CY_P4" unique_id=580123500]
 shape = SubResource("cy_p4")
-
-[node name="Vis" type="ColorRect" parent="CyberCollisions/CY_P4" unique_id=580123501]
-offset_left = -143.0
-offset_top = -12.5
-offset_right = 143.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="CY_P5" type="StaticBody2D" parent="CyberCollisions" unique_id=580123502]
 position = Vector2(1771.5, 455)
@@ -163,41 +123,17 @@ position = Vector2(1771.5, 455)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/CY_P5" unique_id=580123503]
 shape = SubResource("cy_p5")
 
-[node name="Vis" type="ColorRect" parent="CyberCollisions/CY_P5" unique_id=580123504]
-offset_left = -217.5
-offset_top = -12.5
-offset_right = 217.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="CY_P6" type="StaticBody2D" parent="CyberCollisions" unique_id=580123505]
 position = Vector2(2867.5, 459)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/CY_P6" unique_id=580123506]
 shape = SubResource("cy_p6")
 
-[node name="Vis" type="ColorRect" parent="CyberCollisions/CY_P6" unique_id=580123507]
-offset_left = -117.5
-offset_top = -12.5
-offset_right = 117.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="CY_P7" type="StaticBody2D" parent="CyberCollisions" unique_id=580123508]
 position = Vector2(2888, 311)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CyberCollisions/CY_P7" unique_id=580123509]
 shape = SubResource("cy_p7")
-
-[node name="Vis" type="ColorRect" parent="CyberCollisions/CY_P7" unique_id=580123510]
-offset_left = -97.0
-offset_top = -12.5
-offset_right = 97.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="BossBg" type="Sprite2D" parent="." unique_id=580200000]
 z_index = -5
@@ -228,14 +164,6 @@ position = Vector2(1089, 5199)
 position = Vector2(99, -89)
 shape = SubResource("boss_floor")
 
-[node name="Vis" type="ColorRect" parent="BossCollisions/Floor" unique_id=580200008]
-offset_left = -381.0
-offset_top = -29.0
-offset_right = 582.0
-offset_bottom = -4.0
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="LingnanCollisions" type="Node2D" parent="." unique_id=580123457]
 visible = false
 
@@ -258,28 +186,12 @@ position = Vector2(-1028, 446)
 position = Vector2(0, 17)
 shape = SubResource("ln_p1")
 
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LN_P1" unique_id=580123472]
-offset_left = -678.0
-offset_top = 9.0
-offset_right = 682.0
-offset_bottom = 34.0
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="LN_P2" type="StaticBody2D" parent="LingnanCollisions" unique_id=580123473]
 position = Vector2(-27.5, 442)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LN_P2" unique_id=580123474]
 position = Vector2(-1.5, 21)
 shape = SubResource("ln_p2")
-
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LN_P2" unique_id=580123475]
-offset_left = -161.5
-offset_top = 2.0
-offset_right = 171.5
-offset_bottom = 27.0
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="LN_P3" type="StaticBody2D" parent="LingnanCollisions" unique_id=580123476]
 position = Vector2(787, 452)
@@ -288,28 +200,12 @@ position = Vector2(787, 452)
 position = Vector2(0, 6.75)
 shape = SubResource("ln_p3")
 
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LN_P3" unique_id=580123478]
-offset_left = -204.0
-offset_top = 3.0
-offset_right = 204.0
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
-
 [node name="LN_P4" type="StaticBody2D" parent="LingnanCollisions" unique_id=580123479]
 position = Vector2(2667.5, 449)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LN_P4" unique_id=580123480]
 position = Vector2(0, 8)
 shape = SubResource("ln_p4")
-
-[node name="Vis" type="ColorRect" parent="LingnanCollisions/LN_P4" unique_id=580123481]
-offset_left = -98.5
-offset_top = -12.5
-offset_right = 98.5
-offset_bottom = 12.5
-mouse_filter = 2
-color = Color(0.5, 0.5, 0.5, 0.3)
 
 [node name="Bg5" type="Sprite2D" parent="." unique_id=580300000]
 z_index = -5
@@ -342,20 +238,6 @@ shape = SubResource("bg5_wall")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=258921447]
 layer = 100
-
-[node name="LabelBg" type="ColorRect" parent="CanvasLayer" unique_id=799502819]
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 588.0
-offset_bottom = 48.0
-color = Color(0, 0, 0, 0.6)
-
-[node name="InfoLabel" type="Label" parent="CanvasLayer" unique_id=735022649]
-offset_left = 16.0
-offset_top = 16.0
-offset_right = 16.0
-offset_bottom = 16.0
-text = "侵蚀:0% | 战斗换层 | 上层:岭南"
 
 [node name="BossEntry" type="Area2D" parent="." unique_id=1973756917]
 position = Vector2(2842, 552)
