@@ -9,6 +9,7 @@ class_name LevelConfig
 @export var level_name: String = "未命名关卡"
 @export var level_id: String = ""
 @export var bgm_resource: AudioStream = null
+@export var bgm_path: String = ""        # BGM 文件路径（备用，bgm_resource 优先）
 @export var bg_color: Color = Color(0.1, 0.1, 0.2)
 
 @export_group("摄像机")
