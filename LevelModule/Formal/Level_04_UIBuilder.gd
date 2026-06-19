@@ -14,6 +14,7 @@ func _init(parent: Level_04, canvas_layer: CanvasLayer) -> void:
 func build_all() -> void:
 	_build_narrative_panel()
 	_build_glitch_overlay()
+	_build_right_edge_flash()
 	_build_ending_prompt()
 
 
@@ -21,8 +22,14 @@ func _build_narrative_panel() -> void:
 	var panel = Panel.new()
 	panel.name = "NarrativePanel"
 	panel.visible = false
-	panel.size = Vector2(1280, 200)
-	panel.position = Vector2(0, 520)
+	panel.anchor_left = 0.0
+	panel.anchor_top = 1.0
+	panel.anchor_right = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = 0.0
+	panel.offset_top = -200.0
+	panel.offset_right = 0.0
+	panel.offset_bottom = 0.0
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0, 0, 0, 0.85)
@@ -31,8 +38,14 @@ func _build_narrative_panel() -> void:
 
 	var label = RichTextLabel.new()
 	label.name = "RichTextLabel"
-	label.size = Vector2(1240, 160)
-	label.position = Vector2(20, 20)
+	label.anchor_left = 0.0
+	label.anchor_top = 0.0
+	label.anchor_right = 1.0
+	label.anchor_bottom = 1.0
+	label.offset_left = 20.0
+	label.offset_top = 20.0
+	label.offset_right = -20.0
+	label.offset_bottom = -20.0
 	label.bbcode_enabled = true
 	label.fit_content = true
 	label.add_theme_font_size_override("normal_font_size", 18)
@@ -59,6 +72,43 @@ func _build_glitch_overlay() -> void:
 		overlay.material = mat
 	canvas.add_child(overlay)
 	level._glitch_overlay = overlay
+
+
+func _build_right_edge_flash() -> void:
+	# 主光条（窄、亮）
+	var flash = ColorRect.new()
+	flash.name = "RightEdgeFlash"
+	flash.color = Color(1.0, 0.85, 0.2, 0.0)
+	flash.anchor_left = 1.0
+	flash.anchor_top = 0.0
+	flash.anchor_right = 1.0
+	flash.anchor_bottom = 1.0
+	flash.offset_left = -8.0
+	flash.offset_top = 0.0
+	flash.offset_right = 0.0
+	flash.offset_bottom = 0.0
+	flash.visible = false
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 250
+	canvas.add_child(flash)
+	level._right_edge_flash = flash
+	# 扩散光晕（宽、淡）
+	var glow = ColorRect.new()
+	glow.name = "RightEdgeGlow"
+	glow.color = Color(1.0, 0.9, 0.3, 0.0)
+	glow.anchor_left = 1.0
+	glow.anchor_top = 0.0
+	glow.anchor_right = 1.0
+	glow.anchor_bottom = 1.0
+	glow.offset_left = -30.0
+	glow.offset_top = 0.0
+	glow.offset_right = 0.0
+	glow.offset_bottom = 0.0
+	glow.visible = false
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.z_index = 249
+	canvas.add_child(glow)
+	level._right_edge_glow = glow
 
 
 func _build_ending_prompt() -> void:

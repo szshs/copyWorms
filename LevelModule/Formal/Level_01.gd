@@ -59,6 +59,10 @@ var _level_input_rules_active: bool = false
 var _left_edge_flash: ColorRect = null
 var _left_edge_glow: ColorRect = null
 var _left_edge_flash_active: bool = false
+# 右侧边缘黄色闪烁光效（GLITCH_TRANSIT 阶段提示床的位置）
+var _right_edge_flash: ColorRect = null
+var _right_edge_glow: ColorRect = null
+var _right_edge_flash_active: bool = false
 
 # 所有交互物引用的统一访问方法（消除 4 处硬编码数组重复）
 var _all_interactives: Array[InteractiveObject] = []
@@ -71,6 +75,11 @@ const NARRATIVE_INPUT_TIMEOUT: float = 30.0
 var _narrative_enter_pressed: bool = false
 # 睡眠渐变动画期间为 true，防止 _process 误清交互锁
 var _sleep_fading: bool = false
+
+# 床交互空闲提示：电脑解锁前，每次睡完 2s 内未再找床则弹提示
+const IDLE_BED_PROMPT_TEXT := "没什么事做，还是继续睡觉吧"
+const IDLE_BED_PROMPT_DELAY: float = 2.0
+var _idle_bed_prompt_armed: bool = false
 
 # IDE 预览超时崩溃（8 秒）
 const IDE_PREVIEW_TIMEOUT: float = 8.0
@@ -394,14 +403,17 @@ func _enforce_level_restrictions() -> void:
 func _freeze_player(freeze: bool) -> void:
 	var player = GameManager.player_ref
 	if not player: return
-	if freeze:
-		player.velocity = Vector2.ZERO
-		player.set_physics_process(false)
-		player.set_process_input(false)
-		player._change_state(GlobalDefine.PlayerState.IDLE)
-	else:
-		player.set_physics_process(true)
-		player.set_process_input(true)
+	# [旧实现 - 保留以备回退] set_physics_process(false) 连带禁用 _update_animation，
+	# 导致冻结时 walk 动画持续循环。已迁移至 PlayerBase.set_frozen() 统一处理。
+	# if freeze:
+	#     player.velocity = Vector2.ZERO
+	#     player.set_physics_process(false)
+	#     player.set_process_input(false)
+	#     player._change_state(GlobalDefine.PlayerState.IDLE)
+	# else:
+	#     player.set_physics_process(true)
+	#     player.set_process_input(true)
+	player.set_frozen(freeze)
 	# Bug1 修复: 冻结/解冻时同步控制所有交互物的 monitoring,
 	# 防止 body_exited 在冻结期误清 is_player_in_range
 	for obj in _all_interactives:
@@ -513,8 +525,8 @@ func _process(delta: float) -> void:
 	if _is_interacting and current_state not in [LevelState.IDE_CHAT, LevelState.IDE_PREVIEW, LevelState.GLITCH_TRANSIT]:
 		if not _narrative_open and not _sleep_fading:
 			_safe_end_interaction()
-	# 左侧边缘闪烁：检测手机是否进入摄像机画面，若是则停止闪烁
-	if _left_edge_flash_active:
+	# 边缘闪烁：检测目标（手机/床）是否进入摄像机画面，若是则停止闪烁
+	if _left_edge_flash_active or _right_edge_flash_active:
 		_check_flash_target_in_view()
 	# 代码滚动：IDE 对话"编译"阶段，右侧面板自动滚屏输出伪代码
 	if _code_scroll_active:
@@ -583,6 +595,8 @@ func _match_and_clear_ref(node: InteractiveObject) -> void:
 # ---- 叙事面板（B6/B7 修复: 超时 + 错误边界）----
 
 func _show_narrative(text: String, callback: Callable = Callable()) -> void:
+	# 任何叙事开始都取消待弹的床空闲提示
+	_disarm_idle_bed_prompt()
 	# 阶段3d: 叙事面板打开时全局屏蔽输入（阻断 attack/dash/skill）
 	InputManager.block_input("叙事面板", self)
 
@@ -628,6 +642,7 @@ func _show_narrative(text: String, callback: Callable = Callable()) -> void:
 # ---- 睡眠循环 ----
 
 func _trigger_sleep_cycle() -> void:
+	_disarm_idle_bed_prompt()
 	if not level_data: return
 	_bed_node.completed = true
 	_is_interacting = true
@@ -669,6 +684,7 @@ func _trigger_sleep_cycle() -> void:
 			InputManager.unblock_input("睡眠循环")
 			_safe_end_interaction()
 			_bed_node.reset_completed()
+			_maybe_arm_idle_bed_prompt()
 		)
 	else:
 		_sleep_fading = false
@@ -677,6 +693,32 @@ func _trigger_sleep_cycle() -> void:
 		InputManager.unblock_input("睡眠循环")
 		_safe_end_interaction()
 		_bed_node.reset_completed()
+		_maybe_arm_idle_bed_prompt()
+
+
+## 电脑解锁前，每次睡眠结束若 2s 内未再找床，弹提示引导玩家继续睡
+func _maybe_arm_idle_bed_prompt() -> void:
+	if _computer_node and is_instance_valid(_computer_node) and _computer_node.is_active:
+		return  # 电脑已解锁，不再提示
+	_arm_idle_bed_prompt()
+
+func _arm_idle_bed_prompt() -> void:
+	_idle_bed_prompt_armed = true
+	await get_tree().create_timer(IDLE_BED_PROMPT_DELAY).timeout
+	if not _idle_bed_prompt_armed:
+		return
+	_idle_bed_prompt_armed = false
+	# 状态合法性检查：仍处于卧室、电脑未解锁、未在交互/叙事/睡眠中
+	if current_state != LevelState.BEDROOM:
+		return
+	if _computer_node and is_instance_valid(_computer_node) and _computer_node.is_active:
+		return
+	if _is_interacting or _narrative_open or _sleep_fading:
+		return
+	_show_narrative(IDLE_BED_PROMPT_TEXT)
+
+func _disarm_idle_bed_prompt() -> void:
+	_idle_bed_prompt_armed = false
 
 
 ## 检查是否满足解锁电脑的前置条件（与床交互≥4次）
@@ -882,12 +924,16 @@ func _trigger_climax_transition() -> void:
 			_start_flicker_effect(func():
 				pass
 			)
+			# 启动右侧边缘闪烁光效（床在右侧画面外，提示玩家去床那里）
+			_start_right_edge_flash()
 			print("[Level_01] 进入 GLITCH_TRANSIT — 等待玩家与床最终交互")
 		)
 	)
 
 func _on_final_bed_trigger() -> void:
 	# 玩家在 GLITCH_TRANSIT 状态再次与床交互 → 触发终局转场链
+	# 床已交互，停止右侧边缘闪烁
+	_stop_right_edge_flash()
 	if _bed_node: _bed_node.mark_completed()
 	_freeze_player(true)
 	InputManager.block_input("终局转场", self)
@@ -970,9 +1016,9 @@ func _start_left_edge_flash() -> void:
 	_left_edge_flash_active = true
 	print("[Level_01] 左侧边缘闪烁光效启动")
 
-## 检测手机是否进入摄像机画面范围，若是则平滑停止闪烁
+## 检测目标（手机/床）是否进入摄像机画面范围，若是则平滑停止对应侧闪烁
 func _check_flash_target_in_view() -> void:
-	if not _left_edge_flash_active:
+	if not _left_edge_flash_active and not _right_edge_flash_active:
 		return
 	var player = GameManager.player_ref
 	if not player or not is_instance_valid(player):
@@ -983,8 +1029,14 @@ func _check_flash_target_in_view() -> void:
 	var half_visible = get_viewport_rect().size * 0.5 / cam.zoom
 	var cam_center = cam.global_position + cam.offset
 	var view_rect = Rect2(cam_center - half_visible, half_visible * 2)
-	if _phone_node and is_instance_valid(_phone_node) and view_rect.has_point(_phone_node.global_position):
+	# 左侧闪烁：手机入镜则停止
+	if _left_edge_flash_active and _phone_node and is_instance_valid(_phone_node) \
+			and view_rect.has_point(_phone_node.global_position):
 		_stop_left_edge_flash()
+	# 右侧闪烁：床入镜则停止
+	if _right_edge_flash_active and _bed_node and is_instance_valid(_bed_node) \
+			and view_rect.has_point(_bed_node.global_position):
+		_stop_right_edge_flash()
 
 ## 平滑停止左侧边缘闪烁
 func _stop_left_edge_flash() -> void:
@@ -996,6 +1048,37 @@ func _stop_left_edge_flash() -> void:
 	if _left_edge_glow and is_instance_valid(_left_edge_glow):
 		_left_edge_glow.hide()
 	print("[Level_01] 左侧边缘闪烁光效停止")
+
+## 启动右侧边缘黄色闪烁光效（GLITCH_TRANSIT 阶段提示床的位置）
+func _start_right_edge_flash() -> void:
+	if _right_edge_flash_active:
+		return
+	if not _right_edge_flash or not is_instance_valid(_right_edge_flash):
+		return
+	_right_edge_flash.visible = true
+	_right_edge_flash.color.a = 0.0
+	_right_edge_glow.visible = true
+	_right_edge_glow.color.a = 0.0
+	# 闪烁动画
+	var tw = _right_edge_flash.create_tween().set_loops()
+	tw.tween_property(_right_edge_flash, "color:a", 0.8, 0.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(_right_edge_flash, "color:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE)
+	var tw2 = _right_edge_glow.create_tween().set_loops()
+	tw2.tween_property(_right_edge_glow, "color:a", 0.25, 0.5).set_trans(Tween.TRANS_SINE)
+	tw2.tween_property(_right_edge_glow, "color:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE)
+	_right_edge_flash_active = true
+	print("[Level_01] 右侧边缘闪烁光效启动")
+
+## 平滑停止右侧边缘闪烁
+func _stop_right_edge_flash() -> void:
+	if not _right_edge_flash_active:
+		return
+	_right_edge_flash_active = false
+	if _right_edge_flash and is_instance_valid(_right_edge_flash):
+		_right_edge_flash.hide()
+	if _right_edge_glow and is_instance_valid(_right_edge_glow):
+		_right_edge_glow.hide()
+	print("[Level_01] 右侧边缘闪烁光效停止")
 
 func _start_glitch_shader_effect() -> void:
 	if not _glitch_overlay or not _glitch_overlay.material:

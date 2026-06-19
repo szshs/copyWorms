@@ -28,7 +28,6 @@ var _level_exit_trigger: Area2D = null
 var _window_node: InteractiveObject = null
 var _attic_door_node: InteractiveObject = null
 var _rattan_chair_node: InteractiveObject = null
-var _sub02_portal_node: InteractiveObject = null
 var _chips_cat_node: InteractiveObject = null
 var _all_interactives: Array[InteractiveObject] = []
 
@@ -50,7 +49,6 @@ var _enemy_slime_scene: PackedScene = null
 
 const FINAL_BLACKOUT_FADE_DURATION: float = 0.8
 const NEXT_LEVEL_SEGMENT_PATH: String = "res://LevelModule/Formal/Level_02_01.tscn"
-const SUB02_SCENE_PATH: String = "res://LevelModule/Formal/Level_02_sub02.tscn"
 const CHIPS_CAT_TEXTS: Array[String] = [
 	"薯片，是你！我最爱的猫！",
 	"薯片总是躺在药店前的桌子，懒洋洋地露出肚皮晒着太阳，看见他总感觉心中有温暖的太阳",
@@ -83,7 +81,7 @@ func _on_ready() -> void:
 	_restore_player_mechanics()
 	_ensure_player_collision_layer()
 
-	_all_interactives = [_window_node, _attic_door_node, _rattan_chair_node, _sub02_portal_node, _chips_cat_node]
+	_all_interactives = [_window_node, _attic_door_node, _rattan_chair_node, _chips_cat_node]
 
 	EventBus.subscribe(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, self, "_on_object_interacted")
 	EventBus.subscribe(GlobalDefine.EventName.ENEMY_DIED, self, "_on_enemy_died_combat_hint")
@@ -204,14 +202,16 @@ func _freeze_player(freeze: bool) -> void:
 	var player = GameManager.player_ref
 	if not player:
 		return
-	if freeze:
-		player.velocity = Vector2.ZERO
-		player.set_physics_process(false)
-		player.set_process_input(false)
-		player._change_state(GlobalDefine.PlayerState.IDLE)
-	else:
-		player.set_physics_process(true)
-		player.set_process_input(true)
+	# [旧实现 - 保留以备回退] 已迁移至 PlayerBase.set_frozen() 统一处理动画冻结问题
+	# if freeze:
+	#     player.velocity = Vector2.ZERO
+	#     player.set_physics_process(false)
+	#     player.set_process_input(false)
+	#     player._change_state(GlobalDefine.PlayerState.IDLE)
+	# else:
+	#     player.set_physics_process(true)
+	#     player.set_process_input(true)
+	player.set_frozen(freeze)
 	for obj in _all_interactives:
 		if is_instance_valid(obj):
 			obj.freeze_monitoring(freeze)
@@ -326,7 +326,6 @@ func _get_interactive_by_id(obj_id: String) -> InteractiveObject:
 		"window_l2": return _window_node
 		"attic_door": return _attic_door_node
 		"rattan_chair": return _rattan_chair_node
-		"sub02_portal": return _sub02_portal_node
 		"chips_cat": return _chips_cat_node
 	return null
 
@@ -494,23 +493,6 @@ func _handle_chips_cat_interaction() -> void:
 	_show_narrative_sequence(CHIPS_CAT_TEXTS, func():
 		_mark_interaction_completed("chips_cat")
 	)
-
-func _transition_to_sub02() -> void:
-	if _transition_running:
-		return
-	_mark_interaction_completed("sub02_portal")
-	_transition_running = true
-	_is_interacting = true
-	InputManager.block_input("关卡2子场景转场", self)
-	_freeze_player(true)
-	await _fade_blackout(1.0, FINAL_BLACKOUT_FADE_DURATION)
-	get_viewport().gui_release_focus()
-	InputManager.force_unblock_all()
-	_full_cleanup()
-	print("[Level_02] 切换子场景 → ", SUB02_SCENE_PATH)
-	var err = get_tree().change_scene_to_file(SUB02_SCENE_PATH)
-	if err != OK:
-		push_warning("[Level_02] 子场景切换失败: %s (err=%d)" % [SUB02_SCENE_PATH, err])
 
 func _do_attic_door_transition() -> void:
 	_transition_running = true
