@@ -1,11 +1,34 @@
 # HackathonGame 关卡技术架构报告（叙事驱动版）
 
 > **目标读者**：关卡设计师 / 下游 AI 关卡设计助手
-> **更新日期**：2026-06-17
+> **更新日期**：2026-06-19
 > **引擎版本**：Godot 4.6 (GL Compatibility, GDScript)
-> **项目版本**：v0.10.0（Level_02_03 断崖→现实→IDE 交互完整实现 + 全局速度调整 + 技能禁用体系）
->
-> **v0.10.0 变更摘要**：
+> **项目版本**：v0.12.0（CodeRain 重写 + 警告防火墙 + 记忆光团特效 + 墙壁屏障）
+
+> **v0.12.0 变更摘要**：
+> - **CodeRain 完全重写**：新增 `Tools/CodeRain.gd`（Control 子类），改用 `_draw()` + `draw_char()` / `draw_string()` 实时渲染，不再使用静态 Label 节点双层架构：背景层 ~58 列单字符雨（片假名/数字/符号）+ 前景层 6 条项目函数名"数据包"缓慢穿行
+> - **字体升级**：改用 `Silkscreen-Bold.ttf` 像素字体（16px 2x 原生），背景/前景统一，列间距 22px
+> - **颜色系统**：统一 `#0aae43` 终端绿，RGB `(0.039, 0.682, 0.263)`
+> - **新增 `warning_barrier.gdshader`**：系统入侵防火墙 Glitch 特效（能量带流动 + 横向撕裂 Glitch + RGB 色散 + 边缘 rim light + 底部最亮），加法合成
+> - **新增 `Tools/WarningBarrier.gd`**：防火墙控制器（Node2D），状态机 IDLE→ALERT→BREACHED→DISABLED，支持距离连续渐变、爆发白光序列、红色火花粒子
+> - **WarningBarrier 集成到 Level_03**：两个 WarningTrigger 区域上方挂载红色 Glitch 防火墙 + 滚动警告文字 "⚠ RESTRICTED ⚠"
+> - **墙壁屏障统一**：5 面墙壁（HavenRightWall / AlleyRightWall / CorridorRightWall / CyberLeftWall / CyberRightWall）全部改用 `warning_barrier.gdshader`，深蓝 `(0.04, 0.12, 0.7)`
+> - **墙面 CollisionShape2D 偏移修复**：`_add_barrier_shader_to_wall` 新增 `col_shape.position` 读取，ColorRect 居中于碰撞体位置
+> - **背景分层变暗**：`_dim_background_smooth()` 方法，仅 modulate PixelworkMapStitch 背景层，敌人/玩家/UI 不受影响；强度 40%，3s TRANS_SINE 渐变
+> - **Level_03 交互物黄色闪烁光点**：`InteractiveObject.apply_level01_dot_visual()` 应用于爷爷和两个记忆光团
+> - **爷爷对话完成隐藏光点修复**：`_trigger_grandpa_glitch()` 入口增加 `_mark_interaction_completed("grandpa")`
+> - **记忆光团贴图**：`memory_echo_effect.gdshader` 紫色扭曲+闪烁特效，贴图 `.tscn` 中配置为 MemoryEcho 子节点 Sprite2D（EchoSprite）
+> - **画面抖动强度翻倍**：`_start_screen_shake()` 幅度 8.0px→16.0px
+> - **颜色腐蚀效果删除**：`_corrupt_lingnan_colors()` 在 v0.11.0 tscn 迁移后所有 ColorRect 已移除，效果为空操作，安全清理
+> - **敌人系统更新**：Level_03 走廊 CyberBull+PaperEffigy 各2只（x=2612,2930,3248,3566）
+> - **场景文件更新**：Level_03.tscn 新增 ext_resource 时空裂缝final.png + memory_echo_effect.gdshader + 2个 ShaderMaterial子资源 + MemoryEcho1/2 EchoSprite 子节点
+> - **场景节点化**：Level_03_SceneBuilder 构建逻辑迁移至 Level_03.tscn，节点可直接在编辑器中拖动编辑
+> - **玩家系统**：初始皮肤改用 Player_Warrior_Lingnan，出生点 (56,296)；开场叙事 0.5s 延迟弹出
+> - **敌人系统重构**：岭南阶段 LanternGhost + PaperEffigy 交替（冲脸怪 PaperEffigy x=680, detect_range=1000）; 走廊阶段 CyberBull + PaperEffigy 各2只; 赛博动态刷新间隔 5s
+> - **摄像机统一**：zoom=1.75, top/bottom=168/608; 岭南 left=0/right=2120; 赛博 left=1728/right=6816
+> - **换皮+重生**：切换赛博皮肤时血条回满+传送到(1792,552); 岭南死亡重生(120,512); 赛博死亡重生(1792,552)
+> - **爷爷贴图**：Grandpa.png 作为 Sprite2D 节点，对话结束后 hidden
+> - **区域重划分**：凉茶铺[0,640], 街巷[640,2128], 走廊[2144,4032], 赛博城[4032,6816]
 > - **新增 Level_02_03「断崖坠落→现实干扰→睁眼→现实房间→IDE 交互→关三」**：从备份 `Level_02_CliffReality` 移植完整断崖坠落循环（坠落计数→干扰期红光+阴影敌人+沉重化→长按Tab睁眼），加入现实房间（手机→电脑→IDE对话→配置篡改→重编译→床），独立场景 `Level_02_03.tscn`（含碰撞体/触发器/出生点/像素地图）
 > - **IDE 界面重设计为 CODE-BUDDY 风格**：左侧 220px 深色边栏（Logo、项目名、文件树、SESSION 状态）+ 右侧主对话区 + 底部输入框，纯代码构建
 > - **交互式自由对话系统**：预写对话结束后进入 `REALITY_FREE_CHAT`，玩家在底部 `LineEdit` 输入 → Enter → 主区显示"阿明: [消息]" → CodeBuddy AI 关键词回复（7 类世界观匹配 + 随机默认回复），`/config` 命令进入配置编辑器
@@ -17,6 +40,8 @@
 > - **切换链更新**：`Level_02 → Level_02_01 → Level_02_02 → Level_02_03 → Level_03`
 > - **`_emit_level_complete()` 重构**：事件发射提前到 `_full_cleanup()` 之前，新增 `_is_loaded_under_main_entry()` 双模切换
 > - **InputManager 动作级禁用完善**：`block_action/unblock_action` 覆盖 player_attack / player_jump / player_dash / player_skill
+> - **Level_02_01 白屏转场增强**：新增 `_exit_white_overlay` (ColorRect) + Tween 链条（0.8s 淡入至全白 + 4.0s 停留 + `_emit_level_complete`），`_freeze_player` + `InputManager.block_input` 保证切换期间无操作干扰
+> - **LanternGhost 平衡调整**：`attack_damage` 10→6，`attack_cooldown` 1.5→2.0
 >
 > **v0.9.0 变更摘要（历史）**：
 > - **Level_02 架构重构为分段式**：原单一 11 态双空间关卡（坠落/干扰/睁眼/配置篡改/重编译）已备份至 `LevelModule/Backup/Level_02_CliffReality/`，正式版拆为三段串联：
@@ -1313,17 +1338,19 @@ DREAM_STREET
 - **地图**：0–4464，地面 Y=620，含上层走道（UpperWalkwayCollision @ 3620, Y=420）
 - **相机**：`zoom=1.5x`，limit [0, 4464, 0, 616]，lerp_speed=2.5
 - **敌人**：纸扎人（PaperEffigy，间隔 700px 生成）+ 灯笼鬼（LanternGhost，间隔 1000px 生成，含上层走道刷怪点）
-- **出口**：`Level0201ExitTrigger`(4336,460) → 白屏转场（`FINAL_WHITEOUT_DURATION=4.0s` 全白停留 + 0.8s 淡入）→ `_emit_level_complete()` 携带 `transition_white=true`，next_level=`Level_02_02.tscn`
+- **出口**：`Level0201ExitTrigger`(4336,460) → `_freeze_player` + `InputManager.block_input` → `_exit_white_overlay` Tween 链条（0.8s 淡入至全白 `Color.WHITE` + 4.0s 停留 `FINAL_WHITEOUT_DURATION`）→ `_emit_level_complete()` 携带 `transition_white=true`，next_level=`Level_02_02.tscn`
+- **白屏实现**：`_build_exit_white_overlay()` 创建 CanvasLayer(layer=2) + `ExitWhiteOverlay` ColorRect(全屏, PRESET_FULL_RECT)，Tween 驱动 `color:a` 0→1，`tween_callback(_emit_level_complete)`
 - **双模切换**：`_is_loaded_under_main_entry()` 判断，支持 MainEntry 托管与 `change_scene_to_file` 独立运行
 
 ### 7B.4 Level_02_02 分段2（梯子谜题段）
 
-- **地图**：0–1474，相机 `zoom=2x`，limit [0, 1474, -835, 638]
+- **地图**：0–1474，相机 `zoom=1.5x` (`const`)，limit [0, 1474, -835, 638]，lerp_speed=2.5（**v0.10.0 重构**）
 - **谜题叙事**：开场 2s 后弹"有些梯子看似能爬，却不能爬…有些墙看似不能穿过，却可以穿过…"
 - **机制**：梯子（Ladder 节点置于 .tscn 的 Ladders 容器）+ 可穿墙，玩家需辨别真梯子/假梯子与可穿墙
-- **敌人**：纸扎人（PaperEffigy，6 固定刷新点）+ 灯笼鬼（LanternGhost，4 固定刷新点），`detect_range` 上限截断至 500（`_load_capped_enemy_config`）
+- **敌人**：纸扎人（PaperEffigy，6 固定刷新点 `PAPER_EFFIGY_SPAWN_POSITIONS`）+ 灯笼鬼（LanternGhost，4 固定刷新点 `LANTERN_GHOST_SPAWN_POSITIONS`），`detect_range` 上限截断至 500（`ENEMY_DETECT_RANGE_CAP`）
 - **`_remove_ladder_color_rects()`**：`call_deferred` 移除 .tscn 中 Ladder 子节点的 ColorRect（改由 Ladder.gd 自渲染）
-- **出口**：`Level0202ExitTrigger` → `_emit_level_complete()` → next_level=`Level_03.tscn`
+- **出口**：`Level0202ExitTrigger` → `_emit_level_complete()` → next_level=`Level_02_03.tscn`（**v0.10.0: 改为 Level_02_03**）
+- **新增 UI**：NarrativePanel + RichTextLabel（由 `_build_narrative_ui()` 直接构建）+ 开场叙事延迟 2.0s 自动弹出
 - **双模切换**：`_is_loaded_under_main_entry()` 判断是否在 MainEntry 下 → MainEntry 模式 emit LEVEL_COMPLETE，独立模式 `change_scene_to_file`
 
 ### 7B.5 SceneBuilder 调用顺序（Level_02 分段0）
@@ -1398,27 +1425,30 @@ CanvasLayerUI (CanvasLayer, layer=10)
 
 ---
 
-## 7C. 关卡主控 `Level_03` 拆解
+## 7C. 关卡主控 `Level_03` 拆解（v0.11.0 更新）
+
+> **v0.11.0 重大变更**：场景节点已从 SceneBuilder 代码构建迁移至 `Level_03.tscn` 可视化编辑。Level_03.gd 通过 `_bind_scene_nodes()` 绑定已有节点。SceneBuilder.gd 保留作为参考但不再被调用。
 
 ### 7C.1 文件结构
 
 | 文件 | 职责 | 行数参考 |
-|---|---|---|
-| `Level_03.gd` | 主控/无缝空间管理/世界异化/皮肤切换/击退反转/光团收集/终局 | ~1003 |
-| `Level_03_SceneBuilder.gd` | 四区域单坐标空间(凉茶铺/街巷/走廊/赛博城) + 交互物 + 触发区 | ~490 |
+|---|---|---|---|
+| `Level_03.gd` | 主控/场景绑定/世界异化/皮肤切换/击退反转/光团收集/终局/重生 | ~1110 |
+| `Level_03.tscn` | **场景节点主文件**（地形/碰撞体/交互物/触发器/出生点 可视化编辑） | ~280 |
+| `Level_03_SceneBuilder.gd` | （已退役，保留作原始数据参考） | ~489 |
 | `Level_03_FSM.gd` | 6 态战斗+收集状态机 | ~25 |
 | `Level_03_UIBuilder.gd` | NarrativePanel / CodeRainOverlay / WarmGlowOverlay / GlitchOverlay / EndingPrompt | ~175 |
-| `Level03Data.gd` + `.tres` | 对话链+战斗参数+光团坐标+广播文案 | — |
-| `Level03Config.tres` | 全地图15600px/相机边界/玩家皮肤(Lingnan) | — |
+| `Level03Data.gd` + `.tres` | 对话链+战斗参数+光团坐标+敌人生成坐标 | — |
+| `Level03Config.tres` | 地图尺寸/相机边界/玩家皮肤(Lingnan) | — |
 
 ### 7C.2 6 态无缝空间状态机
 
 ```gdscript
 enum LevelState {
-    TEA_SHOP_FRONT,       # 凉茶铺前：爷爷NPC对话链
-    LINGNAN_COMBAT,       # 岭南街巷战斗
-    WORLD_SHIFT,          # 世界异化演出（抖动+颜色腐蚀+墙壁消失+赛博城显现）
-    CYBER_CITY,           # 赛博城中村探索+战斗
+    TEA_SHOP_FRONT,       # 凉茶铺前：爷爷NPC对话链，开场叙事0.5s延迟弹出
+    LINGNAN_COMBAT,       # 岭南街巷战斗（冲脸怪+5只敌人）
+    WORLD_SHIFT,          # 世界异化演出（抖动+颜色腐蚀+墙壁消失+走廊敌人+赛博城显现）
+    CYBER_CITY,           # 赛博城中村探索+战斗+动态刷新
     MEMORY_COLLECTION,    # 异常数据光团收集（2个）
     AWAKENING,            # 彻底觉醒独白
     LEVEL_END_TRANSIT     # 关卡结束转场
@@ -1428,9 +1458,12 @@ enum LevelState {
 **状态流转图**：
 
 ```
-   [进入关卡] ──▶ TEA_SHOP_FRONT ── 交互 grandpa(多次) ──▶ 爷爷异常 → LINGNAN_COMBAT
+   [进入关卡] ── 0.5s延迟 → 开场叙事"我…我真的回来了！" ──▶ TEA_SHOP_FRONT
+     └── 交互 grandpa(多次) ──▶ 爷爷异常 → LINGNAN_COMBAT
 
-   LINGNAN_COMBAT ── 全灭敌人 ──▶ WORLD_SHIFT
+   LINGNAN_COMBAT ── 全灭6只敌人 ──▶ WORLD_SHIFT
+     ├── 冲脸怪 PaperEffigy(x=680, detect_range=1000, 强制CHASE)
+     ├── 5只常规: LanternGhost + PaperEffigy 交替
      └── 监听 ENEMY_DIED 事件追踪 _lingnan_enemies_alive
 
    WORLD_SHIFT ── 无缝异化演出 ──▶ CYBER_CITY
@@ -1438,12 +1471,15 @@ enum LevelState {
      ├── Glitch 增强 (shader intensity 0→0.8)
      ├── 凉茶铺+街巷颜色腐蚀 (暖→冷 2s)
      ├── 打开3面墙壁 (HavenRightWall / AlleyRightWall / CorridorRightWall)
+     ├── 走廊敌人生成: CyberBull+PaperEffigy 各2只 (x=2612,2930,3248,3566)
      ├── 赛博城显现 + 碰撞启用 + 移除赛博城左墙
-     ├── 相机扩至全地图 (0-15600)
-     ├── 玩家皮肤切换 → Player_Warrior_Cyber
+     ├── 玩家皮肤切换 → Player_Warrior_Cyber (血条回满, 传送至 1792,552)
+     ├── 摄像机切换: left=1728/right=6816/zoom=1.75
      ├── Glitch 渐退
      ├── 代码雨
-     └── CodeBuddy 广播
+     ├── CodeBuddy 广播
+     ├── 赛博敌人生成 (CyberWolf 固定5只+动态刷新Timer 5s)
+     └── 激活光团交互物
 
    CYBER_CITY ── 收集第1个光团 ──▶ MEMORY_COLLECTION
    MEMORY_COLLECTION ── 收集第2个光团 ──▶ AWAKENING
@@ -1451,85 +1487,86 @@ enum LevelState {
    LEVEL_END_TRANSIT ── 按 Enter ──▶ emit LEVEL_COMPLETE
 ```
 
-### 7C.3 核心新机制
+### 7C.3 核心新机制（v0.11.0 更新）
 
-#### 无缝单坐标空间
+#### 场景节点化
 
-关卡3采用**四区域连续空间**设计，所有区域在同一坐标系中左右相连，玩家可无缝步行穿越：
+场景内容已从 `Level_03_SceneBuilder` 迁移至 `Level_03.tscn`。所有 StaticBody2D、Area2D、触发器、交互物均为 .tscn 中的真实节点，可直接在 Godot 编辑器中拖动/缩放/调整。
 
-```
-X: 0        1200       2400       3600                            15600
-   |凉茶铺    |岭南街巷   |过渡走廊   |赛博城中村                      |
-   |温馨暖色   |骑楼+招牌  |暖→冷渐变  |霓虹+集装箱+畸形缝合+全息广告  |
-```
+`Level_03.gd._on_ready()` 通过 `_bind_scene_nodes()` 查找已有节点并赋值引用变量。Canvas UI 仍由 `Level_03_UIBuilder` 运行时构建。`_set_all_color_rect_mouse_ignore()` 方法已移至 Level_03.gd。
 
-- 赛博城 Root 偏移 `position.x = 3600`，内部坐标从 0 开始（全局映射 +3600）
-- 凉茶铺右墙、街巷右墙、走廊右墙初始封闭，世界异化后逐步打开
-- **ColorRect 鼠标穿透**：`_set_all_color_rect_mouse_ignore()` 递归设置所有 ColorRect 的 `mouse_filter = MOUSE_FILTER_IGNORE`，防止纯视觉元素拦截鼠标攻击输入
-
-#### 爷爷对话链（TEA_SHOP_FRONT）
+#### 四区域连续空间（由 Ground 碰撞体实际位置决定）
 
 ```
-_start_grandpa_dialogue()
-  └── _advance_grandpa_dialogue() (递归回调)
-        ├── 逐条渲染 Level03Data.grandpa_dialogues[]
-        ├── speaker=="Grandpa" && index>=4 → "[GLITCH]" 前缀
-        ├── index==4 → _flash_grandpa_indicator() (绿色闪烁)
-        └── 全部完成 → _trigger_grandpa_glitch()
-              └── 叙事 → _trigger_lingnan_combat()
+X:    0 ────640──────2128────2144───4032──────6816
+      │ 凉茶铺 │ 岭南街巷 │→←│ 走廊 │  赛博城  │
+    HavenGrnd  AlleyGrnd    Corridor  CyberGround
 ```
 
-#### 世界异化演出（WORLD_SHIFT）
+- 赛博城 Root 偏移 `position.x = 3600`
+- **间隙**：街巷末端 2128 与走廊起点 2144 之间只有 16px 间隙
+
+#### 摄像机参数（v0.11.0 统一）
+
+| 阶段 | left | right | top | bottom | zoom |
+|------|------|-------|-----|--------|------|
+| 凉茶铺+岭南 | 0 | 2120 | 168 | 608 | 1.75 |
+| 赛博城 | 1728 | 6816 | 168 | 608 | 1.75 |
+
+- 换皮后需重新调用 `_set_camera_limits()`（新 SmoothCamera 会重置为默认值）
+
+#### 敌人系统（v0.11.0 重构）
+
+| 阶段 | 敌人类型 | 数量 | 位置 |
+|------|---------|:--:|------|
+| 岭南-冲脸 | PaperEffigy | 1 | (680,540), detect_range=1000, 强制CHASE |
+| 岭南-常规 | LanternGhost + PaperEffigy 交替 | 5 | (955~1815, 540) 均匀分布 |
+| 走廊 | CyberBull + PaperEffigy 各2只 | 4 | (2612,2930,3248,3566, 540) |
+| 赛博-固定 | CyberWolf (Cleaner×5 + Security×3) | 8 | 配置文件 |
+| 赛博-动态 | CyberWolf Timer刷新 | — | 每5s, clamp[4100,6700] |
+
+#### 玩家重生（v0.11.0 新增）
+
+| 状态 | 重生位置 |
+|------|---------|
+| LINGNAN_COMBAT | (120, 512) |
+| CYBER_CITY / MEMORY_COLLECTION | (1792, 552) |
+
+重生时血量回满、速度归零、切 IDLE 状态。
+
+#### 换皮机制（v0.11.0 更新）
+
+- 初始皮肤：`Player_Warrior_Lingnan`（从 `level_config.player_scene_path` 读取）
+- 换皮后：血量回满、固定传送至 (1792, 552)、重设摄像机
+
+#### 开场叙事
+
+进入关卡 0.5s 后弹出叙事面板："我……我真的回来了！\n爷爷就在前面！爷爷！爷爷！"
+
+#### 爷爷NPC
+
+- Grandpa 节点包含 `Sprite2D` 子节点（`Assets/Grandpa.png` 贴图）
+- 对话结束后 `sprite.visible = false`
+
+### 7C.4 场景绑定顺序（替代原 SceneBuilder）
 
 ```
-_on_lingnan_combat_complete()
-  ├── 1) _start_screen_shake(3.0)         # 画面抖动（SmoothCamera.offset）
-  ├── 2) Glitch增强 (shader intensity 0→0.8, 2s)
-  ├── 3) _corrupt_lingnan_colors()         # 暖→冷颜色腐蚀
-  ├── 4) 等待2s → 打开3面墙壁
-  ├── 5) 赛博城显现 + 碰撞启用 + 移除赛博城左墙
-  ├── 6) 相机扩至全地图 (0-15600)
-  ├── 7) _swap_player_to_cyber()           # 玩家皮肤切换
-  ├── 8) Glitch渐退 (0.8→0, 1s)
-  ├── 9) _start_code_rain()                # 代码雨
-  ├── 10) _show_codebuddy_broadcast()      # AI广播
-  ├── 11) 生成赛博敌人 + 刷新定时器
-  └── 12) 激活光团交互物
-```
-
-#### 异常数据光团收集（MEMORY_COLLECTION）
-
-```
-2个光团 (memory_echo_1 / memory_echo_2)，位于赛博城深处
-  └── 交互 → _show_warm_glow() (暖黄光晕) + 叙事(字幕+CodeBuddy评论) + _hide_warm_glow()
-  └── memory_echoes_collected += 1
-  └── 2/2 → _trigger_awakening()
-```
-
-#### 击退反转
-
-```
-Level_03 订阅 PLAYER_HURT 事件:
-  ├── 赛博阶段 (CYBER_CITY / MEMORY_COLLECTION):
-  │     player.velocity.x = -KNOCKBACK_REVERSE_FORCE (350.0)  # 向左击退
-  └── 跨关卡伤害减免 (dream_runtime_flags.player_damage_reduction == true):
-        heal_amount = damage / 2  # 被击反而回血
-```
-
-### 7C.4 SceneBuilder 调用顺序
-
-```
-build_all()
-├── _build_safe_haven()            # 凉茶铺 (0-1200): 地面/墙/榕树/柜台/炉火/满洲窗/暖光/屋顶
-├── _build_lingnan_alley()         # 岭南街巷 (1200-2400): 骑楼柱子/店铺/走廊顶棚/招牌/街灯/右墙
-├── _build_transition_corridor()   # 过渡走廊 (2400-3600): 暖冷两段地面/残垣/代码渗出/半毁满洲窗/金属框架/霓虹/管道/右墙
-├── _build_cyber_city()            # 赛博城 (3600-15600): position.x=3600, 地面/墙/霓虹灯管/管道/集装箱/畸形门/全息广告/光团装饰/监控眼, 初始隐藏
-├── _build_interactives()          # 3个: grandpa / memory_echo_1 / memory_echo_2
-├── _build_triggers()              # 2个: AI阻挠触发1(7600) / AI阻挠触发2(11600)
-├── _build_spawn_points()          # TeaShopSpawn
-├── _build_dynamic_actors_container()  # DynamicActors
-└── _build_canvas_ui()             # CanvasLayerUI → UIBuilder.build_all()
-    └── _set_all_color_rect_mouse_ignore(level)  # 递归设置鼠标穿透
+_on_ready()
+├── 加载 Config/Data 资源
+├── 预加载 4 种敌人场景 (CyberWolf/LanternGhost/PaperEffigy/CyberBull)
+├── _bind_scene_nodes()
+│     ├── $SafeHavenRoot / $CyberCityRoot / $DynamicActors
+│     ├── $InteractiveObjects/Grandpa / MemoryEcho1 / MemoryEcho2
+│     ├── $TriggerZones/Warning1Trigger / Warning2Trigger（连接信号）
+│     └── $SpawnPoints/TeaShopSpawn
+├── _build_canvas_ui()       # UIBuilder 运行时构建 CanvasLayer
+├── _set_all_color_rect_mouse_ignore(self)
+├── _set_space_collision(_cyber_city_root, false)  # 赛博城初始碰撞禁用
+├── _setup_camera_limits()
+├── _set_camera_limits(0, 2120, 168, 608)
+├── _cache_ui_refs()
+├── 事件订阅 + FSM + Timer + HUD
+└── 0.5s延迟 → 开场叙事
 ```
 
 ### 7C.5 UIBuilder 生成的 Canvas 节点树
@@ -1537,52 +1574,62 @@ build_all()
 ```
 CanvasLayerUI (CanvasLayer, layer=2, PROCESS_MODE_ALWAYS)
 ├── NarrativePanel          (Panel 1280×200, RichTextLabel)
-├── CodeRainOverlay         (ColorRect, 深绿半透明 + 12行伪代码Label)
-│   └── CodeRainTexts       (Control, _generate_code_line() 生成)
+├── CodeRainOverlay         (CodeRain 独立类, _draw() 渲染, Silkscreen-Bold 16px, 双层面板)
 ├── WarmGlowOverlay         (ColorRect, 暖黄色, 光团收集时泛光)
 ├── GlitchOverlay           (ColorRect + ShaderMaterial, glitch_effect.gdshader)
 └── EndingPrompt            (Control, 绿色终端文字)
-    └── EndingLabel
 ```
 
-### 7C.6 关卡3地图参数
+### 7C.6 关卡3地图参数（v0.11.0）
 
-**全地图**：15600px 宽（12.2 屏）
+**全地图**：6816px 宽
 
-| 区域 | X 范围 | 地面 Y | 描述 |
-|------|--------|--------|------|
-| 凉茶铺 | 0–1200 | 620 | 温馨暖色，榕树/柜台/炉火 |
-| 岭南街巷 | 1200–2400 | 620 | 骑楼/店铺/招牌/街灯 |
-| 过渡走廊 | 2400–3600 | 620 | 左暖右冷渐变 |
-| 赛博城中村 | 3600–15600 | 620 | 霓虹/管道/集装箱/畸形门/全息广告 |
+| 区域 | X 范围 | 描述 |
+|------|--------|------|
+| 凉茶铺 | 0–640 | 地面640px宽, 出生点(56,296) |
+| 岭南街巷 | 640–2128 | 地面1488px宽, 5只敌人生成点 |
+| 过渡走廊 | 2144–4032 | 地面1888px宽, 4只敌人生成点 |
+| 赛博城中村 | 4032–6816 | 地面2784px宽(CyberCityRoot.x=3600) |
 
 | 参数 | 值 |
 |---|---|
-| camera_limit_left | -50 |
-| camera_limit_right | 15600 |
-| camera_limit_top | -500 |
-| camera_limit_bottom | 1200 |
+| camera_limit_left | 0 |
+| camera_limit_right | 2120 (岭南) / 6816 (赛博) |
+| 摄像机 zoom | 1.75 |
 | bg_color | Color(0.12, 0.1, 0.08) 暗褐 |
-| 初始玩家皮肤 | **Player_Warrior.tscn**（`_setup_player()` 重写硬编码，未读 `level_config.player_scene_path`）★ v0.9.0 勘误 |
+| 初始玩家皮肤 | **Player_Warrior_Lingnan.tscn**（从 `level_config.player_scene_path` 读取） |
+| 玩家出生点 | (56, 296) |
 
-### 7C.7 关键流程 API（关卡3新增）
+### 7C.7 关键流程 API（v0.11.0 更新）
 
 | API | 触发 | 用途 |
 |---|---|---|
+| `_bind_scene_nodes()` | _on_ready | 从 .tscn 查找并绑定所有场景节点（替代SceneBuilder） |
+| `_build_canvas_ui()` | _on_ready | 运行时构建 CanvasLayer UI |
+| `_set_all_color_rect_mouse_ignore()` | _on_ready | 递归设置 ColorRect 鼠标穿透 |
 | `_start_grandpa_dialogue()` | 爷爷交互 | 启动对话链（递归回调推进） |
-| `_trigger_lingnan_combat()` | 对话链结束 | 消失爷爷+开墙+敌人生成+叙事 |
+| `_trigger_lingnan_combat()` | 对话链结束 | 消失爷爷+开墙+冲脸怪+5只敌人生成 |
+| `_spawn_lingnan_enemies()` | 岭南战斗开始 | LanternGhost+PaperEffigy 交替生成 |
+| `_spawn_corridor_enemies()` | 世界异化 | 走廊 CyberBull+PaperEffigy 各2只 ★新 |
 | `_on_enemy_died()` | ENEMY_DIED事件 | 追踪 _lingnan_enemies_alive→0时触发异化 |
-| `_on_lingnan_combat_complete()` | 岭南全灭 | 12步世界异化演出 |
+| `_on_player_died()` | PLAYER_DIED事件 | 根据当前状态重生到 (120,512) 或 (1792,552) ★新 |
+| `_on_lingnan_combat_complete()` | 岭南全灭 | 12+1步世界异化演出（含走廊敌人生成） |
 | `_start_screen_shake(duration)` | 异化期 | SmoothCamera.offset 随机偏移 |
 | `_corrupt_lingnan_colors()` | 异化期 | 暖色→冷色 modulate 渐变 |
 | `_remove_wall(path)` | 异化/战斗 | 禁用碰撞+视觉淡出 |
-| `_swap_player_to_cyber()` | 异化期 | 运行时皮肤切换（断连旧信号） |
+| `_swap_player_to_cyber()` | 异化期 | 血回满+传送(1792,552)+换Cyber皮肤 |
 | `_start_code_rain()` | 赛博阶段 | 代码雨覆盖层渐显 |
 | `_show_codebuddy_broadcast()` | 异化末 | 逐条渲染AI广播 |
 | `_on_player_hurt()` | PLAYER_HURT | 击退反转+伤害减免 |
+| `_on_enemy_spawn_timer_timeout()` | Timer 5s | 赛博动态刷新 CyberWolf |
 | `_handle_memory_echo_1/2()` | 光团交互 | 暖光晕+字幕+CodeBuddy评论 |
 | `_trigger_awakening()` | 2/2光团 | 停止赛博元素+觉醒独白 |
-| `_apply_dream_runtime_flags()` | _on_ready | 读取跨关卡配置（如二段跳）。**v0.9.0**：Level_02 不再写入该字典，当前为空安全跳过 |
+| `_apply_dream_runtime_flags()` | _on_ready | 读取跨关卡配置（当前为空安全跳过） |
+| `_dim_background_smooth()` | _swap_player_to_cyber后 | 仅 PixelworkMapStitch 背景层变暗，敌人/玩家不受影响 |
+| `_build_wall_visuals()` | _on_ready | 为5面墙壁挂载 warning_barrier.gdshader 结界光幕 |
+| `_add_barrier_shader_to_wall()` | 墙壁初始化 | 读取 CollisionShape2D 尺寸/位置，创建 ColorRect + ShaderMaterial |
+
+> **v0.12.0 更新**：新增 `_dim_background_smooth()` 背景分层变暗、`_build_wall_visuals()` 墙壁结界光幕。`_setup_player()` 从 `level_config.player_scene_path` 读取皮肤路径。
 
 ---
 
@@ -1930,7 +1977,11 @@ HUD:         res://UI/HUD.tscn
 
 交互物:      res://LevelModule/Formal/InteractiveObject.gd
 摄像机:      res://PlayerModule/Formal/SmoothCamera.gd + .tscn（玩家预制体子节点）
-Shader:      res://LevelModule/Formal/glitch_effect.gdshader
+Glitch Shader: res://LevelModule/Formal/glitch_effect.gdshader
+警告光幕 Shader: res://LevelModule/Formal/warning_barrier.gdshader        ★ v0.12.0 新增
+记忆光团 Shader: res://LevelModule/Formal/memory_echo_effect.gdshader     ★ v0.12.0 新增
+代码雨:      res://Tools/CodeRain.gd                                       ★ v0.12.0 重写
+防火墙:      res://Tools/WarningBarrier.gd                                 ★ v0.12.0 新增
 输入管理:    res://Global/InputManager.gd
 ```
 
@@ -2048,26 +2099,32 @@ Level_02 (子类) ★ v0.8.0
   ├── 配置篡改: ConfigEditor + Recompile + dream_runtime_flags
   └── _full_cleanup: Tween/Timer/音效/敌人/订阅全量清理
 
-Level_03 (子类) ★ v0.8.0
+Level_03 (子类) ★ v0.11.0
   ├── extends LevelBase
-  ├── _setup_player 重写 (默认使用 Lingnan 皮肤)
+  ├── _setup_player 重写 (读取 level_config.player_scene_path, 默认 Lingnan 皮肤)
   ├── _on_ready
+  │     ├── 预加载 4 种敌人场景 (CyberWolf/LanternGhost/PaperEffigy/CyberBull)
   │     ├── _apply_dream_runtime_flags()  # 读取跨关卡配置
-  │     ├── Level_03_SceneBuilder.build_all (四区域单坐标空间)
-  │     │     └── Level_03_UIBuilder.build_all
-  │     │     └── _set_all_color_rect_mouse_ignore()
+  │     ├── _bind_scene_nodes() ← .tscn 节点绑定（替代 SceneBuilder）
+  │     ├── _build_canvas_ui()  ← UIBuilder 运行时构建
+  │     ├── _set_all_color_rect_mouse_ignore()
   │     ├── _set_space_collision(_cyber_city_root, false)  # 赛博城初始禁用
   │     ├── _all_interactives 初始化 (3个交互物)
-  │     ├── EventBus.subscribe(INTERACTIVE_OBJECT_TRIGGERED + PLAYER_HURT + ENEMY_DIED)
+  │     ├── EventBus.subscribe(INTERACTIVE_OBJECT_TRIGGERED + PLAYER_HURT + ENEMY_DIED + PLAYER_DIED)
   │     ├── Level_03_FSM.new(self)
   │     ├── InputManager.game_action.connect
-  │     ├── EnemySpawnTimer 创建
-  │     └── _load_hud()
+  │     ├── EnemySpawnTimer 创建 (5s间隔)
+  │     ├── _load_hud()
+  │     └── 0.5s延迟 → 开场叙事
   ├── _process: cooldown + _enforce_level_restrictions + 轮询 + 防御性自愈
-  ├── 世界异化: _on_lingnan_combat_complete() (12步演出)
-  │     └── 抖动 + Glitch + 颜色腐蚀 + 开墙 + 赛博城显现 + 皮肤切换 + 代码雨 + 广播
+  ├── 世界异化: _on_lingnan_combat_complete() (12+1步演出)
+  │     └── 抖动 + Glitch + 开墙 + 走廊敌人 + 赛博显现 + 换皮+血回满+传送 + 背景变暗 + 代码雨 + 广播
   ├── 击退反转: _on_player_hurt() + 伤害减免
+  ├── 死亡重生: _on_player_died() (岭南→120,512 / 赛博→1792,552)
   ├── 光团收集: memory_echoes_collected → 觉醒
+  ├── 墙壁结界: _build_wall_visuals() → 5面墙 warning_barrier.gdshader 光幕
+  ├── 警告防火墙: WarningBarrier.setup() → 红色 Glitch 结界 + 滚动文字 + 火花粒子
+  ├── 记忆光团贴图: EchoSprite (Sprite2D) + memory_echo_effect.gdshader 紫色扭曲闪烁
   └── _full_cleanup: 敌人/Timer/订阅全量清理
 
 PlayerBase (玩家基类)  ★ v0.6.0: 输入架构迁移
@@ -2486,7 +2543,7 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 
 - **7 态叙事状态机**（LIVING_ROOM → GLITCH_TRANSIT）
 - **Level_02 分段串联架构（3段：Level_02 → Level_02_01 → Level_02_02）** ★ v0.9.0
-- **6 态无缝空间状态机（TEA_SHOP_FRONT → LEVEL_END_TRANSIT）** ★ v0.8.0
+- **6 态无缝空间状态机（含开场叙事、重生系统、走廊敌人）** ★ v0.11.0
 - **Level_04 维度侵蚀关卡（2态，阶段1 半对半空间硬切已实现）** ★ v0.9.0
 - **Ladder 梯子攀爬机制（双向 W/S，player_up/player_down）** ★ v0.9.0
 - **关卡级输入策略**：`_apply_level_input_rules()` action 级禁用（block_action）+ `runtime_move_speed_multiplier` 减速 ★ v0.9.0
@@ -2508,6 +2565,12 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 - **PixelworkMapStitch 像素地图拼接系统** ★ v0.8.0（v0.9.0 Level_02 实际使用）
 - SmoothCamera v2.0（转向清零 + lookahead无硬边界 + Y轴死区 + 三外观预制体内置）
 - Canvas UI 纯代码构建（Narrative / Sleep / IDE / Glitch / CodeScrollPanel / LeftEdgeFlash / FlickerEffect / CodeRain / WarmGlow / EndingPrompt）
+- **CodeRain _draw() 实时渲染**（Tools/CodeRain.gd，双层面板 + Silkscreen 像素字体 + 项目函数名）★ v0.12.0
+- **WarningBarrier 防火墙系统**（Tools/WarningBarrier.gd + warning_barrier.gdshader，Glitch 结界 + 滚动文字 + 火花）★ v0.12.0
+- **墙壁结界光幕**（5面墙统一 warning_barrier.gdshader，深蓝能量带 + 撕裂）★ v0.12.0
+- **记忆光团扭曲闪烁**（memory_echo_effect.gdshader，紫色 2 层噪声 + 4 层闪烁 + .tscn 配置 EchoSprite）★ v0.12.0
+- **背景分层变暗**（_dim_background_smooth()，仅 modulate PixelworkMapStitch，敌人/玩家/UI 不受影响）★ v0.12.0
+- **交互物黄色闪烁光点**（InteractiveObject.apply_level01_dot_visual()，应用于爷爷和记忆光团）★ v0.12.0
 - SubViewport 嵌入预览世界并跨场景通信（`prototype_crashed` 信号）
 - Glitch 终局着色器（色相分离 + 噪声 + 渐强）
 - EventBus 事件驱动通信（自动清理失效订阅）
@@ -2515,6 +2578,9 @@ func _start_screen_shake(duration: float = 2.0) -> void:
 - 三外观支持（Warrior / Cyber / Lingnan 均含 SmoothCamera）
 - InputManager 统一输入管理（信号分发 + block/unblock + action 级禁用 + ESC独占 + 鼠标 GUI 检测）
 - LevelConfig（数值+玩家皮肤路径）与 LevelData（叙事+谜题+音效）分离
+- **Level_03 场景节点化**：所有地形/碰撞体/交互物/触发器在 .tscn 中可视化编辑 ★ v0.11.0
+- **玩家重生系统**：岭南战斗死亡→(120,512); 赛博阶段死亡→(1792,552); 换皮血条回满 ★ v0.11.0
+- **多类型敌人混合生成**：LanternGhost/PaperEffigy/CyberBull/CyberWolf 按区域分配 ★ v0.11.0
 - `_all_interactives` 统一管理（消除硬编码重复）
 
 ### 18.2 已定义但未完整实现
