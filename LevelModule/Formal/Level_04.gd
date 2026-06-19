@@ -131,6 +131,12 @@ func _swap_player_skin(skin: String) -> void:
 	p.global_position = pos; p.current_health = h
 	p.max_health = m; p.is_facing_right = f; p.velocity = Vector2.ZERO
 	add_child(p); GameManager.register_player(p)
+	# 推送血量到 HUD（修复换皮肤后血条不更新）
+	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+		"target": p,
+		"current_health": p.current_health,
+		"max_health": p.max_health
+	})
 
 func _on_ready() -> void:
 	super._on_ready()
@@ -199,7 +205,16 @@ func _get_or_create_child(node_name: String, node_type) -> Node:
 
 func _load_hud() -> void:
 	var p = "res://UI/HUD.tscn"
-	if ResourceLoader.exists(p): add_child(load(p).instantiate())
+	if ResourceLoader.exists(p):
+		add_child(load(p).instantiate())
+		# 立即推送当前血量到 HUD
+		var pl = GameManager.player_ref
+		if pl and is_instance_valid(pl):
+			EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+				"target": pl,
+				"current_health": pl.current_health,
+				"max_health": pl.max_health
+			})
 
 func _cache_ui_refs() -> void:
 	var c = $CanvasLayerUI

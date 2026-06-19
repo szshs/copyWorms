@@ -69,6 +69,12 @@ func setup(dir: Vector2, dmg: int, owner: Node2D, dist: float = 350.0) -> void:
 	max_distance = dist
 
 func _physics_process(delta: float) -> void:
+	# Boss 战自动瞄准：仅在 bg4（GameManager.boss_target 存在时）生效
+	if GameManager.boss_target and is_instance_valid(GameManager.boss_target):
+		var to_boss = GameManager.boss_target.global_position - global_position
+		if to_boss.length() > 10:
+			direction = to_boss.normalized()
+	
 	var move = direction * speed * delta
 	position += move
 	_traveled += move.length()
