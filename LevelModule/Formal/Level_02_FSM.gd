@@ -29,8 +29,6 @@ func handle_interaction(obj_id: String) -> void:
 			match obj_id:
 				"rattan_chair":
 					_handle_rattan_chair()
-				"sub02_portal":
-					level._transition_to_sub02()
 				"chips_cat":
 					level._handle_chips_cat_interaction()
 				"window_l2":

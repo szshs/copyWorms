@@ -84,6 +84,11 @@ var _narrative_open: bool = false
 var _narrative_enter_pressed: bool = false
 const NARRATIVE_INPUT_TIMEOUT: float = 30.0
 
+# ---- 右侧边缘闪烁光效（引导玩家找到 IA_Stage3） ----
+var _right_edge_flash: ColorRect = null
+var _right_edge_glow: ColorRect = null
+var _right_edge_flash_active: bool = false
+
 # ---- 调试面板 ----
 var _debug_panel: Control = null
 
@@ -336,6 +341,10 @@ func _process(delta: float) -> void:
 	if _is_interacting and not _narrative_open:
 		_is_interacting = false
 
+	# 右侧边缘闪烁：检测 IA_Stage3 目标是否入镜
+	if _right_edge_flash_active:
+		_check_stage3_in_view()
+
 
 
 
@@ -395,10 +404,17 @@ func _collision_group_rect(group: Node) -> Rect2:
 	return rect
 
 ## 从碰撞体容器自动计算 AABB 设置摄像机边界（左边界统一 0，上边界手动指定）
-func _set_cam_from_group(group: Node, top: int) -> void:
+## extra_group 可选：合并第二个容器（如边界墙）的 AABB
+## bottom 可选：手动指定下边界（>=0 时生效，避免墙体高度拉低边界）
+func _set_cam_from_group(group: Node, top: int, extra_group: Node = null, bottom: int = -1) -> void:
 	if not group or not is_instance_valid(group): return
 	var rect := _collision_group_rect(group)
-	_set_camera_limits(0, int(rect.end.x), top, int(rect.end.y))
+	if extra_group and is_instance_valid(extra_group):
+		var extra := _collision_group_rect(extra_group)
+		if extra.has_area():
+			rect = rect.merge(extra)
+	var b: int = bottom if bottom >= 0 else int(rect.end.y)
+	_set_camera_limits(0, int(rect.end.x), top, b)
 
 func _restore_combat_mechanics() -> void:
 	var p = GameManager.player_ref; if not p: return
@@ -406,11 +422,13 @@ func _restore_combat_mechanics() -> void:
 
 func _freeze_player(f: bool) -> void:
 	var p = GameManager.player_ref; if not p: return
-	if f:
-		p.velocity = Vector2.ZERO; p.set_physics_process(false); p.set_process_input(false)
-		p._change_state(GlobalDefine.PlayerState.IDLE)
-	else:
-		p.set_physics_process(true); p.set_process_input(true)
+	# [旧实现 - 保留以备回退] 已迁移至 PlayerBase.set_frozen() 统一处理动画冻结问题
+	# if f:
+	#     p.velocity = Vector2.ZERO; p.set_physics_process(false); p.set_process_input(false)
+	#     p._change_state(GlobalDefine.PlayerState.IDLE)
+	# else:
+	#     p.set_physics_process(true); p.set_process_input(true)
+	p.set_frozen(f)
 
 
 # ---- 叙事 ----
@@ -508,9 +526,9 @@ func _enter_stage2() -> void:
 		blk.queue_free(); _freeze_player(false); _is_interacting = false; return
 	p.global_position = STAGE2_SPAWN; p.velocity = Vector2.ZERO
 	_snap_camera(p)
-	_set_cam_from_group($Stage2Collisions, 4000)
 	_swap_player_skin("Lingnan")
 	p = GameManager.player_ref
+	_set_camera_limits(0, 7472, 4000, 5032)
 	current_state = LevelState.STAGE2
 	for e in _stage1_enemies:
 		if is_instance_valid(e): e.queue_free()
@@ -523,6 +541,7 @@ func _enter_stage2() -> void:
 	_stage2_current_map = 0
 	_start_stage2_swap_timer()
 	_spawn_stage2_enemies()
+	_start_right_edge_flash()
 	_show_narrative("[color=cyan]阿明：[/color]这里……才是真正的出口吗？")
 
 func _create_black_overlay() -> ColorRect:
@@ -620,7 +639,7 @@ func _perform_stage2_swap() -> void:
 		p = GameManager.player_ref
 		if p and is_instance_valid(p):
 			p.velocity = old_vel
-		_set_cam_from_group($Stage2_CyberCollisions, 6504)
+		_set_cam_from_group($Stage2_CyberCollisions, 6504, $Stage2_CyberBorders, 7542)
 	else:
 		# 赛博 → 岭南
 		_stage2_current_map = 0
@@ -629,7 +648,7 @@ func _perform_stage2_swap() -> void:
 		p = GameManager.player_ref
 		if p and is_instance_valid(p):
 			p.velocity = old_vel
-		_set_cam_from_group($Stage2Collisions, 4000)
+		_set_camera_limits(0, 7472, 4000, 5032)
 
 	if p and is_instance_valid(p):
 		_snap_camera(p)
@@ -896,6 +915,7 @@ func _enter_stage3() -> void:
 	if _stage3_entered: return
 	_stage3_entered = true
 	_stage2_auto_swap = false
+	_stop_right_edge_flash()
 	_stop_stage2_warning()
 	_is_interacting = true
 	_freeze_player(true)
@@ -1010,9 +1030,9 @@ func _debug_switch_to_stage2() -> void:
 	p.global_position = STAGE2_SPAWN
 	p.velocity = Vector2.ZERO
 	_snap_camera(p)
-	_set_cam_from_group($Stage2Collisions, 4000)
 	_swap_player_skin("Lingnan")
 	p = GameManager.player_ref
+	_set_camera_limits(0, 7472, 4000, 5032)
 
 	# 清除敌人
 	for e in _stage1_enemies:
@@ -1044,6 +1064,51 @@ func _pan_camera_to(target: Vector2, cb: Callable = Callable()) -> void:
 	_freeze_player(false)
 	_is_interacting = false
 	if cb.is_valid(): cb.call()
+
+
+# ============================================================
+# 右侧边缘闪烁光效（引导玩家找到 IA_Stage3）
+# ============================================================
+
+func _start_right_edge_flash() -> void:
+	if _right_edge_flash_active: return
+	if not _right_edge_flash or not is_instance_valid(_right_edge_flash):
+		push_warning("[Level_04] _right_edge_flash 节点为空，无法启动闪烁")
+		return
+	# 确保节点在 CanvasLayer 顶层
+	_right_edge_flash.visible = true
+	_right_edge_flash.color = Color(1.0, 0.85, 0.2, 0.0)
+	_right_edge_glow.visible = true
+	_right_edge_glow.color = Color(1.0, 0.9, 0.3, 0.0)
+	var tw = _right_edge_flash.create_tween().set_loops()
+	tw.tween_property(_right_edge_flash, "color:a", 0.8, 0.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(_right_edge_flash, "color:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE)
+	var tw2 = _right_edge_glow.create_tween().set_loops()
+	tw2.tween_property(_right_edge_glow, "color:a", 0.25, 0.5).set_trans(Tween.TRANS_SINE)
+	tw2.tween_property(_right_edge_glow, "color:a", 0.0, 0.5).set_trans(Tween.TRANS_SINE)
+	_right_edge_flash_active = true
+
+func _stop_right_edge_flash() -> void:
+	if not _right_edge_flash_active: return
+	_right_edge_flash_active = false
+	if _right_edge_flash and is_instance_valid(_right_edge_flash):
+		_right_edge_flash.hide()
+	if _right_edge_glow and is_instance_valid(_right_edge_glow):
+		_right_edge_glow.hide()
+
+func _check_stage3_in_view() -> void:
+	var p = GameManager.player_ref
+	if not p or not is_instance_valid(p): return
+	var cam = p.get_node_or_null("SmoothCamera") as SmoothCamera
+	if not cam: return
+	var half_visible = get_viewport_rect().size * 0.5 / cam.zoom
+	var cam_center = cam.global_position + cam.offset
+	var view_rect = Rect2(cam_center - half_visible, half_visible * 2)
+	# 检测所有交互物中 object_id=="enter_stage3" 的是否入镜
+	for obj in _all_interactives:
+		if is_instance_valid(obj) and obj.object_id == "enter_stage3" and view_rect.has_point(obj.global_position):
+			_stop_right_edge_flash()
+			return
 
 func _flash_screen() -> void:
 	# 强度随切换次数递增，每次 +0.08，上限 1.0
@@ -1123,6 +1188,7 @@ func _emit_level_complete() -> void:
 func _full_cleanup() -> void:
 	_stage2_auto_swap = false
 	_stop_stage2_warning()
+	_stop_right_edge_flash()
 	if _stage2_alarm_player:
 		_stage2_alarm_player.queue_free()
 		_stage2_alarm_player = null
