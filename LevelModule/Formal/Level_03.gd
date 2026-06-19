@@ -1,15 +1,17 @@
 # ============================================================
 # Level_03.gd - 第三关「赛博蜃景与真实回声」控制器
-# 场景构建 → Level_03_SceneBuilder
+# 场景节点 → Level_03.tscn（编辑器可视编辑）
 # UI 构建   → Level_03_UIBuilder
 # 状态调度  → Level_03_FSM
 #
-# 新架构（无缝单坐标空间）:
-#   1. 单空间: 凉茶铺(0-1200) + 岭南街巷(1200-2400) + 过渡走廊(2400-3600) + 赛博城(3600-15600)
-#   2. 无缝穿越: 玩家步行从凉茶铺走到赛博城，无传送/无黑屏
-#   3. 状态流: TEA_SHOP_FRONT → LINGNAN_COMBAT → WORLD_SHIFT → CYBER_CITY → ...
-#   4. 击退反转: 赛博阶段敌人击中后玩家向左击退
-#   5. 跨关卡: 读取 GameManager.dream_runtime_flags
+# 新架构（无缝单坐标空间，由 .tscn 中 Ground 碰撞体实际位置决定）:
+#   1. 凉茶铺(HavenGround): 0~640
+#   2. 岭南街巷(AlleyGround): 640~2128
+#   3. 过渡走廊(CorridorGroundCold): 2144~4032
+#   4. 赛博城(CyberGround, CyberCityRoot.x=3600): 4032~6816
+#   5. 状态流: TEA_SHOP_FRONT → LINGNAN_COMBAT → WORLD_SHIFT → CYBER_CITY → ...
+#   6. 击退反转: 赛博阶段敌人击中后玩家向左击退
+#   7. 跨关卡: 读取 GameManager.dream_runtime_flags
 # ============================================================
 extends LevelBase
 class_name Level_03
@@ -39,25 +41,29 @@ var _lingnan_enemies_alive: int = 0
 var _safe_haven_root: Node2D = null
 var _cyber_city_root: Node2D = null
 var _dynamic_actors: Node2D = null
+var _background_visual: Node2D = null   # PixelworkMapStitch 背景视觉层
 
 # ---- 交互物引用 ----
 var _grandpa_node: InteractiveObject = null
 var _memory_echo_1_node: InteractiveObject = null
 var _memory_echo_2_node: InteractiveObject = null
+var _echo_sprite_1: Sprite2D = null   # 记忆光团1贴图
+var _echo_sprite_2: Sprite2D = null   # 记忆光团2贴图
 var _all_interactives: Array[InteractiveObject] = []
 
 # ---- 触发器引用 ----
 var _warning_1_trigger: Area2D = null
 var _warning_2_trigger: Area2D = null
+var _warning_barrier_1: WarningBarrier = null
+var _warning_barrier_2: WarningBarrier = null
 
 # ---- UI 引用（UIBuilder 写入） ----
 var _narrative_panel: Panel = null
 var _narrative_text: RichTextLabel = null
-var _code_rain_overlay: ColorRect = null
+var _code_rain_overlay: CodeRain = null
 var _glitch_overlay: ColorRect = null
 var _ending_prompt: Control = null
 var _ending_label: Label = null
-var _warm_glow_overlay: ColorRect = null
 
 # ---- 交互/叙事状态 ----
 var _interact_cooldown: float = 0.0
@@ -69,15 +75,22 @@ const NARRATIVE_INPUT_TIMEOUT: float = 30.0
 
 # ---- 敌人管理 ----
 var _enemy_cyber_wolf_scene: PackedScene = null
+var _enemy_lantern_ghost_scene: PackedScene = null
+var _enemy_paper_effigy_scene: PackedScene = null
+var _enemy_cyber_bull_scene: PackedScene = null
 var _lingnan_enemies: Array[Node2D] = []
 var _cyber_enemies: Array[Node2D] = []
 var _enemy_spawn_timer: Timer = null
 const ENEMY_MAX_ALIVE: int = 6
 const ENEMY_MAX_ONSCREEN: int = 4
-const ENEMY_SPAWN_INTERVAL: float = 2.5
+const ENEMY_SPAWN_INTERVAL: float = 5.0
 
 # ---- 击退反转 ----
 const KNOCKBACK_REVERSE_FORCE: float = 350.0
+
+# ---- Glitch 效果 ----
+const GLITCH_AMBIENT: float = 0.04   # 赛博城基底微弱强度
+const GLITCH_SPIKE: float = 0.8      # 互动时峰值强度
 
 # ---- 终局 ----
 var _ending_enter_armed: bool = false
@@ -93,14 +106,14 @@ var _fsm: Level_03_FSM = null
 func _setup_player() -> void:
 	if GameManager.player_ref and is_instance_valid(GameManager.player_ref):
 		return
-	var player_path = "res://PlayerModule/Formal/Player_Warrior.tscn"
+	var player_path = level_config.player_scene_path if level_config and level_config.player_scene_path != "" else "res://PlayerModule/Formal/Player_Warrior_Lingnan.tscn"
 	if ResourceLoader.exists(player_path):
 		var player = load(player_path).instantiate()
-		var spawn_pos = level_config.spawn_point if level_config else Vector2(400, 550)
+		var spawn_pos = level_config.spawn_point if level_config else Vector2(56, 296)
 		player.position = spawn_pos
 		add_child(player)
 		GameManager.register_player(player)
-		print("[Level_03] 玩家创建成功")
+		print("[Level_03] 玩家创建成功 (Lingnan 皮肤)")
 
 func _on_ready() -> void:
 	super._on_ready()
@@ -115,18 +128,32 @@ func _on_ready() -> void:
 	var wolf_path = "res://EnemyModule/Formal/Enemy_CyberWolf.tscn"
 	if ResourceLoader.exists(wolf_path):
 		_enemy_cyber_wolf_scene = load(wolf_path)
+	var lantern_path = "res://EnemyModule/Formal/Enemy_LanternGhost.tscn"
+	if ResourceLoader.exists(lantern_path):
+		_enemy_lantern_ghost_scene = load(lantern_path)
+	var effigy_path = "res://EnemyModule/Formal/Enemy_PaperEffigy.tscn"
+	if ResourceLoader.exists(effigy_path):
+		_enemy_paper_effigy_scene = load(effigy_path)
+	var bull_path = "res://EnemyModule/Formal/Enemy_CyberBull.tscn"
+	if ResourceLoader.exists(bull_path):
+		_enemy_cyber_bull_scene = load(bull_path)
 
 	_apply_dream_runtime_flags()
 
-	var builder = Level_03_SceneBuilder.new(self)
-	builder.build_all()
+	# 从 .tscn 绑定已有节点（SceneBuilder 的角色已被编辑器可视化替代）
+	_bind_scene_nodes()
+	# 墙壁结界可视化
+	_build_wall_visuals()
+	# Canvas UI 仍由 UIBuilder 运行时构建（未截取到 .tscn 中）
+	_build_canvas_ui()
+	_set_all_color_rect_mouse_ignore(self)
 
 	# 赛博城初始: 隐藏 + 碰撞禁用
 	_set_space_collision(_cyber_city_root, false)
 
 	_setup_camera_limits()
-	# 凉茶铺阶段：摄像机限制在凉茶铺+街巷区域
-	_set_camera_limits(-50, 2500, -500, 1200)
+	# 凉茶铺阶段：摄像机限制在凉茶铺+街巷区域 (AlleyGround 末端=2128)
+	_set_camera_limits(0, 2120, 168, 608)
 	_cache_ui_refs()
 	_ensure_player_collision_layer()
 
@@ -136,6 +163,8 @@ func _on_ready() -> void:
 	EventBus.subscribe(GlobalDefine.EventName.PLAYER_HURT, self, "_on_player_hurt")
 	# 监听敌人死亡以追踪岭南战斗进度
 	EventBus.subscribe(GlobalDefine.EventName.ENEMY_DIED, self, "_on_enemy_died")
+	# 监听玩家死亡 — 重生
+	EventBus.subscribe(GlobalDefine.EventName.PLAYER_DIED, self, "_on_player_died")
 	_fsm = Level_03_FSM.new(self)
 
 	if not InputManager.game_action.is_connected(_on_game_action):
@@ -153,8 +182,30 @@ func _on_ready() -> void:
 	set_process(true)
 	print("[Level_03] 初始化完成 — 当前: TEA_SHOP_FRONT")
 
+	# 关卡开场叙事，延迟 0.5s 弹出
+	await get_tree().create_timer(0.5).timeout
+	_show_narrative("[color=white]我……我真的回来了！\n爷爷就在前面！爷爷！爷爷！[/color]")
+
 
 func _exit_tree() -> void:
+	_disconnect_input_manager()
+
+
+# ============================================================
+# 关卡切换辅助（对齐 Level_01/Level_02 关卡退出三件套）
+# ============================================================
+
+## 是否在 MainEntry 托管下运行（决定走 EventBus 还是直接 change_scene_to_file）
+func _is_loaded_under_main_entry() -> bool:
+	var node = get_parent()
+	while node:
+		if node.name == "MainEntry":
+			return true
+		node = node.get_parent()
+	return false
+
+## 断开 InputManager.game_action 信号连接，防止跨关卡输入泄漏
+func _disconnect_input_manager() -> void:
 	if InputManager.game_action.is_connected(_on_game_action):
 		InputManager.game_action.disconnect(_on_game_action)
 
@@ -247,6 +298,74 @@ func _ensure_player_collision_layer() -> void:
 	if not (player.collision_layer & GlobalDefine.Collision.PLAYER):
 		player.collision_layer |= GlobalDefine.Collision.PLAYER
 
+
+# ============================================================
+# 从 .tscn 绑定已有场景节点（替代原 SceneBuilder 的角色）
+# ============================================================
+
+func _bind_scene_nodes() -> void:
+	# 空间根节点
+	_safe_haven_root = $SafeHavenRoot
+	_cyber_city_root = $CyberCityRoot
+	_dynamic_actors = $DynamicActors
+
+	# 交互物
+	_grandpa_node = $InteractiveObjects/Grandpa
+	_grandpa_node.allow_repeat = false
+	_grandpa_node.apply_level01_dot_visual()
+
+	_memory_echo_1_node = $InteractiveObjects/MemoryEcho1
+	_memory_echo_1_node.is_active = false   # 初始禁用，CYBER_CITY 阶段才激活
+	_memory_echo_2_node = $InteractiveObjects/MemoryEcho2
+	_memory_echo_2_node.is_active = false
+
+	# 记忆光团贴图（已在 .tscn 中作为 MemoryEcho 子节点配置）
+	_echo_sprite_1 = _memory_echo_1_node.get_node_or_null("EchoSprite")
+	_echo_sprite_2 = _memory_echo_2_node.get_node_or_null("EchoSprite")
+
+	# 触发器 — 连接 body_entered 信号
+	_warning_1_trigger = $TriggerZones/Warning1Trigger
+	_warning_1_trigger.body_entered.connect(_on_warning_1_trigger_body_entered)
+	_warning_2_trigger = $TriggerZones/Warning2Trigger
+	_warning_2_trigger.body_entered.connect(_on_warning_2_trigger_body_entered)
+
+	# 系统入侵防火墙特效
+	var warn_shader = load("res://LevelModule/Formal/warning_barrier.gdshader")
+	if warn_shader:
+		_warning_barrier_1 = WarningBarrier.new()
+		_warning_barrier_1.name = "WarningBarrier1"
+		_warning_barrier_1.setup(_warning_1_trigger, warn_shader)
+		add_child(_warning_barrier_1)
+
+		_warning_barrier_2 = WarningBarrier.new()
+		_warning_barrier_2.name = "WarningBarrier2"
+		_warning_barrier_2.setup(_warning_2_trigger, warn_shader)
+		add_child(_warning_barrier_2)
+
+	# 出生点
+	player_spawn_point = $SpawnPoints/TeaShopSpawn
+
+	# 背景 PixelworkMapStitch 视觉层（名称含日期批次号，用前缀匹配）
+	for child in get_children():
+		if child.name.begins_with("Level_03_base_"):
+			_background_visual = child
+			break
+
+
+func _build_canvas_ui() -> void:
+	var canvas = _get_or_create_child("CanvasLayerUI", CanvasLayer)
+	canvas.layer = 2
+	canvas.process_mode = Node.PROCESS_MODE_ALWAYS
+	Level_03_UIBuilder.new(self, canvas).build_all()
+
+
+func _set_all_color_rect_mouse_ignore(node: Node) -> void:
+	for child in node.get_children():
+		if child is ColorRect:
+			child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_set_all_color_rect_mouse_ignore(child)
+
+
 func _set_space_collision(root: Node, enabled: bool) -> void:
 	if not root or not is_instance_valid(root): return
 	for child in root.get_children():
@@ -265,6 +384,7 @@ func _setup_camera_limits() -> void:
 	cam.limit_right = level_config.camera_limit_right
 	cam.limit_top = level_config.camera_limit_top
 	cam.limit_bottom = level_config.camera_limit_bottom
+	cam.zoom = Vector2(1.75, 1.75)
 	cam.bind_target(player)
 
 func _set_camera_limits(left: int, right: int, top: int, bottom: int) -> void:
@@ -276,6 +396,7 @@ func _set_camera_limits(left: int, right: int, top: int, bottom: int) -> void:
 	cam.limit_right = right
 	cam.limit_top = top
 	cam.limit_bottom = bottom
+	cam.zoom = Vector2(1.75, 1.75)
 	cam.bind_target(player)
 
 func _cache_ui_refs() -> void:
@@ -285,7 +406,6 @@ func _cache_ui_refs() -> void:
 	if _narrative_panel: _narrative_text = _narrative_panel.get_node_or_null("RichTextLabel")
 	_code_rain_overlay = canvas.get_node_or_null("CodeRainOverlay")
 	_glitch_overlay = canvas.get_node_or_null("GlitchOverlay")
-	_warm_glow_overlay = canvas.get_node_or_null("WarmGlowOverlay")
 	_ending_prompt = canvas.get_node_or_null("EndingPrompt")
 	if _ending_prompt: _ending_label = _ending_prompt.get_node_or_null("EndingLabel")
 
@@ -308,8 +428,6 @@ func _swap_player_to_cyber() -> void:
 	var old_player = GameManager.player_ref
 	if not old_player or not is_instance_valid(old_player): return
 
-	var saved_health: int = old_player.current_health
-	var saved_max_health: int = old_player.max_health
 	var saved_facing_right: bool = old_player.is_facing_right
 
 	if InputManager.game_action.is_connected(old_player._on_game_action):
@@ -323,9 +441,15 @@ func _swap_player_to_cyber() -> void:
 		return
 	var new_player = load(cyber_path).instantiate()
 	add_child(new_player)
-	new_player.current_health = saved_health
-	new_player.max_health = saved_max_health
-	new_player.global_position = old_player.global_position
+	# 换皮后血条恢复至满血（_ready 中 _apply_config 已设 max_health，此处确保 current 同步并通知 HUD）
+	new_player.max_health = new_player.max_health  # 保留 config 中的值
+	new_player.current_health = new_player.max_health
+	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+		"target": new_player,
+		"current_health": new_player.current_health,
+		"max_health": new_player.max_health
+	})
+	new_player.global_position = Vector2(2048, 576)
 	new_player.velocity = Vector2.ZERO
 	new_player.is_facing_right = saved_facing_right
 	GameManager.register_player(new_player)
@@ -355,7 +479,28 @@ func _freeze_player(freeze: bool) -> void:
 		if is_instance_valid(obj): obj.freeze_monitoring(freeze)
 
 
-# ============================================================
+func _on_player_died(_data: Dictionary) -> void:
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player): return
+
+	var respawn_pos: Vector2
+	if current_state in [LevelState.LINGNAN_COMBAT]:
+		respawn_pos = Vector2(120, 512)   # 岭南区域重生点
+	elif current_state in [LevelState.CYBER_CITY, LevelState.MEMORY_COLLECTION]:
+		respawn_pos = Vector2(2048, 544)  # 赛博区域重生点
+	else:
+		return  # 非战斗状态不处理
+
+	player.global_position = respawn_pos
+	player.velocity = Vector2.ZERO
+	player.current_health = player.max_health
+	player._change_state(GlobalDefine.PlayerState.IDLE)
+	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+		"target": player,
+		"current_health": player.current_health,
+		"max_health": player.max_health
+	})
+	print("[Level_03] 玩家重生至 ", respawn_pos)
 # 输入处理
 # ============================================================
 
@@ -387,7 +532,11 @@ func _input(event: InputEvent) -> void:
 		if _ending_enter_armed:
 			_ending_enter_armed = false
 			_emit_level_complete()
-			get_viewport().set_input_as_handled()
+			# _emit_level_complete 可能同步触发 change_scene_to_file 释放当前场景，
+			# 此时 get_viewport() 返回 null，安全判断避免崩溃
+			var vp = get_viewport()
+			if vp:
+				vp.set_input_as_handled()
 		return
 	if _narrative_open:
 		_narrative_enter_pressed = true
@@ -431,6 +580,12 @@ func _process(delta: float) -> void:
 		_interact_cooldown -= delta
 	_enforce_level_restrictions()
 	_poll_interactives_in_range()
+	# 防火墙距离检测
+	var player = GameManager.player_ref
+	if player and is_instance_valid(player):
+		var ppos = player.global_position
+		if _warning_barrier_1: _warning_barrier_1.update(ppos)
+		if _warning_barrier_2: _warning_barrier_2.update(ppos)
 	if _is_interacting and current_state not in [LevelState.LEVEL_END_TRANSIT]:
 		if not _narrative_open and not _transition_running:
 			_safe_end_interaction()
@@ -550,6 +705,7 @@ func _flash_grandpa_indicator() -> void:
 
 func _trigger_grandpa_glitch() -> void:
 	if not level_data: return
+	_mark_interaction_completed("grandpa")
 	_show_narrative(level_data.grandpa_glitch_text, func():
 		_show_narrative(level_data.ming_realization_text, func():
 			_trigger_lingnan_combat()
@@ -568,11 +724,8 @@ func _trigger_lingnan_combat() -> void:
 	# 爷爷NPC消失
 	if _grandpa_node and is_instance_valid(_grandpa_node):
 		_grandpa_node.is_active = false
-		var indicator = _grandpa_node.get_node_or_null("Indicator")
-		if indicator:
-			indicator.color = Color(1, 0, 0, 0.8)
-			indicator.size = Vector2(60, 60)
-			indicator.position = Vector2(-30, -30)
+		var sprite = _grandpa_node.get_node_or_null("Sprite")
+		if sprite: sprite.visible = false
 
 	# 开启战斗能力
 	_restore_combat_mechanics()
@@ -580,32 +733,52 @@ func _trigger_lingnan_combat() -> void:
 	# 打开凉茶铺右墙 — 允许玩家进入街巷区域战斗
 	_remove_wall("SafeHavenRoot/HavenRightWall")
 
-	# 扩展相机到凉茶铺+街巷
-	_set_camera_limits(-50, 2500, -500, 1200)
+	# 在墙后刷一只冲脸纸扎人，直接命令其朝玩家冲锋
+	var rush_config = load("res://DataConfig/Enemy/PaperEffigyConfig.tres") as EnemyConfig
+	var rush_enemy = _spawn_enemy_with_config(_enemy_paper_effigy_scene, Vector2(680, 540), rush_config)
+	if rush_enemy:
+		_lingnan_enemies.append(rush_enemy)
+		# 为该敌人生成独立配置副本，扩大检测范围至 1000px
+		rush_enemy.config = rush_config.duplicate()
+		rush_enemy.config.detect_range = 1000.0
+		# 直接设置为追逐状态，跳过 AI 检测延迟
+		var player = GameManager.player_ref
+		if player and is_instance_valid(player):
+			rush_enemy.target = player
+			rush_enemy.current_state = GlobalDefine.EnemyState.CHASE
+
+	# 扩展相机到凉茶铺+街巷 (AlleyGround 末端=2128)
+	_set_camera_limits(0, 2120, 168, 608)
 
 	# 在凉茶铺+街巷区域生成敌人
 	_spawn_lingnan_enemies()
+
+	# 给敌人一个物理帧启动 AI，再弹出叙事——这样冲脸怪已经开始跑向玩家
+	await get_tree().physics_frame
 
 	# 显示战斗开始叙事
 	if level_data:
 		_show_narrative("[color=yellow]空气中弥漫着不安的气息……有什么东西正在逼近！[/color]")
 
 func _spawn_lingnan_enemies() -> void:
-	if not _enemy_cyber_wolf_scene:
-		push_warning("[Level_03] Enemy_CyberWolf.tscn 缺失")
+	if not _enemy_paper_effigy_scene or not _enemy_lantern_ghost_scene:
+		push_warning("[Level_03] 敌人场景缺失")
 		return
 
 	var spawn_points = level_data.lingnan_enemy_spawn_points if level_data else []
 	if spawn_points.is_empty():
-		spawn_points = [Vector2(800, 540), Vector2(1400, 540), Vector2(1800, 540), Vector2(2100, 540), Vector2(2300, 540)]
+		spawn_points = [Vector2(955, 540), Vector2(1170, 540), Vector2(1385, 540), Vector2(1600, 540), Vector2(1815, 540)]
 
 	var count = level_data.lingnan_enemy_count if level_data else 5
-	var cleaner_config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
+	var effigy_config = load("res://DataConfig/Enemy/PaperEffigyConfig.tres") as EnemyConfig
+	var lantern_config = load("res://DataConfig/Enemy/LanternGhostConfig.tres") as EnemyConfig
 
 	for i in range(mini(spawn_points.size(), count)):
-		var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, spawn_points[i], cleaner_config)
+		var is_lantern = (i % 2 == 0)  # 交替：灯笼鬼, 纸扎人, 灯笼鬼...
+		var scene = _enemy_lantern_ghost_scene if is_lantern else _enemy_paper_effigy_scene
+		var config = lantern_config if is_lantern else effigy_config
+		var enemy = _spawn_enemy_with_config(scene, spawn_points[i], config)
 		if enemy:
-			enemy.modulate = Color(0.25, 0.2, 0.35, 0.95)  # 暗紫色（阴影感）
 			_lingnan_enemies.append(enemy)
 
 	_lingnan_enemies_alive = _lingnan_enemies.size()
@@ -648,14 +821,13 @@ func _on_lingnan_combat_complete() -> void:
 		var tween = create_tween()
 		tween.tween_property(_glitch_overlay.material, "shader_parameter/intensity", 0.8, 2.0)
 
-	# 3) 凉茶铺+街巷颜色腐蚀（暖色→冷色，2秒）
-	_corrupt_lingnan_colors()
-
-	# 4) 等待2秒后打开街巷右墙 + 赛博城显现
+	# 等待2秒后打开街巷右墙 + 赛博城显现
 	await get_tree().create_timer(2.0).timeout
 
 	_remove_wall("LingnanAlleyRoot/AlleyRightWall")
 	_remove_wall("TransitionCorridorRoot/CorridorRightWall")
+	# 走廊区域生成敌人（CyberBull + PaperEffigy 各2只）
+	_spawn_corridor_enemies()
 
 	# 赛博城显现 + 碰撞启用
 	if _cyber_city_root:
@@ -664,16 +836,18 @@ func _on_lingnan_combat_complete() -> void:
 		# 移除赛博城左墙（旧双空间架构遗留，与走廊右墙重叠，不拆除则阻挡通行）
 		_remove_wall("CyberCityRoot/CyberLeftWall")
 
-	# 6) 扩展相机到全地图
-	_set_camera_limits(-50, 15600, -500, 1200)
-
-	# 7) 玩家皮肤切换（赛博战斗系统）
+	# 6) 玩家皮肤切换（赛博战斗系统，摄像机保持与岭南阶段一致）
 	_swap_player_to_cyber()
+	# 新玩家自带新 SmoothCamera 会重置为默认值，重新应用相机设置
+	_set_camera_limits(1728, 6816, 168, 608)
+
+	# 7) 背景分层变暗（仅 PixworkMapStitch，敌人/玩家不受影响）
+	_dim_background_smooth(3.0)
 
 	# 8) Glitch渐退
 	if _glitch_overlay and _glitch_overlay.material:
 		var tween2 = create_tween()
-		tween2.tween_property(_glitch_overlay.material, "shader_parameter/intensity", 0.0, 1.0)
+		tween2.tween_property(_glitch_overlay.material, "shader_parameter/intensity", GLITCH_AMBIENT, 1.0)
 
 	# 9) 代码雨
 	_start_code_rain()
@@ -686,8 +860,8 @@ func _on_lingnan_combat_complete() -> void:
 	if _enemy_spawn_timer: _enemy_spawn_timer.start()
 
 	# 12) 激活交互物
-	if _memory_echo_1_node: _memory_echo_1_node.is_active = true
-	if _memory_echo_2_node: _memory_echo_2_node.is_active = true
+	if _memory_echo_1_node: _memory_echo_1_node.set_active(true)
+	if _memory_echo_2_node: _memory_echo_2_node.set_active(true)
 
 	current_state = LevelState.CYBER_CITY
 	_transition_running = false
@@ -707,28 +881,83 @@ func _start_screen_shake(duration: float) -> void:
 	var original_offset = cam.offset
 	var tween = create_tween()
 	for i in range(int(duration * 20)):
-		var shake_amount = 8.0 * (1.0 - float(i) / (duration * 20.0))  # 衰减
+		var shake_amount = 16.0 * (1.0 - float(i) / (duration * 20.0))  # 衰减，强度翻倍
 		tween.tween_property(cam, "offset", Vector2(randf_range(-shake_amount, shake_amount), randf_range(-shake_amount, shake_amount)), 0.05)
 	tween.tween_property(cam, "offset", original_offset, 0.1)
 
 
 # ============================================================
-# 凉茶铺+街巷颜色腐蚀（暖→冷）
+# 背景分层变暗（仅 PixworkMapStitch 视觉层，敌人/玩家不受影响）
 # ============================================================
 
-func _corrupt_lingnan_colors() -> void:
-	var roots = [_safe_haven_root, get_node_or_null("LingnanAlleyRoot")]
-	for root in roots:
-		if not root or not is_instance_valid(root): continue
-		for child in root.get_children():
-			if child is ColorRect:
-				var tween = create_tween()
-				tween.tween_property(child, "modulate", Color(0.4, 0.4, 0.5), 2.0)
-			elif child is StaticBody2D:
-				var cr = child.get_node_or_null("ColorRect")
-				if cr:
-					var tween = create_tween()
-					tween.tween_property(cr, "modulate", Color(0.4, 0.4, 0.5), 2.0)
+func _dim_background_smooth(duration: float = 3.0) -> void:
+	if not _background_visual or not is_instance_valid(_background_visual):
+		return
+	# modulate 仅作用于该节点及其子节点的渲染，不改变场景树中其他节点
+	var target_modulate = Color(0.55, 0.58, 0.65, 1.0)  # 40%暗度，略带蓝调
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_SINE)
+	tween.set_ease(Tween.EASE_IN)
+	tween.tween_property(_background_visual, "modulate", target_modulate, duration)
+	print("[Level_03] 背景变暗开始，持续 %.1f 秒" % duration)
+
+
+# ============================================================
+# 墙壁结界可视化（Shader 扫描线光幕）
+# ============================================================
+
+## 为所有墙壁 StatidBody2D 挂载结界光幕 ColorRect + Shader
+func _build_wall_visuals() -> void:
+	var shader_res = load("res://LevelModule/Formal/warning_barrier.gdshader")
+	if not shader_res:
+		push_warning("[Level_03] warning_barrier.gdshader 加载失败")
+		return
+	var barrier_mat = ShaderMaterial.new()
+	barrier_mat.shader = shader_res
+
+	# 全部深蓝
+	var walls = [
+		{path = "SafeHavenRoot/HavenRightWall"},
+		{path = "LingnanAlleyRoot/AlleyRightWall"},
+		{path = "TransitionCorridorRoot/CorridorRightWall"},
+		{path = "CyberCityRoot/CyberLeftWall"},
+		{path = "CyberCityRoot/CyberRightWall"},
+	]
+	for entry in walls:
+		_add_barrier_shader_to_wall(entry["path"], barrier_mat)
+
+
+func _add_barrier_shader_to_wall(wall_path: String, mat_template: ShaderMaterial) -> void:
+	var wall = get_node_or_null(wall_path)
+	if not wall or not is_instance_valid(wall):
+		push_warning("[Level_03] 墙壁节点未找到: %s" % wall_path)
+		return
+
+	# 从 CollisionShape2D 获取墙面尺寸和位置
+	var col_shape = wall.get_node_or_null("CollisionShape2D")
+	if not col_shape or not col_shape.shape is RectangleShape2D:
+		push_warning("[Level_03] 墙壁 %s 无 CollisionShape2D" % wall_path)
+		return
+	var rect_size: Vector2 = col_shape.shape.size
+	var col_pos: Vector2 = col_shape.position
+
+	# 每面墙独立的 ShaderMaterial（共享 shader 资源，独立参数）
+	var mat = ShaderMaterial.new()
+	mat.shader = mat_template.shader
+	mat.set_shader_parameter("intensity", 1.8)
+	mat.set_shader_parameter("alert_level", 1.0)
+	mat.set_shader_parameter("barrier_color", Color(0.04, 0.12, 0.7, 1.0))  # 深蓝
+	mat.set_shader_parameter("fade", 1.0)
+
+	var cr = ColorRect.new()
+	cr.name = "ColorRect"
+	cr.size = rect_size
+	cr.position = col_pos - rect_size / 2  # 居中于碰撞体位置
+	cr.material = mat
+	cr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cr.z_index = 5
+	wall.add_child(cr)
+	print("[Level_03] 光幕已挂载: %s (size=%s)" % [wall_path, rect_size])
 
 
 # ============================================================
@@ -744,7 +973,11 @@ func _remove_wall(wall_path: String) -> void:
 	var cr = wall.get_node_or_null("ColorRect")
 	if cr:
 		var tween = create_tween()
-		tween.tween_property(cr, "color:a", 0.0, 0.5)
+		if cr.material and cr.material is ShaderMaterial:
+			# Shader 结界：Tween fade uniform 到 0
+			tween.tween_method(func(v: float): cr.material.set_shader_parameter("fade", v), 1.0, 0.0, 0.5)
+		else:
+			tween.tween_property(cr, "color:a", 0.0, 0.5)
 
 
 # ============================================================
@@ -765,16 +998,12 @@ func _show_codebuddy_broadcast() -> void:
 # ============================================================
 
 func _start_code_rain() -> void:
-	if _code_rain_overlay:
-		_code_rain_overlay.show()
-		var tween = create_tween()
-		tween.tween_property(_code_rain_overlay, "color:a", 0.15, 1.0)
+	if _code_rain_overlay and is_instance_valid(_code_rain_overlay):
+		_code_rain_overlay.start_rain()
 
 func _stop_code_rain() -> void:
 	if _code_rain_overlay and is_instance_valid(_code_rain_overlay):
-		var tween = create_tween()
-		tween.tween_property(_code_rain_overlay, "color:a", 0.0, 1.0)
-		_code_rain_overlay.hide()
+		_code_rain_overlay.stop_rain()
 
 
 # ============================================================
@@ -786,7 +1015,12 @@ func _on_warning_1_trigger_body_entered(body: Node2D) -> void:
 	if ai_warning_1_triggered: return
 	if current_state not in [LevelState.CYBER_CITY, LevelState.MEMORY_COLLECTION]: return
 	ai_warning_1_triggered = true
-	if level_data and level_data.ai_warning_1_text != "":
+	if _warning_barrier_1:
+		_warning_barrier_1.trigger_breach(func():
+			if level_data and level_data.ai_warning_1_text != "":
+				_show_narrative(level_data.ai_warning_1_text)
+		)
+	elif level_data and level_data.ai_warning_1_text != "":
 		_show_narrative(level_data.ai_warning_1_text)
 
 func _on_warning_2_trigger_body_entered(body: Node2D) -> void:
@@ -794,7 +1028,12 @@ func _on_warning_2_trigger_body_entered(body: Node2D) -> void:
 	if ai_warning_2_triggered: return
 	if current_state not in [LevelState.CYBER_CITY, LevelState.MEMORY_COLLECTION]: return
 	ai_warning_2_triggered = true
-	if level_data and level_data.ai_warning_2_text != "":
+	if _warning_barrier_2:
+		_warning_barrier_2.trigger_breach(func():
+			if level_data and level_data.ai_warning_2_text != "":
+				_show_narrative(level_data.ai_warning_2_text)
+		)
+	elif level_data and level_data.ai_warning_2_text != "":
 		_show_narrative(level_data.ai_warning_2_text)
 
 func _is_player_body(body: Node2D) -> bool:
@@ -815,7 +1054,7 @@ func _spawn_cyber_enemies() -> void:
 	var cleaner_config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
 	var cleaner_points = level_data.cleaner_spawn_points if level_data else []
 	if cleaner_points.is_empty():
-		cleaner_points = [Vector2(6000, 540), Vector2(7200, 540), Vector2(8800, 540), Vector2(10400, 540), Vector2(11200, 540)]
+		cleaner_points = [Vector2(4596, 540), Vector2(5010, 540), Vector2(5424, 540), Vector2(5838, 540), Vector2(6252, 540)]
 	for i in range(mini(cleaner_points.size(), 5)):
 		var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, cleaner_points[i], cleaner_config)
 		if enemy:
@@ -825,7 +1064,7 @@ func _spawn_cyber_enemies() -> void:
 	var security_config = load("res://DataConfig/Enemy/SecurityConfig.tres") as EnemyConfig
 	var security_points = level_data.security_spawn_points if level_data else []
 	if security_points.is_empty():
-		security_points = [Vector2(6600, 480), Vector2(8400, 480), Vector2(10800, 480)]
+		security_points = [Vector2(4803, 480), Vector2(5424, 480), Vector2(6045, 480)]
 	for i in range(mini(security_points.size(), 3)):
 		var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, security_points[i], security_config)
 		if enemy:
@@ -833,6 +1072,21 @@ func _spawn_cyber_enemies() -> void:
 			_cyber_enemies.append(enemy)
 
 	print("[Level_03] 赛博敌人生成: %d 只" % _cyber_enemies.size())
+
+func _spawn_corridor_enemies() -> void:
+	if not _enemy_cyber_bull_scene or not _enemy_paper_effigy_scene:
+		return
+	# 走廊区域 CorridorGroundCold: [2144, 4032]，4只均匀分布
+	var bull_config = load("res://DataConfig/Enemy/CyberBullConfig.tres") as EnemyConfig
+	var effigy_config = load("res://DataConfig/Enemy/PaperEffigyConfig.tres") as EnemyConfig
+	var positions = [Vector2(2612, 540), Vector2(2930, 540), Vector2(3248, 540), Vector2(3566, 540)]
+	var scenes = [_enemy_cyber_bull_scene, _enemy_paper_effigy_scene, _enemy_cyber_bull_scene, _enemy_paper_effigy_scene]
+	var configs = [bull_config, effigy_config, bull_config, effigy_config]
+	for i in range(4):
+		var enemy = _spawn_enemy_with_config(scenes[i], positions[i], configs[i])
+		if enemy:
+			_cyber_enemies.append(enemy)
+	print("[Level_03] 走廊敌人生成: 4 只 (CyberBull+PaperEffigy)")
 
 func _spawn_enemy_with_config(scene: PackedScene, spawn_pos: Vector2, config: EnemyConfig) -> Node2D:
 	if not scene: return null
@@ -862,7 +1116,7 @@ func _on_enemy_spawn_timer_timeout() -> void:
 	if onscreen >= ENEMY_MAX_ONSCREEN: return
 
 	var side = 1.0 if randf() > 0.3 else -1.0
-	var spawn_x = clampf(player.global_position.x + side * randf_range(400.0, 600.0), 3600.0, 15400.0)
+	var spawn_x = clampf(player.global_position.x + side * randf_range(400.0, 600.0), 4100.0, 6700.0)
 	var config = load("res://DataConfig/Enemy/CleanerConfig.tres") as EnemyConfig
 	var enemy = _spawn_enemy_with_config(_enemy_cyber_wolf_scene, Vector2(spawn_x, 540), config)
 	if enemy:
@@ -905,10 +1159,9 @@ func _handle_memory_echo_1() -> void:
 	if not level_data: return
 	memory_echoes_collected += 1
 	_mark_interaction_completed("memory_echo_1")
-	_show_warm_glow()
+	_spike_glitch()
 	_show_narrative(level_data.memory_echo_1_subtitle, func():
 		_show_narrative(level_data.memory_echo_1_codebuddy, func():
-			_hide_warm_glow()
 			_check_memory_collection_complete()
 		)
 	)
@@ -917,10 +1170,9 @@ func _handle_memory_echo_2() -> void:
 	if not level_data: return
 	memory_echoes_collected += 1
 	_mark_interaction_completed("memory_echo_2")
-	_show_warm_glow()
+	_spike_glitch()
 	_show_narrative(level_data.memory_echo_2_subtitle, func():
 		_show_narrative(level_data.memory_echo_2_codebuddy, func():
-			_hide_warm_glow()
 			_check_memory_collection_complete()
 		)
 	)
@@ -933,18 +1185,15 @@ func _check_memory_collection_complete() -> void:
 			current_state = LevelState.MEMORY_COLLECTION
 			print("[Level_03] 进入 MEMORY_COLLECTION (已收集 %d/2)" % memory_echoes_collected)
 
-func _show_warm_glow() -> void:
-	if _warm_glow_overlay:
-		_warm_glow_overlay.show()
-		var tween = create_tween()
-		tween.tween_property(_warm_glow_overlay, "color:a", 0.25, 0.5)
-
-func _hide_warm_glow() -> void:
-	if _warm_glow_overlay:
-		var tween = create_tween()
-		tween.tween_property(_warm_glow_overlay, "color:a", 0.0, 0.8)
-		await tween.finished
-		_warm_glow_overlay.hide()
+## 互动时触发 glitch 强度脉冲，随后自动衰减回基线
+func _spike_glitch() -> void:
+	if not _glitch_overlay or not _glitch_overlay.material:
+		return
+	# 立即跳到峰值
+	var mat: ShaderMaterial = _glitch_overlay.material
+	mat.set_shader_parameter("intensity", GLITCH_SPIKE)
+	var tween = create_tween()
+	tween.tween_property(mat, "shader_parameter/intensity", GLITCH_AMBIENT, 2.0)
 
 
 # ============================================================
@@ -980,23 +1229,37 @@ func _stop_cyber_elements() -> void:
 
 func _trigger_level_end() -> void:
 	current_state = LevelState.LEVEL_END_TRANSIT
+	_freeze_player(false)
+	_is_interacting = false
+	_interact_cooldown = 0.0
+	InputManager.force_unblock_all()
 	if _ending_prompt:
 		_ending_prompt.show()
 		if _ending_label and level_data:
 			_ending_label.text = level_data.override_protocol_text
 	_ending_enter_armed = true
-	InputManager.unblock_input("觉醒")
 	_transition_running = false
 
 func _emit_level_complete() -> void:
 	if _level_complete_emitted: return
 	_level_complete_emitted = true
 	var next_path = level_data.next_level_path if level_data else "res://LevelModule/Formal/Level_04.tscn"
-	print("[Level_03] 发射 LEVEL_COMPLETE → ", next_path)
+	# 关卡退出三件套：释放 GUI 焦点 + 强制解除输入屏蔽 + 清理
+	get_viewport().gui_release_focus()
+	InputManager.force_unblock_all()
 	_full_cleanup()
+	# 双模切换：无 MainEntry 托管时直接换场景，否则走 EventBus 由 MainEntry 接管
+	if not _is_loaded_under_main_entry():
+		print("[Level_03] 无 MainEntry，直接切换场景 → ", next_path)
+		var err = get_tree().change_scene_to_file(next_path)
+		if err != OK:
+			push_warning("[Level_03] 直接切换失败: %s (err=%d)" % [next_path, err])
+		return
+	print("[Level_03] 发射 LEVEL_COMPLETE → ", next_path)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {"level": self, "next_level": next_path})
 
 func _full_cleanup() -> void:
+	_disconnect_input_manager()
 	for e in _cyber_enemies:
 		if is_instance_valid(e):
 			GameManager.unregister_enemy(e)
@@ -1004,5 +1267,4 @@ func _full_cleanup() -> void:
 	_cyber_enemies.clear()
 	if _enemy_spawn_timer and is_instance_valid(_enemy_spawn_timer):
 		_enemy_spawn_timer.stop()
-	InputManager.unblock_input("关卡3清理")
 	EventBus.unsubscribe_all(self)

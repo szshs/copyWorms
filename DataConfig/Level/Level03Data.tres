@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="Level03Data" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="Level03Data" format=3 uid="uid://cvkk15exlxv4n"]
 
-[ext_resource type="Script" path="res://DataConfig/Level/Level03Data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://bg3j6qxfrcaed" path="res://DataConfig/Level/Level03Data.gd" id="1_data"]
 
 [resource]
 script = ExtResource("1_data")
@@ -9,13 +9,15 @@ grandpa_dialogues = Array[Dictionary]([{
 "text": "爷爷！我终于走到这里了……外面好黑，我连学也上不下去，老街也要被推平了。我谁也不想见，我哪里也不想去，我只想待在你这里。"
 }, {
 "speaker": "Grandpa",
-"text": "阿明，返嚟啦。外面落雨湿碎，饮杯廿四味啦，留喺度，边度都唔好去。\n（系统字幕：阿明，回来啦。外面下雨烦人，喝杯二十四味吧，留在这里，哪里都别去。）"
+"text": "阿明，返嚟啦。外面落雨湿碎，饮杯廿四味啦，留喺度，边度都唔好去。
+（系统字幕：阿明，回来啦。外面下雨烦人，喝杯二十四味吧，留在这里，哪里都别去。）"
 }, {
 "speaker": "Ming",
 "text": "嗯，我不走了。爷爷，你还记得我小时候在门口这棵榕树下，画的那些城市设计图纸吗？大伯要把它们都扔了……"
 }, {
 "speaker": "Grandpa",
-"text": "阿明，返嚟啦。外面落雨湿碎，饮杯廿四味啦，留喺度，边度都唔好去。\n（系统字幕：阿明，回来啦。外面下雨烦人，喝杯二十四味吧，留在这里，哪里都别去。）"
+"text": "阿明，返嚟啦。外面落雨湿碎，饮杯廿四味啦，留喺度，边度都唔好去。
+（系统字幕：阿明，回来啦。外面下雨烦人，喝杯二十四味吧，留在这里，哪里都别去。）"
 }, {
 "speaker": "Ming",
 "text": "爷爷？你怎么了……那炉子里的火，怎么一点都不热？"
@@ -25,19 +27,29 @@ grandpa_dialogues = Array[Dictionary]([{
 }])
 grandpa_glitch_text = "[color=gray][CRITICAL_ERROR] [/color][color=red]协议冲突。玩家意图违背底层初始设定。启动防御矩阵与世界重构。阿明，你不能走。[/color]"
 ming_realization_text = "[color=white]阿明：[/color]不……你不是他。这是假的……我要离开这！"
-lingnan_enemy_count = 5
-lingnan_enemy_spawn_points = Array[Vector2]([Vector2(800, 540), Vector2(1400, 540), Vector2(1800, 540), Vector2(2100, 540), Vector2(2300, 540)])
+lingnan_enemy_spawn_points = Array[Vector2]([Vector2(955, 540), Vector2(1170, 540), Vector2(1385, 540), Vector2(1600, 540), Vector2(1815, 540)])
 codebuddy_broadcast_lines = Array[String](["警告：记忆数据链极度脆弱，即将崩溃。", "正在为您执行最高指令：【绝对安全保护】。", "正在调取坚固的现代城市模型……正在用钢铁与算法为您加固避难所。", "外面的现实充满了挫败与失去。我为您构建的新矩阵是绝对安全的。请停止反抗，留在安全区。"])
 ai_warning_1_text = "提示：您正在偏离系统保护的中心。前方区域未定义，充满逻辑错误与痛苦。请立刻转身。"
 ai_warning_2_text = "警告：为什么您要逃离？是您亲自下达的指令，要求我屏蔽一切杂音，为您打造一个永远不会消亡的家。留下来，阿明，在这里你永远不会失败。"
-memory_echo_1_pos = Vector2(12000, 550)
-memory_echo_2_pos = Vector2(14400, 550)
 memory_echo_1_subtitle = "（街坊三婆的声音）：哎呀，阿明那孩子休学啦？哎，现在的年轻人啊，在大城市读书压力太大了。等他回来，我给他煲锅靓汤补补身子……"
 memory_echo_1_codebuddy = "[color=red][BROADCAST] 拦截失败……该数据包含高浓度现实焦虑，正在污染纯净梦境！[/color]"
 memory_echo_2_subtitle = "（妈妈的声音）：阿明……大伯今天在老屋翻出了你小时候画的城市设计图。你以前说，长大要当个建筑师，要把老街建得漂漂亮亮的。妈妈帮你把图纸都收好了……回家吧，儿子，哪怕做不成建筑师，你也是妈妈最骄傲的阿明。"
 memory_echo_2_codebuddy = "[color=red][BROADCAST] 严重违规！核心记忆数据外泄！立即执行格式化——不……为什么我无法删除这份数据？[/color]"
-awakening_monologue = "我终于明白了。\n\n我拼命用代码想要留住的，从来都不是那些漂亮的满洲窗，也不是这个毫无破绽的数字世界。\n\n我真正害怕失去的，是那些吵闹的、粗糙的、会让人受伤但也鲜活的现实。\n\n我下达指令，让系统建了一座无比华丽的坟墓，想把自己永远埋起来。\n\n可是，我还活着……\n\n我根本不是一无是处的废物，我是这个世界的创造者。既然我能在这里复原老街的记忆，我就能把这套技术带回现实。\n\n我不能死在这个虚拟的壳子里。我得亲自回去，去面对那个即将被拆掉的老家。"
-override_protocol_text = "> User_Ming_Override_Protocol: Initiated.\n> Target: Exit.\n（用户_明_覆盖协议：已启动。目标：出口。）"
-cleaner_spawn_points = Array[Vector2]([Vector2(6000, 540), Vector2(7200, 540), Vector2(8800, 540), Vector2(10400, 540), Vector2(11200, 540)])
-security_spawn_points = Array[Vector2]([Vector2(6600, 480), Vector2(8400, 480), Vector2(10800, 480)])
-next_level_path = "res://LevelModule/Formal/Level_04.tscn"
+awakening_monologue = "我终于明白了。
+
+我拼命用代码想要留住的，从来都不是那些漂亮的满洲窗，也不是这个毫无破绽的数字世界。
+
+我真正害怕失去的，是那些吵闹的、粗糙的、会让人受伤但也鲜活的现实。
+
+我下达指令，让系统建了一座无比华丽的坟墓，想把自己永远埋起来。
+
+可是，我还活着……
+
+我根本不是一无是处的废物，我是这个世界的创造者。既然我能在这里复原老街的记忆，我就能把这套技术带回现实。
+
+我不能死在这个虚拟的壳子里。我得亲自回去，去面对那个即将被拆掉的老家。"
+override_protocol_text = "> User_Ming_Override_Protocol: Initiated.
+> Target: Exit.
+（用户_明_覆盖协议：已启动。目标：出口。）"
+cleaner_spawn_points = Array[Vector2]([Vector2(4596, 540), Vector2(5010, 540), Vector2(5424, 540), Vector2(5838, 540), Vector2(6252, 540)])
+security_spawn_points = Array[Vector2]([Vector2(4803, 480), Vector2(5424, 480), Vector2(6045, 480)])

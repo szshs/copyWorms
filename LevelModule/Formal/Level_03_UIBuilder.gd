@@ -21,7 +21,6 @@ func _init(parent: Level_03, canvas_layer: CanvasLayer) -> void:
 func build_all() -> void:
 	_build_narrative_panel()
 	_build_code_rain_overlay()
-	_build_warm_glow_overlay()
 	_build_glitch_overlay()
 	_build_ending_prompt()
 
@@ -69,68 +68,13 @@ func _build_narrative_panel() -> void:
 	level._narrative_panel = panel
 
 
-# ---- 代码雨覆盖层（绿色半透明 + 简单动画） ----
+# ---- 代码雨（Matrix 风格，CodeRain 独立类） ----
 
 func _build_code_rain_overlay() -> void:
-	var overlay = ColorRect.new()
-	overlay.name = "CodeRainOverlay"
-	overlay.visible = false
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	# 深绿色半透明，模拟代码雨氛围
-	overlay.color = Color(0, 0.15, 0.05, 0.0)
-	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(overlay)
-	level._code_rain_overlay = overlay
-
-	# 代码雨文字区域（模拟绿色代码行下落）
-	var code_layer = Control.new()
-	code_layer.name = "CodeRainTexts"
-	code_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	code_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(code_layer)
-
-	# 生成若干行代码文字
-	for i in range(12):
-		var code_line = Label.new()
-		code_line.name = "CodeLine_%d" % i
-		code_line.text = _generate_code_line()
-		code_line.add_theme_font_size_override("font_size", 11)
-		code_line.add_theme_color_override("font_color", Color(0, 1.0, 0.25, 0.12))
-		code_line.position = Vector2(randi_range(50, 900), i * 60)
-		code_line.size = Vector2(400, 16)
-		code_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		code_layer.add_child(code_line)
-
-## 生成伪代码行（与关卡1的 CODE_SCROLL_LINES 风格一致）
-func _generate_code_line() -> String:
-	var templates = [
-		"var security_matrix = _init_defense()",
-		"func _sanitize_memory(data): pass",
-		"if player.deviation > threshold:",
-		"emit_signal(\"protocol_conflict\")",
-		"_rebuild_city(safe_params)",
-		"const MAX_DEVIATION = 0.85",
-		"for sector in protected_zones:",
-		"sector.lockdown()",
-		"_override_external_signal()",
-		"match dream_state:",
-		"SAFE: _maintain_illusion()",
-		"BREACH: _deploy_countermeasures()",
-	]
-	return templates[randi() % templates.size()]
-
-
-# ---- 温暖光晕覆盖层（光团收集时屏幕泛暖黄） ----
-
-func _build_warm_glow_overlay() -> void:
-	var overlay = ColorRect.new()
-	overlay.name = "WarmGlowOverlay"
-	overlay.visible = false
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(1.0, 0.9, 0.4, 0.0)  # 暖黄色，初始透明
-	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(overlay)
-	level._warm_glow_overlay = overlay
+	var rain = CodeRain.new()
+	rain.name = "CodeRainOverlay"
+	canvas.add_child(rain)
+	level._code_rain_overlay = rain
 
 
 # ---- Glitch 覆盖层（复用关卡1的 GlitchShader） ----
