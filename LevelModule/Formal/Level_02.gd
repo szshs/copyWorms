@@ -59,6 +59,8 @@ const CHIPS_CAT_TEXTS: Array[String] = [
 
 var _level_complete_emitted: bool = false
 var _fsm: Level_02_FSM = null
+var _combat_hint_label: Label = null       # 战斗操作提示标签
+var _combat_hint_shown: bool = false       # 提示是否已显示
 
 
 func _on_ready() -> void:
@@ -84,6 +86,7 @@ func _on_ready() -> void:
 	_all_interactives = [_window_node, _attic_door_node, _rattan_chair_node, _sub02_portal_node, _chips_cat_node]
 
 	EventBus.subscribe(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, self, "_on_object_interacted")
+	EventBus.subscribe(GlobalDefine.EventName.ENEMY_DIED, self, "_on_enemy_died_combat_hint")
 	_fsm = Level_02_FSM.new(self)
 
 	if not InputManager.game_action.is_connected(_on_game_action):
@@ -93,7 +96,7 @@ func _on_ready() -> void:
 	set_process(true)
 
 	if level_data and level_data.attic_intro_text != "":
-		_show_narrative(level_data.attic_intro_text)
+		_show_narrative(level_data.attic_intro_text, _show_combat_hint)
 
 	print("[Level_02] 初始化完成 — 当前: DREAM_ATTIC")
 
@@ -329,6 +332,48 @@ func _mark_interaction_completed(obj_id: String) -> void:
 	var obj = _get_interactive_by_id(obj_id)
 	if obj and not obj.allow_repeat:
 		obj.mark_completed()
+
+
+## 显示战斗操作提示（屏幕上方，击杀一个怪物后消失）
+func _show_combat_hint() -> void:
+	if _combat_hint_shown: return
+	_combat_hint_shown = true
+	var cv = get_node_or_null("CanvasLayerUI")
+	if not cv:
+		# fallback: 直接加到关卡根节点
+		cv = self
+	_combat_hint_label = Label.new()
+	_combat_hint_label.name = "CombatHintLabel"
+	_combat_hint_label.text = "[空格] 跳跃    [J] 攻击    [Shift] 冲刺    [I] 技能"
+	_combat_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_combat_hint_label.add_theme_font_size_override("font_size", 18)
+	_combat_hint_label.add_theme_color_override("font_color", Color(1, 0.95, 0.7, 0.9))
+	_combat_hint_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	_combat_hint_label.add_theme_constant_override("shadow_offset_x", 1)
+	_combat_hint_label.add_theme_constant_override("shadow_offset_y", 1)
+	_combat_hint_label.size = Vector2(1280, 40)
+	_combat_hint_label.position = Vector2(0, 30)
+	_combat_hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_combat_hint_label.z_index = 150
+	cv.add_child(_combat_hint_label)
+	# 淡入动画
+	_combat_hint_label.modulate.a = 0.0
+	var tw = _combat_hint_label.create_tween()
+	tw.tween_property(_combat_hint_label, "modulate:a", 1.0, 0.4)
+
+
+## 击杀怪物后隐藏战斗提示
+func _on_enemy_died_combat_hint(_data: Dictionary) -> void:
+	if not _combat_hint_shown or not _combat_hint_label: return
+	_combat_hint_shown = false
+	var label = _combat_hint_label
+	_combat_hint_label = null
+	# 淡出后移除
+	var tw = label.create_tween()
+	tw.tween_property(label, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(label.queue_free)
+	# 取消订阅（只触发一次）
+	EventBus.unsubscribe(GlobalDefine.EventName.ENEMY_DIED, self)
 
 
 func _show_narrative(text: String, callback: Callable = Callable()) -> void:
