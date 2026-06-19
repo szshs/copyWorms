@@ -467,14 +467,16 @@ func _enforce_level_restrictions() -> void:
 func _freeze_player(freeze: bool) -> void:
 	var player = GameManager.player_ref
 	if not player: return
-	if freeze:
-		player.velocity = Vector2.ZERO
-		player.set_physics_process(false)
-		player.set_process_input(false)
-		player._change_state(GlobalDefine.PlayerState.IDLE)
-	else:
-		player.set_physics_process(true)
-		player.set_process_input(true)
+	# [旧实现 - 保留以备回退] 已迁移至 PlayerBase.set_frozen() 统一处理动画冻结问题
+	# if freeze:
+	#     player.velocity = Vector2.ZERO
+	#     player.set_physics_process(false)
+	#     player.set_process_input(false)
+	#     player._change_state(GlobalDefine.PlayerState.IDLE)
+	# else:
+	#     player.set_physics_process(true)
+	#     player.set_process_input(true)
+	player.set_frozen(freeze)
 	for obj in _all_interactives:
 		if is_instance_valid(obj): obj.freeze_monitoring(freeze)
 

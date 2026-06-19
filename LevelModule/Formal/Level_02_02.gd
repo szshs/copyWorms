@@ -283,15 +283,17 @@ func _freeze_player(freeze: bool) -> void:
 	var player = GameManager.player_ref
 	if not player or not is_instance_valid(player):
 		return
-	if freeze:
-		player.velocity = Vector2.ZERO
-		player.set_physics_process(false)
-		player.set_process_input(false)
-		if player.has_method("_change_state"):
-			player._change_state(GlobalDefine.PlayerState.IDLE)
-	else:
-		player.set_physics_process(true)
-		player.set_process_input(true)
+	# [旧实现 - 保留以备回退] 已迁移至 PlayerBase.set_frozen() 统一处理动画冻结问题
+	# if freeze:
+	#     player.velocity = Vector2.ZERO
+	#     player.set_physics_process(false)
+	#     player.set_process_input(false)
+	#     if player.has_method("_change_state"):
+	#         player._change_state(GlobalDefine.PlayerState.IDLE)
+	# else:
+	#     player.set_physics_process(true)
+	#     player.set_process_input(true)
+	player.set_frozen(freeze)
 
 
 func _ensure_player_collision_layer() -> void:

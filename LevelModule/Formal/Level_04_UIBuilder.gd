@@ -14,6 +14,7 @@ func _init(parent: Level_04, canvas_layer: CanvasLayer) -> void:
 func build_all() -> void:
 	_build_narrative_panel()
 	_build_glitch_overlay()
+	_build_right_edge_flash()
 	_build_ending_prompt()
 
 
@@ -71,6 +72,43 @@ func _build_glitch_overlay() -> void:
 		overlay.material = mat
 	canvas.add_child(overlay)
 	level._glitch_overlay = overlay
+
+
+func _build_right_edge_flash() -> void:
+	# 主光条（窄、亮）
+	var flash = ColorRect.new()
+	flash.name = "RightEdgeFlash"
+	flash.color = Color(1.0, 0.85, 0.2, 0.0)
+	flash.anchor_left = 1.0
+	flash.anchor_top = 0.0
+	flash.anchor_right = 1.0
+	flash.anchor_bottom = 1.0
+	flash.offset_left = -8.0
+	flash.offset_top = 0.0
+	flash.offset_right = 0.0
+	flash.offset_bottom = 0.0
+	flash.visible = false
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 250
+	canvas.add_child(flash)
+	level._right_edge_flash = flash
+	# 扩散光晕（宽、淡）
+	var glow = ColorRect.new()
+	glow.name = "RightEdgeGlow"
+	glow.color = Color(1.0, 0.9, 0.3, 0.0)
+	glow.anchor_left = 1.0
+	glow.anchor_top = 0.0
+	glow.anchor_right = 1.0
+	glow.anchor_bottom = 1.0
+	glow.offset_left = -30.0
+	glow.offset_top = 0.0
+	glow.offset_right = 0.0
+	glow.offset_bottom = 0.0
+	glow.visible = false
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.z_index = 249
+	canvas.add_child(glow)
+	level._right_edge_glow = glow
 
 
 func _build_ending_prompt() -> void:
