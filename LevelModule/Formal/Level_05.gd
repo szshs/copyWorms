@@ -237,6 +237,32 @@ func _on_ready() -> void:
 	set_process_input(true)
 	set_process(true)
 
+	# 检查点恢复：如果之前在bg4死亡，直接传送玩家到bg4区域重新开始Boss战
+	print("[Level_05] 检查点阶段: %d, 路径: %s" % [GameManager.checkpoint_stage, GameManager.checkpoint_scene_path])
+	if GameManager.checkpoint_stage >= 4:
+		# 跳过bg3，直接进入bg4
+		_in_boss_arena = true
+		# 标记交互点已完成（避免重复触发）
+		for obj in _all_interactives:
+			if obj.object_id == "enter_boss":
+				obj.mark_completed()
+		# 直接传送到bg4并生成Boss
+		_teleport_and_setup_camera(Vector2(931, 5037), 620, 1710, 4509, 5135, 1.5)
+		_set_boss_area_active(true)
+		_set_map_sprites_visible(false)
+		_spawn_boss()
+		_show_boss_bar()
+		# 恢复玩家满血
+		var pp = GameManager.player_ref
+		if pp and is_instance_valid(pp):
+			pp.current_health = pp.max_health
+			EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+				"target": pp,
+				"current_health": pp.current_health,
+				"max_health": pp.max_health
+			})
+		print("[Level_05] 从检查点恢复：直接进入bg4 Boss战")
+
 
 
 
@@ -409,6 +435,8 @@ func _cache_interactives() -> void:
 	for child in get_children():
 		if child is InteractiveObject:
 			_all_interactives.append(child)
+			# 复用关卡一的光点视觉
+			child.apply_level01_dot_visual()
 
 func _find_nearby_interactive() -> InteractiveObject:
 	for obj in _all_interactives:
@@ -569,6 +597,8 @@ func _teleport_to_boss() -> void:
 	_set_map_sprites_visible(false)
 	_spawn_boss()
 	_show_boss_bar()
+	# 更新检查点阶段为4（bg4），重新开始时直接回到bg4
+	GameManager.update_checkpoint_stage(4)
 
 func _spawn_all_enemies(lingnan_on_top: bool) -> void:
 	_clear_all_enemies()
@@ -754,6 +784,8 @@ func _debug_to_bg4() -> void:
 	_set_map_sprites_visible(false)
 	_spawn_boss()
 	_show_boss_bar()
+	# 更新检查点阶段为4（bg4），重新开始时直接回到bg4
+	GameManager.update_checkpoint_stage(4)
 
 func _debug_to_bg5() -> void:
 	_debug_panel.visible = false
