@@ -24,6 +24,12 @@ var dream_runtime_flags: Dictionary = {}
 # Boss 战引用（关卡设置，用于弹体自动瞄准等）
 var boss_target: Node2D = null
 
+# ---- 检查点系统 ----
+# 记录玩家当前所处的关卡场景路径和阶段，用于"重新开始"时回到当前关卡而非Level_01
+var checkpoint_scene_path: String = ""    # 检查点场景路径（如 "res://LevelModule/Formal/Level_02_01.tscn"）
+var checkpoint_stage: int = 0             # 检查点阶段（用于同场景内多阶段关卡，如Level_04的stage2/Level_05的bg4/bg5）
+var checkpoint_data: Dictionary = {}      # 检查点附加数据（如玩家血量等，可选）
+
 # ---- 生命周期 ----
 
 func _ready() -> void:
@@ -104,3 +110,43 @@ func is_self_test() -> bool:
 ## 判断是否正式模式
 func is_formal() -> bool:
 	return run_mode == GlobalDefine.RunMode.FORMAL
+
+# ---- 检查点系统 ----
+
+## 设置检查点（关卡_on_ready时调用，记录当前场景路径）
+func set_checkpoint(scene_path: String, stage: int = 0, data: Dictionary = {}) -> void:
+	checkpoint_scene_path = scene_path
+	checkpoint_stage = stage
+	checkpoint_data = data
+
+## 更新检查点阶段（同场景内阶段切换时调用，如Level_04 stage1→stage2）
+func update_checkpoint_stage(stage: int, data: Dictionary = {}) -> void:
+	checkpoint_stage = stage
+	if not data.is_empty():
+		checkpoint_data = data
+
+## 重新开始：回到检查点关卡（而非reload_current_scene回到Level_01）
+func restart_from_checkpoint() -> void:
+	is_game_over = false
+	is_paused = false
+	get_tree().paused = false
+	# 清理引用
+	player_ref = null
+	enemy_list.clear()
+	boss_target = null
+	InputManager.force_unblock_all()
+	# 如果有检查点场景路径，重新加载该场景
+	if checkpoint_scene_path != "" and ResourceLoader.exists(checkpoint_scene_path):
+		print("[GameManager] 从检查点重新开始: %s (stage=%d)" % [checkpoint_scene_path, checkpoint_stage])
+		# 检查是否在MainEntry托管模式下（current_scene是MainEntry）
+		var cs = get_tree().current_scene
+		if cs and cs.has_method("_switch_to_level"):
+			# MainEntry模式：通过MainEntry的关卡切换逻辑重新加载检查点场景
+			cs._switch_to_level(checkpoint_scene_path)
+		else:
+			# 独立模式：直接change_scene_to_file
+			get_tree().change_scene_to_file(checkpoint_scene_path)
+	else:
+		# 无检查点，回退到reload_current_scene
+		print("[GameManager] 无检查点，reload_current_scene")
+		get_tree().reload_current_scene()

@@ -42,6 +42,16 @@ func _ready() -> void:
 	_setup_enemies()
 	_setup_triggers()
 	GameManager.current_level = self
+	# 自动设置检查点：记录当前关卡场景路径，用于"重新开始"回到当前关卡而非Level_01
+	# 如果重新加载的是同一场景（重新开始），保留之前的阶段（checkpoint_stage），不重置为0
+	var sp = scene_file_path
+	if sp != "":
+		if GameManager.checkpoint_scene_path == sp:
+			# 同场景重新加载：保留阶段，仅更新路径
+			GameManager.set_checkpoint(sp, GameManager.checkpoint_stage)
+		else:
+			# 新关卡：阶段归零
+			GameManager.set_checkpoint(sp, 0)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_LOADED, { "level": self })
 	_on_ready()
 
