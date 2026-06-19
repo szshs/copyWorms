@@ -12,9 +12,11 @@ signal closed()
 var _listening_action: StringName = &""
 var _action_rows: Dictionary = {}
 var _list_vbox: VBoxContainer
+var _btn_tex: Texture2D
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_btn_tex = load("res://Assets/UI/btn.png") as Texture2D
 	_build_ui()
 	# 阻止 ESC 在此界面触发暂停切换
 	InputManager.set_pause_allowed(false)
@@ -71,21 +73,42 @@ func _build_ui() -> void:
 		_add_action_row(action)
 
 	# 底部按钮
-	var reset_btn := Button.new()
-	reset_btn.text = "恢复默认"
-	reset_btn.position = Vector2(480, 575)
-	reset_btn.size = Vector2(180, 40)
-	reset_btn.add_theme_font_size_override("font_size", 16)
+	var reset_btn := _make_btn("恢复默认", Vector2(440, 575), Vector2(220, 56))
 	reset_btn.pressed.connect(_on_reset_pressed)
 	add_child(reset_btn)
 
-	var back_btn := Button.new()
-	back_btn.text = "返回"
-	back_btn.position = Vector2(680, 575)
-	back_btn.size = Vector2(180, 40)
-	back_btn.add_theme_font_size_override("font_size", 16)
+	var back_btn := _make_btn("返回", Vector2(700, 575), Vector2(220, 56))
 	back_btn.pressed.connect(_on_back_pressed)
 	add_child(back_btn)
+
+## 创建带 btn.png 底板的纹理按钮
+func _make_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton:
+	var btn := TextureButton.new()
+	btn.position = pos
+	btn.custom_minimum_size = size
+	btn.size = size
+	if _btn_tex:
+		btn.texture_normal = _btn_tex
+		btn.texture_hover = _btn_tex
+		btn.texture_pressed = _btn_tex
+	btn.ignore_texture_size = true
+	btn.stretch_mode = TextureButton.STRETCH_SCALE
+	# 文字标签
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_color_override("font_color", Color.WHITE)
+	lbl.add_theme_font_size_override("font_size", 16)
+	btn.add_child(lbl)
+	# hover/pressed 动效
+	btn.mouse_entered.connect(func() -> void: btn.modulate = Color(1.1, 1.1, 1.1, 1.0))
+	btn.mouse_exited.connect(func() -> void: btn.modulate = Color(0.95, 0.95, 0.95, 1.0))
+	btn.button_down.connect(func() -> void: btn.modulate = Color(0.8, 0.8, 0.8, 1.0))
+	btn.button_up.connect(func() -> void: btn.modulate = Color(1.1, 1.1, 1.1, 1.0))
+	return btn
 
 func _add_action_row(action: StringName) -> void:
 	var row := HBoxContainer.new()
@@ -107,10 +130,7 @@ func _add_action_row(action: StringName) -> void:
 	row.add_child(bind_label)
 
 	# 修改按钮
-	var rebind_btn := Button.new()
-	rebind_btn.text = "修改"
-	rebind_btn.custom_minimum_size = Vector2(80, 32)
-	rebind_btn.add_theme_font_size_override("font_size", 14)
+	var rebind_btn := _make_btn("修改", Vector2.ZERO, Vector2(100, 44))
 	rebind_btn.pressed.connect(_on_rebind_pressed.bind(action))
 	row.add_child(rebind_btn)
 
@@ -143,7 +163,7 @@ func _on_rebind_pressed(action: StringName) -> void:
 		var bind_label: Label = row_data["label"]
 		bind_label.text = "< 请按键... (ESC取消) >"
 		bind_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
-		var rebind_btn: Button = row_data["button"]
+		var rebind_btn: TextureButton = row_data["button"]
 		rebind_btn.disabled = true
 	# 屏蔽游戏输入，防止按键被游戏消费
 	InputManager.block_input("按键设置-监听中", self)
@@ -209,7 +229,7 @@ func _finish_listening() -> void:
 	if not row_data.is_empty():
 		var bind_label: Label = row_data["label"]
 		bind_label.add_theme_color_override("font_color", Color(0.65, 0.82, 1.0))
-		var rebind_btn: Button = row_data["button"]
+		var rebind_btn: TextureButton = row_data["button"]
 		rebind_btn.disabled = false
 	_listening_action = &""
 	InputManager.unblock_input("按键设置-监听结束")
