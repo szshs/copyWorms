@@ -310,9 +310,11 @@ func _process(delta: float) -> void:
 		_advance_dialog()
 
 func _input(event: InputEvent) -> void:
-	# 对话框打开时，Enter 推进对话
+	# 鼠标左键等价于Enter（对话推进/交互触发）
+	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	# 对话框打开时，Enter或左键推进对话
 	if _dialog_open:
-		if event.is_action_pressed("ui_accept"):
+		if event.is_action_pressed("ui_accept") or is_left_click:
 			_dialog_enter_pressed = true
 			get_viewport().set_input_as_handled()
 		return
@@ -327,7 +329,7 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_1:
 		_toggle_debug_panel()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_accept"):
+	elif event.is_action_pressed("ui_accept") or is_left_click:
 		if _dialog_close_cooldown > 0:
 			get_viewport().set_input_as_handled()
 		else:
