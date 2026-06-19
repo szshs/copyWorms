@@ -442,7 +442,9 @@ func _handle_accept_input() -> void:
 ##   （_show_narrative / _enter_ide_mode 调用 block_input 屏蔽游戏交互，
 ##    但 Enter 关闭面板/翻页本身不应被阻断，否则输入死锁）
 func _input(event: InputEvent) -> void:
-	if not event.is_action_pressed("ui_accept"):
+	# 鼠标左键等价于Enter（对话推进/交互触发）
+	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	if not event.is_action_pressed("ui_accept") and not is_left_click:
 		return
 
 	# 叙事面板关闭：必须在 block_input 守卫之前处理，否则输入死锁

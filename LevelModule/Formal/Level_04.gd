@@ -243,7 +243,9 @@ func _input(event: InputEvent) -> void:
 		_toggle_debug_panel()
 		get_viewport().set_input_as_handled()
 		return
-	if not event.is_action_pressed("ui_accept"): return
+	# 鼠标左键等价于Enter（对话推进/交互触发）
+	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	if not event.is_action_pressed("ui_accept") and not is_left_click: return
 	if current_state == LevelState.LEVEL_END_TRANSIT:
 		if _ending_enter_armed: _ending_enter_armed = false; _emit_level_complete(); get_viewport().set_input_as_handled()
 		return
