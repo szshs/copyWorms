@@ -475,19 +475,30 @@ func _on_object_interacted(data: Dictionary) -> void:
 	elif oid == "grandpa":
 		_show_dialog(["爷爷？"], _play_grandpa_video)
 
-## 播放视频演出（爷爷交互后）
+## 播放视频演出（爷爷交互后）：先淡入黑屏，再播放视频
 func _play_grandpa_video() -> void:
 	var stream := load("res://Assets/视频演出.ogv") as VideoStream
 	if stream == null:
 		push_error("[Level_05] 视频演出.ogv 加载失败")
 		_show_dialog(["（视频加载失败）"], Callable())
 		return
-	# 全屏黑底
+	# 屏蔽游戏输入
+	InputManager.block_input("视频演出", self)
+	# 用 CanvasLayer 确保在最上层
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	# 淡入黑屏
 	var black_bg := ColorRect.new()
-	black_bg.color = Color.BLACK
+	black_bg.color = Color(0, 0, 0, 0)  # 初始透明
 	black_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	black_bg.mouse_filter = Control.MOUSE_FILTER_STOP
 	black_bg.z_index = 200
+	layer.add_child(black_bg)
+	var fade_tween := black_bg.create_tween()
+	fade_tween.tween_property(black_bg, "color:a", 1.0, 1.0)  # 1秒淡入到全黑
+	await fade_tween.finished
+	print("[Level_05] 淡入黑屏完成，开始播放视频")
 	# 视频播放器
 	var vp := VideoStreamPlayer.new()
 	vp.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -496,20 +507,16 @@ func _play_grandpa_video() -> void:
 	vp.stream = stream
 	vp.mouse_filter = Control.MOUSE_FILTER_STOP
 	black_bg.add_child(vp)
-	# 用 CanvasLayer 确保在最上层
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	layer.add_child(black_bg)
-	add_child(layer)
-	# 屏蔽游戏输入
-	InputManager.block_input("视频演出", self)
 	print("[Level_05] 视频演出开始播放")
 	# 等待视频播放结束
 	await vp.finished
 	# 清理
 	InputManager.unblock_input("视频演出")
 	layer.queue_free()
-	print("[Level_05] 视频演出播放结束")
+	print("[Level_05] 视频演出播放结束，切换到 Level_final")
+	# 切换到终局关卡
+	GameManager.run_mode = GlobalDefine.RunMode.FORMAL
+	get_tree().change_scene_to_file("res://LevelModule/Formal/Level_final.tscn")
 
 ## Boss死亡时缓结束后：恢复时缓，生成灯笼，显示死亡对话
 func _on_boss_death_recover(death_pos: Vector2) -> void:

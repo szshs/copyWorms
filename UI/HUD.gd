@@ -403,8 +403,10 @@ func _make_panel_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton
 	lbl.add_theme_color_override("font_color", Color.WHITE)
 	lbl.add_theme_font_size_override("font_size", 16)
 	btn.add_child(lbl)
-	btn.mouse_entered.connect(func() -> void: btn.modulate = Color(1.1, 1.1, 1.1, 1.0))
-	btn.mouse_exited.connect(func() -> void: btn.modulate = Color(0.95, 0.95, 0.95, 1.0))
-	btn.button_down.connect(func() -> void: btn.modulate = Color(0.8, 0.8, 0.8, 1.0))
-	btn.button_up.connect(func() -> void: btn.modulate = Color(1.1, 1.1, 1.1, 1.0))
+	# hover/pressed 动效：self_modulate 染底板淡蓝色，不影响文字
+	btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0)
+	btn.mouse_entered.connect(func() -> void: btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0))
+	btn.mouse_exited.connect(func() -> void: btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0))
+	btn.button_down.connect(func() -> void: btn.self_modulate = Color(0.45, 0.6, 0.85, 1.0))
+	btn.button_up.connect(func() -> void: btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0))
 	return btn
