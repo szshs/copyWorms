@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://7up63x7ylnpf"]
 
 [ext_resource type="Texture2D" uid="uid://ct1wo8q5g3kh3" path="res://LevelModule/Scenes/Level_06.png" id="1_wm310"]
-[ext_resource type="Script" uid="uid://bq712igse8uaa" path="res://LevelModule/Formal/Level_final.gd" id="2_main"]
+[ext_resource type="Script" uid="uid://cjmbvi66w8xl" path="res://LevelModule/Formal/Level_final.gd" id="2_main"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wm310"]
 size = Vector2(392, 20)
