@@ -38,7 +38,8 @@ const LOW_HP_RATIO: float = 0.3  # 血量低于30%开始闪烁
 var _idle_walk_sfx_timer: float = 0.0
 const IDLE_WALK_SFX_MIN: float = 1.8       # 最小间隔
 const IDLE_WALK_SFX_MAX: float = 3.5       # 最大间隔
-const IDLE_WALK_SFX_CHANCE: float = 0.5    # 触发时播放概率
+const IDLE_WALK_SFX_CHANCE: float = 0.25   # 触发时播放概率
+const IDLE_WALK_SFX_MAX_DIST: float = 1500.0  # 超过此距离不播放（防跨bg区域泄漏）
 
 # ---- 生命周期（子类不要重写，用虚函数扩展） ----
 
@@ -158,6 +159,12 @@ func _update_low_hp_blink(delta: float) -> void:
 # ---- 待机/行走音效（有概率周期播放） ----
 
 func _update_idle_walk_sfx(delta: float) -> void:
+	# 跨bg隔离：玩家不存在或距离过远时严禁播放（防lv4/5多bg区域互相串音）
+	var player = GameManager.player_ref
+	if not player or not is_instance_valid(player):
+		return
+	if global_position.distance_to(player.global_position) > IDLE_WALK_SFX_MAX_DIST:
+		return
 	# 攻击/受击/stun 状态下不播放环境音
 	if stun_timer > 0:
 		_idle_walk_sfx_timer = 0.0

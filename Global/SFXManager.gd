@@ -44,7 +44,7 @@ const POOL_SIZE := 8
 var _last_play_msec: Dictionary = {}          # {key: msec} 防抖记录
 const DEFAULT_MIN_INTERVAL := 0.05            # 50ms 默认防抖
 
-var _volume_db: float = 0.0
+var _volume_db: float = -4.4  # 默认音量（线性约0.6倍，降低40%）
 var _muted: bool = false
 
 func _ready() -> void:
