@@ -36,16 +36,16 @@ func _ready() -> void:
 	_apply_global_font()
 	_detect_run_mode()
 
-## 全局字体：所有 UI 节点默认使用方正像素12
+## 全局字体：所有 UI 节点默认使用汉仪像素体 11px
 func _apply_global_font() -> void:
-	var font := load("res://Assets/Fonts/方正像素/方正像素12.ttf") as FontFile
+	var font := load("res://Assets/Fonts/HanYiXiangSu-11px-U/HYPixel11pxU-2.ttf") as FontFile
 	if font == null:
-		push_error("[GameManager] 方正像素12.ttf 加载失败")
+		push_error("[GameManager] HYPixel11pxU-2.ttf 加载失败")
 		return
 	# 设置项目默认主题字体，所有 Control 节点自动继承
 	var default_theme := ThemeDB.get_default_theme()
 	default_theme.set_default_font(font)
-	print("[GameManager] 全局字体已设为方正像素12")
+	print("[GameManager] 全局字体已设为汉仪像素体11px")
 
 ## 自动检测运行模式
 func _detect_run_mode() -> void:
