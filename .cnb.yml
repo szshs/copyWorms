@@ -10,8 +10,8 @@ main:
           script: |
             docker build -t ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest .
             docker push   ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
-          services:
-            - docker
+      services:
+        - docker
 
 # --- 仅预览模式：访客点右上角按钮直接玩游戏，不进 IDE ---
 $:
