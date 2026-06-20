@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://46age76wsbif" path="res://UI/TitleScreen.gd" id="1_main"]
 [ext_resource type="Texture2D" uid="uid://dvicmvd3b4frl" path="res://Assets/menu bg.png" id="2_bg"]
 [ext_resource type="FontFile" uid="uid://dw57acwl4e6t5" path="res://Assets/Fonts/Silkscreen/Silkscreen-Bold.ttf" id="3_font_silk"]
-[ext_resource type="FontFile" uid="uid://bkh1sic8e83y" path="res://Assets/Fonts/方正像素/方正像素12.ttf" id="4_font_pixel"]
+[ext_resource type="FontFile" uid="uid://bkh1sic8e83y" path="res://Assets/Fonts/FangZhengPixel/FangZhengPixel12.ttf" id="4_font_pixel"]
 [ext_resource type="Texture2D" uid="uid://3dyhmdfn6jib" path="res://Assets/UI/btn.png" id="5_btn"]
 
 [node name="TitleScreen" type="Control" unique_id=2533512]
