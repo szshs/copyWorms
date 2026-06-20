@@ -533,21 +533,32 @@ func _play_grandpa_video() -> void:
 	fade_tween.tween_property(black_bg, "color:a", 1.0, 1.0)  # 1秒淡入到全黑
 	await fade_tween.finished
 	print("[Level_05] 淡入黑屏完成，开始播放视频")
-	# 视频播放器
+	# 视频播放器（静音视频原声，BGM 继续播放不打断）
 	var vp := VideoStreamPlayer.new()
 	vp.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vp.expand = true
 	vp.autoplay = true
 	vp.stream = stream
+	vp.volume_db = -80.0  # 禁用视频原声
+	vp.bus = "Master"
 	vp.mouse_filter = Control.MOUSE_FILTER_STOP
 	black_bg.add_child(vp)
 	print("[Level_05] 视频演出开始播放")
 	# 等待视频播放结束
 	await vp.finished
+	print("[Level_05] 视频演出播放结束，淡入黑屏")
+	# 视频结束后：保留 layer/black_bg，淡入黑屏（1.5s），再切换关卡
+	var fade_out_tween := black_bg.create_tween()
+	# black_bg 当前已是 alpha=1.0（视频前淡入过），但视频 expand 会盖住它，
+	# 这里把视频移除后让黑屏自然显现，并加一个保险淡入
+	vp.queue_free()
+	black_bg.color.a = 1.0
+	fade_out_tween.tween_interval(1.5)
+	await fade_out_tween.finished
 	# 清理
 	InputManager.unblock_input("视频演出")
 	layer.queue_free()
-	print("[Level_05] 视频演出播放结束，切换到 Level_final")
+	print("[Level_05] 黑屏淡入完成，切换到 Level_final")
 	# 切换到终局关卡
 	GameManager.run_mode = GlobalDefine.RunMode.FORMAL
 	get_tree().change_scene_to_file("res://LevelModule/Formal/Level_final.tscn")
@@ -671,10 +682,12 @@ func _teleport_to_bg5() -> void:
 	_teleport_and_setup_camera(BG5_PLAYER_POS, BG5_CAM_LEFT, BG5_CAM_RIGHT, 7448, BG5_CAM_BOTTOM, 1.33)
 	_set_cam_from_group($Bg5Collisions, 7448)
 	_hide_boss_bar()
-	# 确保播放结局音乐
-	var end_bgm = "res://Assets/Music/lv5-end.wav"
-	if MusicManager.get_current_bgm() != end_bgm:
-		MusicManager.fade_to(end_bgm, 1.5)
+	# 进入 bg5：播放 lv6（不打断，从 bossfight 自然过渡）
+	MusicManager.fade_to("res://Assets/Music/lv6.wav", 1.5)
+	# bg5 区域玩家移速降为 0.1 倍（沉重/慢节奏结局氛围）
+	var p = GameManager.player_ref
+	if p and is_instance_valid(p):
+		p.runtime_move_speed_multiplier = 0.1
 	print("[Level_05] 已进入 bg5 区域")
 
 ## 激活/禁用bg5区域节点（背景显隐 + 碰撞体开关 + 爷爷交互物开关）
@@ -837,8 +850,8 @@ func _on_enemy_died(data: Dictionary) -> void:
 		_hide_boss_bar()
 		GameManager.boss_target = null
 		_boss_instance = null
-		# Boss死亡 → 淡入结局音乐
-		MusicManager.fade_to("res://Assets/Music/lv5-end.wav", 2.0)
+		# Boss死亡 → 直接过渡到 lv6（bg5/结局主题，视频演出不打断）
+		MusicManager.fade_to("res://Assets/Music/lv6.wav", 2.0)
 		# 剧烈抖屏 + 时缓效果
 		_trigger_screen_shake(22.0, 0.8)
 		Engine.time_scale = 0.25
@@ -942,6 +955,10 @@ func _debug_to_bg5() -> void:
 	_despawn_boss()
 	_teleport_and_setup_camera(BG5_PLAYER_POS, BG5_CAM_LEFT, BG5_CAM_RIGHT, 7448, BG5_CAM_BOTTOM, 1.33)
 	_set_cam_from_group($Bg5Collisions, 7448)
+	# bg5 区域玩家移速降为 0.1 倍
+	var p = GameManager.player_ref
+	if p and is_instance_valid(p):
+		p.runtime_move_speed_multiplier = 0.1
 
 func _spawn_boss() -> void:
 	if _boss_instance and is_instance_valid(_boss_instance):

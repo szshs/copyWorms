@@ -476,6 +476,9 @@ func _trigger_fall_reset() -> void:
 	_fall_reset_running = true
 	fall_count += 1
 	print("[Level_02_03] 坠崖重置 #%d" % fall_count)
+	# 首次坠崖：切换 BGM 从 2test2 → lv3
+	if fall_count == 1:
+		MusicManager.fade_to("res://Assets/Music/lv3.wav", 1.0)
 	InputManager.block_input("坠落重置", self)
 	_freeze_player(true)
 

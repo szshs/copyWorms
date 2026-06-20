@@ -23,8 +23,8 @@ var _transitioned: bool = false
 
 func _ready() -> void:
 	print("[TitleScreen] 标题画面加载")
-	# 回到主界面：停止所有 BGM
-	MusicManager.stop_bgm(0.0)
+	# 标题界面播放结局主题音乐
+	MusicManager.play_bgm("res://Assets/Music/lv5-end.wav")
 	_setup_initial_state()
 	_connect_signals()
 	_start_hotspot_flicker()
@@ -159,20 +159,24 @@ func _start_transition() -> void:
 # ============================================================
 
 func _on_start_game() -> void:
+	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	print("[TitleScreen] >>> 开始正式游戏按钮被点击 <<<")
 	GameManager.run_mode = GlobalDefine.RunMode.FORMAL
 	get_tree().change_scene_to_file("res://Global/MainEntry.tscn")
 
 func _on_highlight_start() -> void:
+	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	print("[TitleScreen] >>> 从精彩处开始按钮被点击 <<<")
 	GameManager.run_mode = GlobalDefine.RunMode.FORMAL
 	get_tree().change_scene_to_file(HIGHLIGHT_SCENE)
 
 func _on_quit() -> void:
+	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	print("[TitleScreen] >>> 退出按钮被点击 <<<")
 	get_tree().quit()
 
 func _on_open_settings() -> void:
+	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	print("[TitleScreen] >>> 设置按钮被点击 <<<")
 	var scene: PackedScene = load("res://UI/KeybindSettingsScreen.tscn")
 	if scene:
