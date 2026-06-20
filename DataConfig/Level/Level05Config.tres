@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="LevelConfig" format=3 uid="uid://d5ef41k3npv17"]
+[gd_resource type="Resource" script_class="LevelConfig" format=3 uid="uid://ykjynt3i1bg"]
 
 [ext_resource type="Script" uid="uid://dra4tcclksicd" path="res://DataConfig/Level/LevelConfig.gd" id="1_script"]
 
