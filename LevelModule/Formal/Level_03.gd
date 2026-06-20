@@ -183,6 +183,8 @@ func _on_ready() -> void:
 
 	_load_hud()
 	set_process(true)
+	# 确保播放 lv3（从断崖延续，若未播放则启动）
+	MusicManager.play_bgm("res://Assets/Music/lv3.wav")
 	print("[Level_03] 初始化完成 — 当前: TEA_SHOP_FRONT")
 	# 初始化完成，淡出黑屏呈现关卡
 	_finish_intro_fade_in()

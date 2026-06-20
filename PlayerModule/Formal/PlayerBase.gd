@@ -68,6 +68,10 @@ var _sprite_node: Node = null
 var _air_time: float = 0.0
 const AIR_THRESHOLD: float = 0.05
 
+# 行走音效计时器
+var _walk_sfx_timer: float = 0.0
+const WALK_SFX_INTERVAL: float = 0.45
+
 # ---- 生命周期 ----
 
 func _ready() -> void:
@@ -249,6 +253,7 @@ func _take_contact_damage(enemy: Node2D) -> void:
 	if _is_super_armor:
 		is_invincible = true
 		invincible_timer = config.hurt_invincible_time if config else 1.0
+		SFXManager.play_pitched(SFXManager.SFX.PLAYER_HURT, 0.92, 1.08)
 		EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": atk, "current_health": current_health})
 		EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": self, "current_health": current_health, "max_health": max_health})
 		if current_health <= 0:
@@ -269,6 +274,7 @@ func _take_contact_damage(enemy: Node2D) -> void:
 	velocity = Vector2(kb_dir * 300.0, -200.0)
 	# 受击时推开周围敌人，防止无敌结束后立刻再次被贴身
 	_push_nearby_enemies(120.0)
+	SFXManager.play_pitched(SFXManager.SFX.PLAYER_HURT, 0.92, 1.08)
 	EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": atk, "current_health": current_health})
 	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": self, "current_health": current_health, "max_health": max_health})
 	if current_health <= 0:
@@ -328,6 +334,7 @@ func _handle_idle(delta: float) -> void:
 		_change_state(GlobalDefine.PlayerState.RUN)
 		return
 	velocity.x = move_toward(velocity.x, 0, _get_move_speed() * 10 * delta)
+	_walk_sfx_timer = 0.0  # 停止行走，重置计时器
 	if not is_on_floor():
 		_air_time += delta
 		if _air_time > AIR_THRESHOLD:
@@ -343,6 +350,14 @@ func _handle_run(delta: float) -> void:
 		_change_state(GlobalDefine.PlayerState.IDLE)
 		return
 	velocity.x = move_toward(velocity.x, id.x * _get_move_speed(), _get_move_speed() * 10 * delta)
+	# 行走音效：周期性播放脚步声
+	if is_on_floor():
+		_walk_sfx_timer -= delta
+		if _walk_sfx_timer <= 0.0:
+			SFXManager.play_pitched(SFXManager.SFX.PLAYER_WALK, 0.92, 1.08, 0.0)
+			_walk_sfx_timer = WALK_SFX_INTERVAL
+	else:
+		_walk_sfx_timer = 0.0  # 空中不响，落地后立即响
 	if not is_on_floor():
 		_air_time += delta
 		if _air_time > AIR_THRESHOLD:
@@ -465,6 +480,8 @@ func perform_attack() -> void:
 	# 前摇延迟：动画立即播放，0.1s 后才打出伤害
 	_attack_windup_pending = true
 	_attack_windup_timer = ATTACK_WINDUP_TIME
+	# 攻击音效
+	SFXManager.play_pitched(SFXManager.SFX.PLAYER_ATTACK, 0.95, 1.08)
 
 func perform_dash() -> void:
 	if dash_cooldown_timer > 0 or is_dashing:
@@ -491,6 +508,7 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 	if _is_super_armor:
 		is_invincible = true
 		invincible_timer = config.hurt_invincible_time if config else 1.0
+		SFXManager.play_pitched(SFXManager.SFX.PLAYER_HURT, 0.92, 1.08)
 		EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": damage, "current_health": current_health})
 		EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": self, "current_health": current_health, "max_health": max_health})
 		if current_health <= 0:
@@ -512,6 +530,7 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 		velocity.y = -120.0
 	# 受击时推开周围敌人，防止贴身连击
 	_push_nearby_enemies(120.0)
+	SFXManager.play_pitched(SFXManager.SFX.PLAYER_HURT, 0.92, 1.08)
 	EventBus.emit(GlobalDefine.EventName.PLAYER_HURT, {"player": self, "damage": damage, "current_health": current_health})
 	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {"target": self, "current_health": current_health, "max_health": max_health})
 	if current_health <= 0:

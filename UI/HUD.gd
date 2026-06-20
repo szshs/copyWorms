@@ -353,12 +353,15 @@ func _on_game_over(_data: Dictionary = {}) -> void:
 # ---- 按钮回调 ----
 
 func _on_resume_pressed() -> void:
+	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	GameManager.toggle_pause()
 
 func _on_restart_pressed() -> void:
+	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	GameManager.restart_from_checkpoint()
 
 func _on_back_pressed() -> void:
+	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://UI/TitleScreen.tscn")
 
@@ -420,4 +423,5 @@ func _make_panel_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton
 	btn.mouse_exited.connect(func() -> void: btn.modulate = Color(0.4, 0.65, 1.0, 1.0); lbl.self_modulate = Color(2.5, 1.54, 1.0))
 	btn.button_down.connect(func() -> void: btn.modulate = Color(0.25, 0.48, 0.85, 1.0); lbl.self_modulate = Color(4.0, 2.08, 1.18))
 	btn.button_up.connect(func() -> void: btn.modulate = Color(0.55, 0.78, 1.0, 1.0); lbl.self_modulate = Color(1.82, 1.28, 1.0))
+	btn.pressed.connect(func() -> void: SFXManager.play(SFXManager.SFX.UI_CLICK))
 	return btn
