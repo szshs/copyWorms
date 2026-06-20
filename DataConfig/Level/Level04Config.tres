@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 level_name = "维度侵蚀与空间崩塌"
+bgm_path = "res://Assets/Music/lv3.wav"
 bg_color = Color(0.08, 0.06, 0.05, 1)
 camera_limit_left = -50
 camera_limit_right = 12800

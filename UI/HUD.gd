@@ -413,10 +413,11 @@ func _make_panel_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton
 	lbl.add_theme_color_override("font_color", Color.WHITE)
 	lbl.add_theme_font_size_override("font_size", 16)
 	btn.add_child(lbl)
-	# hover/pressed 动效：self_modulate 染底板淡蓝色，不影响文字
-	btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0)
-	btn.mouse_entered.connect(func() -> void: btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0))
-	btn.mouse_exited.connect(func() -> void: btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0))
-	btn.button_down.connect(func() -> void: btn.self_modulate = Color(0.45, 0.6, 0.85, 1.0))
-	btn.button_up.connect(func() -> void: btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0))
+	# hover/pressed 动效：modulate 染底板淡蓝色，lbl self_modulate 反抵消保持白字
+	btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
+	lbl.self_modulate = Color(2.5, 1.54, 1.0)
+	btn.mouse_entered.connect(func() -> void: btn.modulate = Color(0.55, 0.78, 1.0, 1.0); lbl.self_modulate = Color(1.82, 1.28, 1.0))
+	btn.mouse_exited.connect(func() -> void: btn.modulate = Color(0.4, 0.65, 1.0, 1.0); lbl.self_modulate = Color(2.5, 1.54, 1.0))
+	btn.button_down.connect(func() -> void: btn.modulate = Color(0.25, 0.48, 0.85, 1.0); lbl.self_modulate = Color(4.0, 2.08, 1.18))
+	btn.button_up.connect(func() -> void: btn.modulate = Color(0.55, 0.78, 1.0, 1.0); lbl.self_modulate = Color(1.82, 1.28, 1.0))
 	return btn

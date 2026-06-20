@@ -23,6 +23,8 @@ var _transitioned: bool = false
 
 func _ready() -> void:
 	print("[TitleScreen] 标题画面加载")
+	# 回到主界面：停止所有 BGM
+	MusicManager.stop_bgm(0.0)
 	_setup_initial_state()
 	_connect_signals()
 	_start_hotspot_flicker()
@@ -83,21 +85,27 @@ func _connect_signals() -> void:
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/SettingsButton)
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/QuitButton)
 
-## TextureButton hover/pressed 动效：用 self_modulate 给底板染淡蓝色（不影响文字）
+## TextureButton hover/pressed 动效：modulate 染底板淡蓝色，Label self_modulate 反抵消保持白字
 func _connect_btn_hover_modulate(btn: TextureButton) -> void:
-	btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0)
+	btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
+	var lbl := btn.get_node_or_null("Label") as Label
+	if lbl: lbl.self_modulate = Color(2.5, 1.54, 1.0)
 	btn.mouse_entered.connect(func() -> void:
 		if not btn.disabled:
-			btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0)
+			btn.modulate = Color(0.55, 0.78, 1.0, 1.0)
+			if lbl: lbl.self_modulate = Color(1.82, 1.28, 1.0)
 	)
 	btn.mouse_exited.connect(func() -> void:
-		btn.self_modulate = Color(0.6, 0.75, 1.0, 1.0)
+		btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
+		if lbl: lbl.self_modulate = Color(2.5, 1.54, 1.0)
 	)
 	btn.button_down.connect(func() -> void:
-		btn.self_modulate = Color(0.45, 0.6, 0.85, 1.0)
+		btn.modulate = Color(0.25, 0.48, 0.85, 1.0)
+		if lbl: lbl.self_modulate = Color(4.0, 2.08, 1.18)
 	)
 	btn.button_up.connect(func() -> void:
-		btn.self_modulate = Color(0.75, 0.88, 1.0, 1.0)
+		btn.modulate = Color(0.55, 0.78, 1.0, 1.0)
+		if lbl: lbl.self_modulate = Color(1.82, 1.28, 1.0)
 	)
 
 # ============================================================
