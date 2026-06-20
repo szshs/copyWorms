@@ -2,7 +2,7 @@
 # CNB 配置：CI 自动构建镜像 + 仅预览模式（点开即玩）
 # ============================================================
 
-# --- CI 流水线：push 到 main 时自动构建并推送 Docker 镜像到 CNB 制品库 ---
+# --- CI 流水线：push 到 main 时自动构建并推送 Docker 镜像 ---
 main:
   push:
     - stages:
@@ -22,7 +22,7 @@ $:
         - docker
         - name: vscode
           options:
-            onlyPreview: true                                       # 跳过 IDE，直接出预览页
+            onlyPreview: true
             launch: docker run -d --network host ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
-            keepAliveTimeout: 3600000                               # 1 小时无访问回收容器（毫秒）
+            keepAliveTimeout: 3600000
             daemon: true
