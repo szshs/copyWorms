@@ -382,7 +382,9 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if current_state in [LevelState.REALITY_CONFIG_EDIT, LevelState.REALITY_RECOMPILE]:
-		get_viewport().set_input_as_handled()
+		# 仅拦截 ui_accept（防止触发场景交互），放行鼠标点击给 GUI 按钮
+		if event.is_action_pressed("ui_accept"):
+			get_viewport().set_input_as_handled()
 		return
 	if _is_interacting or _interact_cooldown > 0.0 or _transition_running or _fall_reset_running:
 		if not _transition_running and not _fall_reset_running and _interact_cooldown > 0.5:
