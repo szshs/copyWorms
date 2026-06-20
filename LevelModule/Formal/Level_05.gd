@@ -15,7 +15,6 @@ var _top_mat: ShaderMaterial = null
 var _edge_tear: ColorRect = null
 var _corruption: float = 0.35
 var _top_is_lingnan: bool = true
-var _debug_panel: Control = null
 var _in_boss_arena: bool = false
 var _boss_instance: Node2D = null
 var _current_player_skin: String = "Cyber"   # 当前玩家皮肤（"Cyber"/"Lingnan"），用于G键切换
@@ -385,9 +384,6 @@ func _input(event: InputEvent) -> void:
 		_corruption = minf(1.0, _corruption + 0.05)
 		get_viewport().set_input_as_handled()
 		_update_label()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_1:
-		_toggle_debug_panel()
-		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("ui_accept") or is_left_click:
 		if _dialog_close_cooldown > 0:
 			get_viewport().set_input_as_handled()
@@ -684,10 +680,11 @@ func _teleport_to_bg5() -> void:
 	_hide_boss_bar()
 	# 进入 bg5：播放 lv6（不打断，从 bossfight 自然过渡）
 	MusicManager.fade_to("res://Assets/Music/lv6.wav", 1.5)
-	# bg5 区域玩家移速降为 0.1 倍（沉重/慢节奏结局氛围）
+	# bg5 区域玩家移速降为 0.5 倍，并禁用闪避（避免闪避速度不变导致的视觉突兀快移）
 	var p = GameManager.player_ref
 	if p and is_instance_valid(p):
-		p.runtime_move_speed_multiplier = 0.1
+		p.runtime_move_speed_multiplier = 0.5
+		p.can_dash = false
 	print("[Level_05] 已进入 bg5 区域")
 
 ## 激活/禁用bg5区域节点（背景显隐 + 碰撞体开关 + 爷爷交互物开关）
@@ -859,106 +856,6 @@ func _on_enemy_died(data: Dictionary) -> void:
 		var t = get_tree().create_timer(1.5, true, false, true)
 		t.timeout.connect(_on_boss_death_recover.bind(death_pos))
 
-
-# ============================================================
-# 调试面板 (按 1)
-# ============================================================
-
-func _toggle_debug_panel() -> void:
-	if not _debug_panel:
-		_create_debug_panel()
-	_debug_panel.visible = not _debug_panel.visible
-
-func _create_debug_panel() -> void:
-	_debug_panel = Control.new()
-	_debug_panel.name = "DebugPanel"
-	_debug_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_debug_panel.position = Vector2(-220, 10)
-	_debug_panel.size = Vector2(200, 60)
-	_debug_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_debug_panel.z_index = 300
-
-	var bgg = ColorRect.new()
-	bgg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bgg.color = Color(0, 0, 0, 0.75)
-	_debug_panel.add_child(bgg)
-
-	var l = Label.new()
-	l.text = "调试 [1]"
-	l.position = Vector2(10, 5)
-	l.add_theme_color_override("font_color", Color.WHITE)
-	_debug_panel.add_child(l)
-
-	var btn_bg3 = Button.new()
-	btn_bg3.text = "bg3 (撕裂)"
-	btn_bg3.position = Vector2(10, 28)
-	btn_bg3.size = Vector2(85, 25)
-	btn_bg3.pressed.connect(_debug_to_bg3)
-	_debug_panel.add_child(btn_bg3)
-
-	var btn_bg4 = Button.new()
-	btn_bg4.text = "bg4 (Boss)"
-	btn_bg4.position = Vector2(105, 28)
-	btn_bg4.size = Vector2(85, 25)
-	btn_bg4.pressed.connect(_debug_to_bg4)
-	_debug_panel.add_child(btn_bg4)
-
-	var btn_bg5 = Button.new()
-	btn_bg5.text = "bg5"
-	btn_bg5.position = Vector2(10, 56)
-	btn_bg5.size = Vector2(85, 25)
-	btn_bg5.pressed.connect(_debug_to_bg5)
-	_debug_panel.add_child(btn_bg5)
-
-	_debug_panel.size = Vector2(200, 90)
-
-	var cv = get_node_or_null("CanvasLayer")
-	if cv: cv.add_child(_debug_panel)
-	else: add_child(_debug_panel)
-
-func _debug_to_bg3() -> void:
-	_debug_panel.visible = false
-	_in_boss_arena = false
-	_in_bg5 = false
-	_hide_boss_bar()
-	GameManager.boss_target = null
-	_teleport_and_setup_camera(Vector2(-1603, 380), -1702, 2982, 80, 540, 1.33)
-	_set_cam_from_group($CyberCollisions, 80, 648)
-	_set_boss_area_active(false)
-	_set_bg5_area_active(false)
-	_set_map_sprites_visible(true)
-	_despawn_boss()
-
-func _debug_to_bg4() -> void:
-	_debug_panel.visible = false
-	_in_boss_arena = true
-	_in_bg5 = false
-	_set_bg5_area_active(false)
-	_teleport_and_setup_camera(Vector2(931, 5037), 620, 1710, 4512, 5135, 1.33)
-	_set_cam_from_group($BossCollisions, 4512)
-	_set_boss_area_active(true)
-	_set_map_sprites_visible(false)
-	_spawn_boss()
-	_show_boss_bar()
-	# 更新检查点阶段为4（bg4），重新开始时直接回到bg4
-	GameManager.update_checkpoint_stage(4)
-
-func _debug_to_bg5() -> void:
-	_debug_panel.visible = false
-	_in_boss_arena = false
-	_in_bg5 = true
-	_set_boss_area_active(false)
-	_set_map_sprites_visible(false)
-	_set_bg5_area_active(true)
-	_hide_boss_bar()
-	GameManager.boss_target = null
-	_despawn_boss()
-	_teleport_and_setup_camera(BG5_PLAYER_POS, BG5_CAM_LEFT, BG5_CAM_RIGHT, 7448, BG5_CAM_BOTTOM, 1.33)
-	_set_cam_from_group($Bg5Collisions, 7448)
-	# bg5 区域玩家移速降为 0.1 倍
-	var p = GameManager.player_ref
-	if p and is_instance_valid(p):
-		p.runtime_move_speed_multiplier = 0.1
 
 func _spawn_boss() -> void:
 	if _boss_instance and is_instance_valid(_boss_instance):

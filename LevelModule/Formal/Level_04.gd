@@ -89,9 +89,6 @@ var _right_edge_flash: ColorRect = null
 var _right_edge_glow: ColorRect = null
 var _right_edge_flash_active: bool = false
 
-# ---- 调试面板 ----
-var _debug_panel: Control = null
-
 # ---- 敌人 ----
 var _enemy_cyber_wolf_scene: PackedScene = null
 
@@ -269,10 +266,6 @@ func _on_game_action(action: StringName, _event: InputEvent) -> void:
 	if _narrative_open: _narrative_enter_pressed = true; return
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_1:
-		_toggle_debug_panel()
-		get_viewport().set_input_as_handled()
-		return
 	# 鼠标左键等价于Enter（对话推进/交互触发）
 	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	if not event.is_action_pressed("ui_accept") and not is_left_click: return
@@ -972,107 +965,6 @@ func _enter_stage3() -> void:
 	# 跳转
 	_full_cleanup()
 	get_tree().change_scene_to_file("res://LevelModule/Formal/Level_05.tscn")
-
-
-# ---- 调试面板 (按 1 切换阶段) ----
-
-func _toggle_debug_panel() -> void:
-	if not _debug_panel:
-		_create_debug_panel()
-	_debug_panel.visible = not _debug_panel.visible
-
-func _create_debug_panel() -> void:
-	_debug_panel = Control.new()
-	_debug_panel.name = "DebugPanel"
-	_debug_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_debug_panel.position = Vector2(-220, 10)
-	_debug_panel.size = Vector2(200, 80)
-	_debug_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_debug_panel.z_index = 300
-
-	var bg = ColorRect.new()
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(0, 0, 0, 0.75)
-	_debug_panel.add_child(bg)
-
-	var label = Label.new()
-	label.text = "调试面板 [1]"
-	label.position = Vector2(10, 5)
-	label.add_theme_color_override("font_color", Color.WHITE)
-	_debug_panel.add_child(label)
-
-	var btn_s1 = Button.new()
-	btn_s1.text = "阶段1 (赛博)"
-	btn_s1.position = Vector2(10, 30)
-	btn_s1.size = Vector2(85, 25)
-	btn_s1.pressed.connect(_debug_switch_to_stage1)
-	_debug_panel.add_child(btn_s1)
-
-	var btn_s2 = Button.new()
-	btn_s2.text = "阶段2 (岭南)"
-	btn_s2.position = Vector2(105, 30)
-	btn_s2.size = Vector2(85, 25)
-	btn_s2.pressed.connect(_debug_switch_to_stage2)
-	_debug_panel.add_child(btn_s2)
-
-	var cv = $CanvasLayerUI
-	if cv: cv.add_child(_debug_panel)
-	else: add_child(_debug_panel)
-
-func _debug_switch_to_stage1() -> void:
-	_debug_panel.visible = false
-	_stage2_entered = false
-	current_state = LevelState.HOMOMORPHIC_COMBAT
-	_is_interacting = true
-	_freeze_player(true)
-
-	# 传送 + 切皮肤 + 摄像机
-	var p = GameManager.player_ref
-	if p and is_instance_valid(p):
-		p.global_position = CYBER_TELEPORT
-		p.velocity = Vector2.ZERO
-		_snap_camera(p)
-	_set_cam_from_group($Stage1Collisions, -696)
-	_swap_player_skin("Cyber")
-
-	# 重置敌人
-	for e in _stage1_enemies:
-		if is_instance_valid(e): e.queue_free()
-	_stage1_enemies.clear()
-	_spawn_stage1_enemies()
-
-	_freeze_player(false)
-	_is_interacting = false
-	_stage2_auto_swap = false
-	_stop_stage2_warning()
-
-func _debug_switch_to_stage2() -> void:
-	_debug_panel.visible = false
-	_stage2_entered = true
-	current_state = LevelState.STAGE2
-	_is_interacting = true
-	_freeze_player(true)
-
-	var p = GameManager.player_ref
-	if not p or not is_instance_valid(p):
-		_freeze_player(false); _is_interacting = false; return
-	p.global_position = STAGE2_SPAWN
-	p.velocity = Vector2.ZERO
-	_snap_camera(p)
-	_swap_player_skin("Lingnan")
-	p = GameManager.player_ref
-	_set_camera_limits(0, 7472, 4000, 5032)
-
-	# 清除敌人
-	for e in _stage1_enemies:
-		if is_instance_valid(e): e.queue_free()
-	_stage1_enemies.clear()
-
-	_freeze_player(false)
-	_is_interacting = false
-	_stage2_current_map = 0
-	_spawn_stage2_enemies()
-	_start_stage2_swap_timer()
 
 
 func _pan_camera_to(target: Vector2, cb: Callable = Callable()) -> void:
