@@ -260,6 +260,9 @@ func _on_ready() -> void:
 	# 初始化完成，淡出黑屏呈现关卡
 	_finish_intro_fade_in()
 
+	# 播放 Boss 战音乐
+	MusicManager.play_bgm("res://Assets/Music/lv5-bossfight.wav")
+
 	# 检查点恢复：如果之前在bg4死亡，直接传送玩家到bg4区域重新开始Boss战
 	print("[Level_05] 检查点阶段: %d, 路径: %s" % [GameManager.checkpoint_stage, GameManager.checkpoint_scene_path])
 	if GameManager.checkpoint_stage >= 4:
@@ -285,6 +288,8 @@ func _on_ready() -> void:
 				"max_health": pp.max_health
 			})
 		print("[Level_05] 从检查点恢复：直接进入bg4 Boss战")
+		# 播放 Boss 战音乐
+		MusicManager.play_bgm("res://Assets/Music/lv5-bossfight.wav")
 		# 显示"按G切换人物外观"指引
 		_show_skin_hint()
 
@@ -666,6 +671,10 @@ func _teleport_to_bg5() -> void:
 	_teleport_and_setup_camera(BG5_PLAYER_POS, BG5_CAM_LEFT, BG5_CAM_RIGHT, 7448, BG5_CAM_BOTTOM, 1.33)
 	_set_cam_from_group($Bg5Collisions, 7448)
 	_hide_boss_bar()
+	# 确保播放结局音乐
+	var end_bgm = "res://Assets/Music/lv5-end.wav"
+	if MusicManager.get_current_bgm() != end_bgm:
+		MusicManager.fade_to(end_bgm, 1.5)
 	print("[Level_05] 已进入 bg5 区域")
 
 ## 激活/禁用bg5区域节点（背景显隐 + 碰撞体开关 + 爷爷交互物开关）
@@ -828,6 +837,8 @@ func _on_enemy_died(data: Dictionary) -> void:
 		_hide_boss_bar()
 		GameManager.boss_target = null
 		_boss_instance = null
+		# Boss死亡 → 淡入结局音乐
+		MusicManager.fade_to("res://Assets/Music/lv5-end.wav", 2.0)
 		# 剧烈抖屏 + 时缓效果
 		_trigger_screen_shake(22.0, 0.8)
 		Engine.time_scale = 0.25

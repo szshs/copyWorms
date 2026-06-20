@@ -79,6 +79,7 @@ func _on_ready() -> void:
 	call_deferred("_remove_ladder_color_rects")
 	_load_hud()
 	_show_intro_narrative()
+	MusicManager.play_bgm("res://Assets/Music/2 test-2.wav")
 	print("[Level_02_02] 初始化完成")
 
 
@@ -192,7 +193,8 @@ func _get_enemy_spawn_markers(name_prefix: String) -> Array[Marker2D]:
 
 
 func _input(event: InputEvent) -> void:
-	if not event.is_action_pressed("ui_accept"):
+	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	if not event.is_action_pressed("ui_accept") and not is_left_click:
 		return
 	if _narrative_open:
 		_narrative_enter_pressed = true

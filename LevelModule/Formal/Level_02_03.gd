@@ -183,6 +183,7 @@ func _on_ready() -> void:
 		InputManager.game_action.connect(_on_game_action)
 
 	set_process(true)
+	MusicManager.play_bgm("res://Assets/Music/2 test-2.wav")
 	print("[Level_02_03] 初始化完成 — DREAM_STREET")
 
 
@@ -371,7 +372,8 @@ func _on_game_action(action: StringName, _event: InputEvent) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not event.is_action_pressed("ui_accept"):
+	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	if not event.is_action_pressed("ui_accept") and not is_left_click:
 		return
 	if current_state in [LevelState.REALITY_IDE_CHAT, LevelState.REALITY_FREE_CHAT]:
 		return  # Enter 由 LineEdit.text_submitted 接管
