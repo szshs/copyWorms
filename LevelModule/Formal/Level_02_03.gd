@@ -183,7 +183,7 @@ func _on_ready() -> void:
 		InputManager.game_action.connect(_on_game_action)
 
 	set_process(true)
-	MusicManager.play_bgm("res://Assets/Music/2 test-2.wav")
+	MusicManager.play_bgm("res://Assets/Music/2-test-2.ogg")
 	print("[Level_02_03] 初始化完成 — DREAM_STREET")
 
 

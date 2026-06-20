@@ -79,7 +79,7 @@ func _on_ready() -> void:
 	call_deferred("_remove_ladder_color_rects")
 	_load_hud()
 	_show_intro_narrative()
-	MusicManager.play_bgm("res://Assets/Music/2 test-2.wav")
+	MusicManager.play_bgm("res://Assets/Music/2-test-2.ogg")
 	print("[Level_02_02] 初始化完成")
 
 

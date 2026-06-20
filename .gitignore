@@ -70,3 +70,9 @@ AI资源库/鬼灭之刃/.DS_Store
 AI资源库/鬼灭之刃/Gemini_Generated_Image_w0gzdsw0gzdsw0gz_workflow/npc.json
 AI资源库/鬼灭之刃/Gemini_Generated_Image_w0gzdsw0gzdsw0gz_workflow/npc.json.bak
 AI资源库/鬼灭之刃/Gemini_Generated_Image_w0gzdsw0gzdsw0gz_workflow/sprite.png
+
+# Tencent Cloud EdgeOne
+.env
+.edgeone/*
+.tef_dist/*
+  
