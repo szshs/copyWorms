@@ -3,8 +3,8 @@
 # 负责 BGM 播放、淡入淡出、场景切换过渡
 #
 # 使用方式:
-#   MusicManager.play_bgm("res://Assets/Music/lv3.wav")
-#   MusicManager.fade_to("res://Assets/Music/lv5-bossfight.wav", 1.5)
+#   MusicManager.play_bgm("res://Assets/Music/lv3.ogg")
+#   MusicManager.fade_to("res://Assets/Music/lv5-end.ogg", 1.5)
 #   MusicManager.stop_bgm(0.8)
 #   MusicManager.set_volume_db(-6.0)
 # ============================================================
