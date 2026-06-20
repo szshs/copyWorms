@@ -104,29 +104,6 @@ Phase 4	150~0	🔥 近战+剑气连击，移速暴增至 350，极低闪避(15%)
 
 行为决策：每 0.3s 评估一次，包含 IDLE / APPROACH / RETREAT / RANGED / MELEE / EVADE / JUMP / HOVER 共 8 种行为，各阶段独立决策树。
 
-🚀 快速部署（Docker）
-
-前提条件
-
-Docker 已安装
-
-构建镜像
-
-docker build -t hackathon-game .
-
-运行容器
-
-docker run -d -p 8686:8686 --name hackathon-game hackathon-game
-
-或使用自定义端口：
-
-
-docker run -d -p 8080:8686 -e PORT=8080 --name hackathon-game hackathon-game
-
-访问游戏
-
-浏览器打开 http://localhost:8686
-
 
 🔧 本地开发
 
