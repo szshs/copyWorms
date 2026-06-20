@@ -218,7 +218,7 @@ func _on_ready() -> void:
 	_load_hud()
 
 	set_process(true)
-
+	MusicManager.play_bgm("res://Assets/Music/Nightfall.mp3")
 	print("[Level_01] 初始化完成 — 当前: LIVING_ROOM")
 
 
