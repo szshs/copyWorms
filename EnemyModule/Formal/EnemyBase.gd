@@ -34,6 +34,12 @@ var _low_hp_blink: ColorRect = null
 var _blink_timer: float = 0.0
 const LOW_HP_RATIO: float = 0.3  # 血量低于30%开始闪烁
 
+# 待机/行走音效计时器（周期性有概率播放）
+var _idle_walk_sfx_timer: float = 0.0
+const IDLE_WALK_SFX_MIN: float = 1.8       # 最小间隔
+const IDLE_WALK_SFX_MAX: float = 3.5       # 最大间隔
+const IDLE_WALK_SFX_CHANCE: float = 0.5    # 触发时播放概率
+
 # ---- 生命周期（子类不要重写，用虚函数扩展） ----
 
 func _ready() -> void:
@@ -92,6 +98,7 @@ func _physics_process(delta: float) -> void:
 	_handle_ai(delta)
 	move_and_slide()
 	_update_facing()
+	_update_idle_walk_sfx(delta)
 	_on_physics_process(delta)
 
 func _update_timers(delta: float) -> void:
@@ -147,6 +154,24 @@ func _update_low_hp_blink(delta: float) -> void:
 			_low_hp_blink.color.a = 0.1
 		else:
 			_low_hp_blink.color.a = 0.8
+
+# ---- 待机/行走音效（有概率周期播放） ----
+
+func _update_idle_walk_sfx(delta: float) -> void:
+	# 攻击/受击/stun 状态下不播放环境音
+	if stun_timer > 0:
+		_idle_walk_sfx_timer = 0.0
+		return
+	if current_state == GlobalDefine.EnemyState.ATTACK or current_state == GlobalDefine.EnemyState.HURT:
+		_idle_walk_sfx_timer = 0.0
+		return
+	_idle_walk_sfx_timer -= delta
+	if _idle_walk_sfx_timer > 0.0:
+		return
+	# 到达间隔：按概率播放，并重置下一轮随机间隔
+	_idle_walk_sfx_timer = randf_range(IDLE_WALK_SFX_MIN, IDLE_WALK_SFX_MAX)
+	if randf() < IDLE_WALK_SFX_CHANCE:
+		SFXManager.play_pitched(SFXManager.SFX.ENEMY_IDLE_WALK, 0.88, 1.12, 0.0)
 
 # ---- AI 状态机 ----
 
@@ -278,6 +303,7 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 		velocity = Vector2(kb_x, kb_y)
 		stun_timer = 0.3
 
+	SFXManager.play_pitched(SFXManager.SFX.ENEMY_HURT, 0.90, 1.12)
 	EventBus.emit(GlobalDefine.EventName.ENEMY_HURT, {
 		"enemy": self,
 		"damage": damage,
