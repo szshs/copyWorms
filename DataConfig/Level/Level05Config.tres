@@ -6,7 +6,7 @@
 script = ExtResource("1_script")
 level_name = "双世界撕裂·花旦"
 level_id = "level_05"
-bgm_path = "res://Assets/Music/lv5-bossfight.ogg"
+bgm_path = "res://Assets/Music/lv5-bossfight.wav"
 bg_color = Color(0.05, 0.04, 0.08, 1)
 camera_limit_left = -1700
 camera_limit_right = 2200

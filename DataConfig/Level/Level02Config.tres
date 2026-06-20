@@ -6,7 +6,7 @@
 script = ExtResource("1_main")
 level_name = "撕裂与沉溺"
 level_id = "level_02"
-bgm_path = "res://Assets/Music/2-test-2.ogg"
+bgm_path = "res://Assets/Music/2 test-2.wav"
 bg_color = Color(0.32, 0.2, 0.14, 1)
 camera_limit_left = -50
 camera_limit_right = 5328

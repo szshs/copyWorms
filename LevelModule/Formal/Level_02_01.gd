@@ -63,7 +63,7 @@ func _on_ready() -> void:
 	_spawn_lantern_ghosts()
 	_load_hud()
 	_build_exit_white_overlay()
-	MusicManager.play_bgm("res://Assets/Music/2-test-2.ogg")
+	MusicManager.play_bgm("res://Assets/Music/2 test-2.wav")
 	print("[Level_02_01] 初始化完成")
 
 
