@@ -1,5 +1,8 @@
 FROM nginx:alpine
 
+# 端口配置（与 EXPOSE、launch 命令 -e PORT、entrypoint.sh 必须一致）
+ENV PORT=8080
+
 # 复制 Godot Web 导出产物（HTML + JS + WASM + PCK）
 COPY build/web/ /usr/share/nginx/html/
 
