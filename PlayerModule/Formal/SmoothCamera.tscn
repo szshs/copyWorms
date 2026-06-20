@@ -1,7 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://smooth_camera_player"]
-
-[ext_resource type="Script" path="res://PlayerModule/Formal/SmoothCamera.gd" id="1_script"]
-
-[node name="SmoothCamera" type="Camera2D"]
-script = ExtResource("1_script")
-position_smoothing_enabled = false

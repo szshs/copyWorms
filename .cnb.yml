@@ -23,6 +23,6 @@ $:
         - name: vscode
           options:
             onlyPreview: true
-            launch: docker run -d --network host ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
+            launch: docker run -d --network host -e PORT=80 ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
             keepAliveTimeout: 3600000
             daemon: true
