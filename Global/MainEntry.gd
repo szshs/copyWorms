@@ -41,6 +41,12 @@ func _ready() -> void:
 	# 加载正式关卡（后续由关卡模块替换）
 	_load_formal_level()
 
+
+func prepare_for_level_exit() -> void:
+	if _current_level_node and is_instance_valid(_current_level_node) and _current_level_node.has_method("prepare_for_level_exit"):
+		_current_level_node.call("prepare_for_level_exit")
+
+
 # ---- 多关卡切换 ----
 
 func _on_level_complete(data: Dictionary) -> void:
@@ -54,17 +60,11 @@ func _on_level_complete(data: Dictionary) -> void:
 
 func _switch_to_level(next_path: String, overlay_color: Color = Color.BLACK) -> void:
 	_show_level_switch_overlay(overlay_color)
+	SceneTransitionManager.cleanup_for_transition(self)
 	# 1) 释放旧关卡（玩家作为关卡子节点随之销毁; EventBus tree_exited 自动清理订阅）
 	if _current_level_node and is_instance_valid(_current_level_node):
 		_current_level_node.queue_free()
 	_current_level_node = null
-	# 防御: 清除游离玩家引用，让新关卡 LevelBase._setup_player() 重建玩家
-	GameManager.player_ref = null
-	GameManager.enemy_list.clear()
-	# 防御: 解除可能遗留的输入屏蔽，避免跨关卡输入锁泄漏
-	InputManager.unblock_input("关卡切换")
-	InputManager.force_unblock_all()
-	get_viewport().gui_release_focus()
 
 	# 2) 等一帧让 queue_free 生效
 	await get_tree().process_frame

@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://b8ncuf7p5o5rh" path="res://LevelModule/Formal/InteractiveObject.gd" id="5_interact"]
 [ext_resource type="Texture2D" uid="uid://bvrmrgf5vb200" path="res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 5.png" id="6_bg5_bg"]
 [ext_resource type="Texture2D" uid="uid://bh3xqwgijt61j" path="res://Assets/Sprites/grandpa/爷爷待机.png" id="7_fmr2n"]
+[ext_resource type="Resource" uid="uid://ykjynt3i1bg" path="res://DataConfig/Level/Level05Config.tres" id="8_config"]
 
 [sub_resource type="RectangleShape2D" id="floor_shape"]
 size = Vector2(4672, 26)
@@ -156,6 +157,7 @@ size = Vector2(60, 120)
 
 [node name="Level_05" type="Node2D" unique_id=406911249]
 script = ExtResource("1_script")
+level_config = ExtResource("8_config")
 
 [node name="BotSprite" type="Sprite2D" parent="." unique_id=580570576]
 z_index = -1

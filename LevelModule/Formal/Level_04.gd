@@ -201,6 +201,19 @@ func _on_ready() -> void:
 	print("[Level_04] 初始化完成")
 
 
+func _exit_tree() -> void:
+	_disconnect_input_manager()
+
+
+func prepare_for_level_exit() -> void:
+	_full_cleanup()
+
+
+func _disconnect_input_manager() -> void:
+	if InputManager.game_action.is_connected(_on_game_action):
+		InputManager.game_action.disconnect(_on_game_action)
+
+
 func _get_or_create_child(node_name: String, node_type) -> Node:
 	var e = get_node_or_null(node_name); if e: return e
 	var n = node_type.new(); n.name = node_name; add_child(n); return n
@@ -963,8 +976,7 @@ func _enter_stage3() -> void:
 		GameManager.dream_runtime_flags["player_max_health"] = pl.max_health
 
 	# 跳转
-	_full_cleanup()
-	get_tree().change_scene_to_file("res://LevelModule/Formal/Level_05.tscn")
+	SceneTransitionManager.request_scene_change("res://LevelModule/Formal/Level_05.tscn", self)
 
 
 func _pan_camera_to(target: Vector2, cb: Callable = Callable()) -> void:
@@ -1107,6 +1119,7 @@ func _emit_level_complete() -> void:
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {"level": self, "next_level": level_data.next_level_path if level_data else ""})
 
 func _full_cleanup() -> void:
+	_disconnect_input_manager()
 	_stage2_auto_swap = false
 	_stop_stage2_warning()
 	_stop_right_edge_flash()

@@ -363,7 +363,7 @@ func _on_restart_pressed() -> void:
 func _on_back_pressed() -> void:
 	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	get_tree().paused = false
-	get_tree().change_scene_to_file("res://UI/TitleScreen.tscn")
+	SceneTransitionManager.request_scene_change("res://UI/TitleScreen.tscn", self)
 
 func _on_keybind_settings_pressed() -> void:
 	pause_panel.hide()

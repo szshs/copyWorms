@@ -79,7 +79,6 @@ func _on_ready() -> void:
 	call_deferred("_remove_ladder_color_rects")
 	_load_hud()
 	_show_intro_narrative()
-	MusicManager.play_bgm("res://Assets/Music/2 test-2.wav")
 	print("[Level_02_02] 初始化完成")
 
 
@@ -443,9 +442,7 @@ func _emit_level_complete() -> void:
 		return
 	if not _is_loaded_under_main_entry():
 		print("[Level_02_02] 无 MainEntry，直接切换场景 → ", next_level_path)
-		var err = get_tree().change_scene_to_file(next_level_path)
-		if err != OK:
-			push_warning("[Level_02_02] 直接切换失败: %s (err=%d)" % [next_level_path, err])
+		SceneTransitionManager.request_scene_change(next_level_path, self)
 		return
 	print("[Level_02_02] 发射 LEVEL_COMPLETE → ", next_level_path)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {

@@ -183,7 +183,6 @@ func _on_ready() -> void:
 		InputManager.game_action.connect(_on_game_action)
 
 	set_process(true)
-	MusicManager.play_bgm("res://Assets/Music/2 test-2.wav")
 	print("[Level_02_03] 初始化完成 — DREAM_STREET")
 
 
@@ -480,7 +479,7 @@ func _trigger_fall_reset() -> void:
 	print("[Level_02_03] 坠崖重置 #%d" % fall_count)
 	# 首次坠崖：切换 BGM 从 2test2 → lv3
 	if fall_count == 1:
-		MusicManager.fade_to("res://Assets/Music/lv3.wav", 1.0)
+		MusicManager.fade_to("res://Assets/Music/lv3.ogg", 1.0)
 	InputManager.block_input("坠落重置", self)
 	_freeze_player(true)
 
@@ -1186,9 +1185,7 @@ func _emit_level_complete() -> void:
 	EventBus.unsubscribe_all(self)
 	if not _is_loaded_under_main_entry():
 		print("[Level_02_03] 无 MainEntry，直接切换场景 → ", next_path)
-		var err = get_tree().change_scene_to_file(next_path)
-		if err != OK:
-			push_warning("[Level_02_03] 直接切换失败: %s (err=%d)" % [next_path, err])
+		SceneTransitionManager.request_scene_change(next_path, self)
 		return
 	print("[Level_02_03] 发射 LEVEL_COMPLETE → ", next_path)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {

@@ -259,9 +259,6 @@ func _on_ready() -> void:
 	# 初始化完成，淡出黑屏呈现关卡
 	_finish_intro_fade_in()
 
-	# 播放 Boss 战音乐
-	MusicManager.play_bgm("res://Assets/Music/lv5-bossfight.wav")
-
 	# 检查点恢复：如果之前在bg4死亡，直接传送玩家到bg4区域重新开始Boss战
 	print("[Level_05] 检查点阶段: %d, 路径: %s" % [GameManager.checkpoint_stage, GameManager.checkpoint_scene_path])
 	if GameManager.checkpoint_stage >= 4:
@@ -287,10 +284,27 @@ func _on_ready() -> void:
 				"max_health": pp.max_health
 			})
 		print("[Level_05] 从检查点恢复：直接进入bg4 Boss战")
-		# 播放 Boss 战音乐
-		MusicManager.play_bgm("res://Assets/Music/lv5-bossfight.wav")
 		# 显示"按G切换人物外观"指引
 		_show_skin_hint()
+
+
+func _exit_tree() -> void:
+	prepare_for_level_exit()
+
+
+func prepare_for_level_exit() -> void:
+	Engine.time_scale = 1.0
+	InputManager.unblock_input("视频演出")
+	InputManager.unblock_input("对话")
+	_dialog_open = false
+	_dialog_callback = Callable()
+	_clear_all_enemies()
+	_despawn_boss()
+	if _lantern_instance and is_instance_valid(_lantern_instance):
+		_lantern_instance.queue_free()
+		_lantern_instance = null
+	GameManager.boss_target = null
+	EventBus.unsubscribe_all(self)
 
 
 ## 入场黑屏遮罩：创建满黑 CanvasLayer，覆盖整个初始化过程
@@ -557,7 +571,7 @@ func _play_grandpa_video() -> void:
 	print("[Level_05] 黑屏淡入完成，切换到 Level_final")
 	# 切换到终局关卡
 	GameManager.run_mode = GlobalDefine.RunMode.FORMAL
-	get_tree().change_scene_to_file("res://LevelModule/Formal/Level_final.tscn")
+	SceneTransitionManager.request_scene_change("res://LevelModule/Formal/Level_final.tscn", self)
 
 ## Boss死亡时缓结束后：恢复时缓，生成灯笼，显示死亡对话
 func _on_boss_death_recover(death_pos: Vector2) -> void:
@@ -679,7 +693,7 @@ func _teleport_to_bg5() -> void:
 	_set_cam_from_group($Bg5Collisions, 7448)
 	_hide_boss_bar()
 	# 进入 bg5：播放 lv6（不打断，从 bossfight 自然过渡）
-	MusicManager.fade_to("res://Assets/Music/lv6.wav", 1.5)
+	MusicManager.fade_to("res://Assets/Music/lv6.ogg", 1.5)
 	# bg5 区域玩家移速降为 0.5 倍，并禁用闪避（避免闪避速度不变导致的视觉突兀快移）
 	var p = GameManager.player_ref
 	if p and is_instance_valid(p):
@@ -848,7 +862,7 @@ func _on_enemy_died(data: Dictionary) -> void:
 		GameManager.boss_target = null
 		_boss_instance = null
 		# Boss死亡 → 直接过渡到 lv6（bg5/结局主题，视频演出不打断）
-		MusicManager.fade_to("res://Assets/Music/lv6.wav", 2.0)
+		MusicManager.fade_to("res://Assets/Music/lv6.ogg", 2.0)
 		# 剧烈抖屏 + 时缓效果
 		_trigger_screen_shake(22.0, 0.8)
 		Engine.time_scale = 0.25

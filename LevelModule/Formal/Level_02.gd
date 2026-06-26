@@ -602,9 +602,7 @@ func _emit_level_complete() -> void:
 	_full_cleanup()
 	if not _is_loaded_under_main_entry():
 		print("[Level_02] 无 MainEntry，直接切换场景 → ", next_path)
-		var err = get_tree().change_scene_to_file(next_path)
-		if err != OK:
-			push_warning("[Level_02] 直接切换失败: %s (err=%d)" % [next_path, err])
+		SceneTransitionManager.request_scene_change(next_path, self)
 		return
 	print("[Level_02] 发射 LEVEL_COMPLETE → ", next_path)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {

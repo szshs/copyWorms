@@ -1,195 +1,232 @@
 # ============================================================
 # MusicManager.gd - 全局音乐管理器 (Autoload)
-# 负责 BGM 播放、淡入淡出、场景切换过渡
 #
-# 使用方式:
-#   MusicManager.play_bgm("res://Assets/Music/lv3.wav")
-#   MusicManager.fade_to("res://Assets/Music/lv5-bossfight.wav", 1.5)
-#   MusicManager.stop_bgm(0.8)
-#   MusicManager.set_volume_db(-6.0)
+# 设计:
+#   - 单一主播放器 + 一个可选淡入播放器
+#   - transition_id 防止旧 Tween 回调污染新切换
+#   - LevelBase 通过 play_level_bgm(level_config) 播放配置 BGM
+#   - 关卡脚本仅在阶段内换曲时调用 fade_to()
 # ============================================================
 extends Node
 
-# 当前播放的 BGM 路径（用于去重）
 var _current_bgm_path: String = ""
-# 是否正在淡入中
-var _fading_in: bool = false
-# 淡出 Tween
-var _fade_tween: Tween = null
-
-# 基础音量（线性 0.0~1.0），由 set_volume_db 控制
 var _base_volume_db: float = 0.0
+var _transition_id: int = 0
+var _fade_tween: Tween = null
+var _paused_by_game: bool = false
+
+var _primary_player: AudioStreamPlayer = null
+var _fade_player: AudioStreamPlayer = null
 
 
 func _ready() -> void:
-	# 监听暂停/恢复事件，控制音频输出
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	EventBus.subscribe(GlobalDefine.EventName.GAME_PAUSE, self, "_on_game_pause")
 	EventBus.subscribe(GlobalDefine.EventName.GAME_RESUME, self, "_on_game_resume")
 
 
-## 游戏暂停：暂停所有 BGM 播放器（不销毁，恢复后继续）
 func _on_game_pause(_data: Dictionary = {}) -> void:
-	for child in get_children():
-		if child is AudioStreamPlayer and is_instance_valid(child):
-			child.stream_paused = true
+	_paused_by_game = true
+	_apply_pause_state()
 
 
-## 游戏恢复：恢复播放
 func _on_game_resume(_data: Dictionary = {}) -> void:
-	for child in get_children():
-		if child is AudioStreamPlayer and is_instance_valid(child):
-			child.stream_paused = false
+	_paused_by_game = false
+	_apply_pause_state()
 
 
-## 播放 BGM（若已播放同一曲则跳过）
+func play_level_bgm(config: LevelConfig, from_position: float = 0.0) -> void:
+	if not config:
+		return
+	if config.bgm_resource:
+		play_bgm_from_stream(config.bgm_resource, from_position)
+	elif config.bgm_path != "":
+		play_bgm(config.bgm_path, from_position)
+
+
 func play_bgm(stream_path: String, from_position: float = 0.0) -> void:
-	if stream_path == "" or not ResourceLoader.exists(stream_path):
-		push_warning("[MusicManager] BGM 资源不存在: %s" % stream_path)
-		return
-
-	# 去重：同一曲目不重复播放
-	if _current_bgm_path == stream_path and _has_active_player():
-		return
-
-	# 停止当前
-	stop_bgm(0.0)
-
-	var stream = load(stream_path)
+	var stream := _load_stream(stream_path)
 	if not stream:
-		push_error("[MusicManager] BGM 加载失败: %s" % stream_path)
 		return
-
-	_create_player(stream, from_position)
+	if _is_current(stream_path):
+		return
+	_transition_id += 1
+	_kill_tween()
+	_free_player(_fade_player)
+	_fade_player = null
+	_free_player(_primary_player)
+	_primary_player = _make_player(stream, _base_volume_db)
+	_primary_player.play(from_position)
 	_current_bgm_path = stream_path
+	_apply_pause_state()
 
 
-## 直接从已加载的 AudioStream 播放（用于 editor 中直接拖入 Resource 的情况）
-func play_bgm_from_stream(stream: Resource, from_position: float = 0.0) -> void:
+func restart_bgm(stream_path: String, from_position: float = 0.0) -> void:
+	var stream := _load_stream(stream_path)
 	if not stream:
 		return
+	_transition_id += 1
+	_kill_tween()
+	_free_player(_fade_player)
+	_fade_player = null
+	_free_player(_primary_player)
+	_primary_player = _make_player(stream, _base_volume_db)
+	_primary_player.play(from_position)
+	_current_bgm_path = stream_path
+	_apply_pause_state()
 
-	stop_bgm(0.0)
-	_create_player(stream, from_position)
-	_current_bgm_path = stream.resource_path
 
-
-## 淡入淡出切换到新 BGM
-func fade_to(stream_path: String, duration: float = 1.0, from_position: float = 0.0) -> void:
-	if stream_path == _current_bgm_path and _has_active_player():
+func play_bgm_from_stream(stream: Resource, from_position: float = 0.0) -> void:
+	var audio_stream := stream as AudioStream
+	if not audio_stream:
 		return
+	var key := audio_stream.resource_path
+	if key != "" and _is_current(key):
+		return
+	_transition_id += 1
+	_kill_tween()
+	_free_player(_fade_player)
+	_fade_player = null
+	_free_player(_primary_player)
+	_primary_player = _make_player(audio_stream, _base_volume_db)
+	_primary_player.play(from_position)
+	_current_bgm_path = key
+	_apply_pause_state()
 
-	if stream_path == "" or not ResourceLoader.exists(stream_path):
+
+func fade_to(stream_path: String, duration: float = 1.0, from_position: float = 0.0) -> void:
+	var stream := _load_stream(stream_path)
+	if not stream:
 		stop_bgm(duration)
 		return
-
-	var stream = load(stream_path)
-	if not stream:
-		push_error("[MusicManager] BGM 加载失败: %s" % stream_path)
+	if _is_current(stream_path):
 		return
 
-	# 淡出当前 → 淡入新曲
-	var old_player = _get_active_player()
-
-	# 创建新播放器（静音起播，之后淡入）
-	var new_player = _create_player(stream, from_position)
-	new_player.volume_db = -80.0  # 静音起播
-
-	if old_player and is_instance_valid(old_player):
-		# 同时：淡出旧播放器 + 淡入新播放器
-		_kill_tween()
-		_fading_in = true
-		_fade_tween = create_tween().set_parallel(true)
-		_fade_tween.tween_property(old_player, "volume_db", -80.0, duration).set_trans(Tween.TRANS_SINE)
-		_fade_tween.tween_property(new_player, "volume_db", _base_volume_db, duration).set_trans(Tween.TRANS_SINE)
-		_fade_tween.tween_callback(func():
-			if is_instance_valid(old_player):
-				old_player.queue_free()
-			_fading_in = false
-		).set_delay(duration)
-	else:
-		# 无旧播放器，只淡入
-		_fading_in = true
-		_kill_tween()
-		_fade_tween = create_tween()
-		_fade_tween.tween_property(new_player, "volume_db", _base_volume_db, duration).set_trans(Tween.TRANS_SINE)
-		_fade_tween.tween_callback(func(): _fading_in = false)
-
-	_current_bgm_path = stream_path
-
-
-## 停止 BGM（可选淡出时长）
-func stop_bgm(fade_duration: float = 0.5) -> void:
-	var player = _get_active_player()
-	if not player or not is_instance_valid(player):
-		_current_bgm_path = ""
-		return
-
-	if fade_duration <= 0.0:
-		player.stop()
-		player.queue_free()
-		_current_bgm_path = ""
-		return
-
+	_transition_id += 1
+	var id := _transition_id
 	_kill_tween()
+	_free_player(_fade_player)
+
+	_fade_player = _make_player(stream, -80.0)
+	_fade_player.play(from_position)
+	_current_bgm_path = stream_path
+	_apply_pause_state()
+
+	if duration <= 0.0 or not _primary_player or not is_instance_valid(_primary_player):
+		_promote_fade_player(id)
+		return
+
+	var old_player := _primary_player
+	_fade_tween = create_tween().set_parallel(true)
+	_fade_tween.tween_property(old_player, "volume_db", -80.0, duration).set_trans(Tween.TRANS_SINE)
+	_fade_tween.tween_property(_fade_player, "volume_db", _base_volume_db, duration).set_trans(Tween.TRANS_SINE)
+	_fade_tween.tween_callback(func():
+		if id != _transition_id:
+			return
+		_promote_fade_player(id)
+	).set_delay(duration)
+
+
+func stop_bgm(fade_duration: float = 0.5) -> void:
+	_transition_id += 1
+	var id := _transition_id
+	_kill_tween()
+	_free_player(_fade_player)
+	_fade_player = null
+
+	if not _primary_player or not is_instance_valid(_primary_player):
+		_current_bgm_path = ""
+		return
+
+	var player := _primary_player
+	_primary_player = null
+	_current_bgm_path = ""
+	if fade_duration <= 0.0:
+		_free_player(player)
+		return
+
 	_fade_tween = create_tween()
 	_fade_tween.tween_property(player, "volume_db", -80.0, fade_duration).set_trans(Tween.TRANS_SINE)
 	_fade_tween.tween_callback(func():
-		if is_instance_valid(player):
-			player.stop()
-			player.queue_free()
+		if id != _transition_id:
+			return
+		_free_player(player)
 	)
-	_current_bgm_path = ""
 
 
-## 设置音量（分贝，-80~0，0=满音量）
 func set_volume_db(db: float) -> void:
 	_base_volume_db = clamp(db, -80.0, 0.0)
-	var player = _get_active_player()
-	if player and is_instance_valid(player) and not _fading_in:
-		player.volume_db = _base_volume_db
+	if _primary_player and is_instance_valid(_primary_player):
+		_primary_player.volume_db = _base_volume_db
 
 
-## 获取当前 BGM 路径
 func get_current_bgm() -> String:
 	return _current_bgm_path
 
 
-## 是否正在播放
 func is_playing() -> bool:
-	var p = _get_active_player()
-	return p != null and is_instance_valid(p) and p.playing
+	return _primary_player != null and is_instance_valid(_primary_player) and _primary_player.playing
 
 
-# ---- 内部 ----
+func is_paused_by_game() -> bool:
+	return _paused_by_game
 
-func _has_active_player() -> bool:
-	return _get_active_player() != null
 
-func _get_active_player() -> AudioStreamPlayer:
-	for child in get_children():
-		if child is AudioStreamPlayer and is_instance_valid(child) and child.playing:
-			return child
-	return null
+func clear_game_pause() -> void:
+	_paused_by_game = false
+	_apply_pause_state()
 
-func _create_player(stream: Resource, from_position: float = 0.0) -> AudioStreamPlayer:
+
+func _load_stream(stream_path: String) -> AudioStream:
+	if stream_path == "" or not ResourceLoader.exists(stream_path):
+		push_warning("[MusicManager] BGM 资源不存在: %s" % stream_path)
+		return null
+	var stream := load(stream_path) as AudioStream
+	if not stream:
+		push_error("[MusicManager] BGM 加载失败: %s" % stream_path)
+	return stream
+
+
+func _is_current(stream_path: String) -> bool:
+	return stream_path != "" and stream_path == _current_bgm_path and is_playing()
+
+
+func _make_player(stream: AudioStream, volume_db: float) -> AudioStreamPlayer:
 	var player := AudioStreamPlayer.new()
 	player.name = "BGMPlayer"
 	player.stream = stream
-	player.volume_db = _base_volume_db
+	player.volume_db = volume_db
 	player.bus = "Master"
-	# finished 信号 → 自动重播（实现循环，不设置 loop_mode 避免某些 WAV 静音）
 	player.finished.connect(func():
-		if is_instance_valid(player) and _current_bgm_path != "":
+		if is_instance_valid(player) and player == _primary_player and _current_bgm_path != "":
 			player.play()
 	)
 	add_child(player)
-
-	if from_position > 0.0 and stream is AudioStreamWAV:
-		player.play(from_position)
-	else:
-		player.play()
-
 	return player
+
+
+func _promote_fade_player(id: int) -> void:
+	if id != _transition_id:
+		return
+	_free_player(_primary_player)
+	_primary_player = _fade_player
+	_fade_player = null
+	if _primary_player and is_instance_valid(_primary_player):
+		_primary_player.volume_db = _base_volume_db
+	_apply_pause_state()
+
+
+func _apply_pause_state() -> void:
+	for player in [_primary_player, _fade_player]:
+		if player and is_instance_valid(player):
+			player.stream_paused = _paused_by_game
+
+
+func _free_player(player: AudioStreamPlayer) -> void:
+	if player and is_instance_valid(player):
+		player.stop()
+		player.queue_free()
+
 
 func _kill_tween() -> void:
 	if _fade_tween and is_instance_valid(_fade_tween):

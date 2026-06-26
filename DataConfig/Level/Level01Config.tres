@@ -6,6 +6,7 @@
 script = ExtResource("1_main")
 level_name = "现实的泥潭"
 level_id = "level_01"
+bgm_path = "res://Assets/Music/Nightfall.mp3"
 bg_color = Color(0.192, 0.196, 0.22, 1)
 camera_limit_left = 0
 camera_limit_right = 1592

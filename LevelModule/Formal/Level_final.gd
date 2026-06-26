@@ -10,6 +10,7 @@ var _dialog_panel: Panel = null
 var _dialog_label: RichTextLabel = null
 var _dialog_lines: Array[String] = []
 var _dialog_index: int = 0
+var _ending_triggered: bool = false
 
 const PLAYER_SPAWN := Vector2(320, 616)
 const INTERACT_POS := Vector2(192, 592)
@@ -66,6 +67,17 @@ func _ready() -> void:
 	set_process_input(true)
 	print("[Level_final] 终局关卡加载完成")
 
+
+func _exit_tree() -> void:
+	prepare_for_level_exit()
+
+
+func prepare_for_level_exit() -> void:
+	InputManager.unblock_input("终局")
+	_dialog_open = false
+	EventBus.unsubscribe_all(self)
+
+
 func _create_interactive() -> void:
 	var obj = InteractiveObject.new()
 	obj.name = "FinalSun"
@@ -116,6 +128,9 @@ func _on_object_interacted(data: Dictionary) -> void:
 
 ## 交互触发：锁定交互 + 显示文本框5s + 同时渐入黑屏5s → 切回标题界面
 func _trigger_ending() -> void:
+	if _ending_triggered:
+		return
+	_ending_triggered = true
 	# 锁定交互物
 	for obj in _all_interactives:
 		if is_instance_valid(obj):
@@ -144,7 +159,7 @@ func _trigger_ending() -> void:
 	var tw = get_tree().create_tween()
 	tw.tween_property(black, "color:a", 1.0, 5.0).set_trans(Tween.TRANS_SINE)
 	tw.tween_callback(func():
-		get_tree().change_scene_to_file("res://UI/TitleScreen.tscn")
+		SceneTransitionManager.request_scene_change("res://UI/TitleScreen.tscn", self)
 	)
 
 ## 创建文本框面板
