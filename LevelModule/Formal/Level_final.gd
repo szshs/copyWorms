@@ -186,7 +186,7 @@ func _create_dialog_panel() -> void:
 	_dialog_label.fit_content = true
 	_dialog_label.position = Vector2(20, 16)
 	_dialog_label.size = Vector2(760, 108)
-	_dialog_label.add_theme_font_size_override("normal_font_size", 22)
+	_dialog_label.add_theme_font_size_override("normal_font_size", 33)
 	_dialog_label.add_theme_color_override("default_color", Color(0.95, 0.9, 0.8))
 	_dialog_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dialog_panel.add_child(_dialog_label)

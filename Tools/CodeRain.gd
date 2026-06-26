@@ -47,7 +47,7 @@ class_name CodeRain
 @export var fn_speed_max: float = 48.0
 
 ## 前景字号（像素Silver 保证可读）
-@export var fn_font_size: int = 16
+@export var fn_font_size: int = 24
 
 ## 前景透明度
 @export var fn_alpha: float = 0.9

@@ -611,7 +611,7 @@ func _spawn_lantern(pos: Vector2) -> void:
 	prompt.name = "Prompt"
 	prompt.text = "按 Enter 拾起灯笼"
 	prompt.visible = false
-	prompt.add_theme_font_size_override("font_size", 14)
+	prompt.add_theme_font_size_override("font_size", 21)
 	prompt.add_theme_color_override("font_color", Color(1, 0.9, 0.2, 0.95))
 	prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -748,7 +748,7 @@ func _show_skin_hint() -> void:
 	hint.name = "SkinHintLabel"
 	hint.text = "按 G 切换人物外观"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_font_size_override("font_size", 27)
 	hint.add_theme_color_override("font_color", Color(1, 0.9, 0.3, 0.95))
 	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	hint.add_theme_constant_override("outline_size", 4)
@@ -828,7 +828,7 @@ func _build_erosion_bar() -> void:
 	_erosion_label.size = Vector2(280, 24); _erosion_label.position = Vector2(0, 4)
 	_erosion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_erosion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_erosion_label.add_theme_font_size_override("font_size", 11)
+	_erosion_label.add_theme_font_size_override("font_size", 16)
 	_erosion_label.add_theme_color_override("font_color", Color.WHITE)
 	_erosion_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.add_child(_erosion_label)
@@ -970,7 +970,7 @@ func _create_dialog_panel() -> void:
 	_dialog_label.offset_bottom = -20.0
 	_dialog_label.bbcode_enabled = true
 	_dialog_label.fit_content = true
-	_dialog_label.add_theme_font_size_override("normal_font_size", 18)
+	_dialog_label.add_theme_font_size_override("normal_font_size", 27)
 	# 仿照前三关：暖色调文字（0.9, 0.85, 0.75），非纯白
 	_dialog_label.add_theme_color_override("default_color", Color(0.9, 0.85, 0.75))
 	_dialog_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1035,7 +1035,7 @@ func _create_boss_bar() -> void:
 	_boss_bar_label.text = "花旦"
 	_boss_bar_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_boss_bar_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_boss_bar_label.add_theme_font_size_override("font_size", 15)
+	_boss_bar_label.add_theme_font_size_override("font_size", 22)
 	_boss_bar_label.add_theme_color_override("font_color", Color.WHITE)
 	_boss_bar_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_boss_bar_container.add_child(_boss_bar_label)

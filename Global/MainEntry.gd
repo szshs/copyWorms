@@ -124,7 +124,7 @@ func _show_end_placeholder() -> void:
 	var label = Label.new()
 	label.text = "—— 未完待续 ——\n\n后续关卡正在制作中"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 28)
+	label.add_theme_font_size_override("font_size", 42)
 	label.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7))
 	label.set_anchors_preset(Control.PRESET_CENTER)
 	label.position = Vector2(440, 320)

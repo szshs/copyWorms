@@ -74,7 +74,7 @@ func _build_ui() -> void:
 	health_label.text = "100 / 100"
 	health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	health_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	health_label.add_theme_font_size_override("font_size", 16)
+	health_label.add_theme_font_size_override("font_size", 24)
 	health_label.add_theme_color_override("font_color", Color.WHITE)
 	health_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_container.add_child(health_label)
@@ -101,7 +101,7 @@ func _build_ui() -> void:
 	back_btn.text = "返回主界面"
 	back_btn.position = Vector2(1120, 20)
 	back_btn.size = Vector2(140, 36)
-	back_btn.add_theme_font_size_override("font_size", 14)
+	back_btn.add_theme_font_size_override("font_size", 21)
 	back_btn.focus_mode = Control.FOCUS_NONE
 	back_btn.pressed.connect(_on_back_pressed)
 	add_child(back_btn)
@@ -120,7 +120,7 @@ func _build_ui() -> void:
 	var pause_label = Label.new()
 	pause_label.text = "游戏已暂停"
 	pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pause_label.add_theme_font_size_override("font_size", 28)
+	pause_label.add_theme_font_size_override("font_size", 42)
 	pause_label.add_theme_color_override("font_color", Color.WHITE)
 	pause_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_label.position = Vector2(440, 270)
@@ -153,7 +153,7 @@ func _build_ui() -> void:
 	var go_label = Label.new()
 	go_label.text = "游戏结束"
 	go_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	go_label.add_theme_font_size_override("font_size", 40)
+	go_label.add_theme_font_size_override("font_size", 60)
 	go_label.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
 	go_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	go_label.position = Vector2(390, 240)
@@ -164,7 +164,7 @@ func _build_ui() -> void:
 	restart_btn.text = "重新开始"
 	restart_btn.position = Vector2(540, 340)
 	restart_btn.size = Vector2(200, 44)
-	restart_btn.add_theme_font_size_override("font_size", 16)
+	restart_btn.add_theme_font_size_override("font_size", 24)
 	restart_btn.focus_mode = Control.FOCUS_NONE
 	restart_btn.pressed.connect(_on_restart_pressed)
 	game_over_panel.add_child(restart_btn)
@@ -173,7 +173,7 @@ func _build_ui() -> void:
 	back_btn3.text = "返回主界面"
 	back_btn3.position = Vector2(540, 400)
 	back_btn3.size = Vector2(200, 44)
-	back_btn3.add_theme_font_size_override("font_size", 16)
+	back_btn3.add_theme_font_size_override("font_size", 24)
 	back_btn3.focus_mode = Control.FOCUS_NONE
 	back_btn3.pressed.connect(_on_back_pressed)
 	game_over_panel.add_child(back_btn3)
@@ -226,7 +226,7 @@ func _build_skill_icon() -> void:
 		placeholder.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
 		placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		placeholder.add_theme_font_size_override("font_size", 28)
+		placeholder.add_theme_font_size_override("font_size", 42)
 		placeholder.add_theme_color_override("font_color", Color(0.7, 0.7, 0.85))
 		placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_skill_icon_container.add_child(placeholder)
@@ -247,7 +247,7 @@ func _build_skill_icon() -> void:
 	_skill_cd_label.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
 	_skill_cd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_skill_cd_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_skill_cd_label.add_theme_font_size_override("font_size", 24)
+	_skill_cd_label.add_theme_font_size_override("font_size", 36)
 	_skill_cd_label.add_theme_color_override("font_color", Color.WHITE)
 	_skill_cd_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	_skill_cd_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -261,7 +261,7 @@ func _build_skill_icon() -> void:
 	_skill_key_label.text = "[I]"
 	_skill_key_label.size = Vector2(30, 18)
 	_skill_key_label.position = Vector2(-2, SKILL_ICON_SIZE - 16)
-	_skill_key_label.add_theme_font_size_override("font_size", 13)
+	_skill_key_label.add_theme_font_size_override("font_size", 20)
 	_skill_key_label.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
 	_skill_key_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	_skill_key_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -414,7 +414,7 @@ func _make_panel_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lbl.add_theme_color_override("font_color", Color.WHITE)
-	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_font_size_override("font_size", 24)
 	btn.add_child(lbl)
 	# hover/pressed 动效：modulate 染底板淡蓝色，lbl self_modulate 反抵消保持白字
 	btn.modulate = Color(0.4, 0.65, 1.0, 1.0)

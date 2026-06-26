@@ -238,7 +238,7 @@ func _build_narrative_ui() -> void:
 		_narrative_text.offset_bottom = -20.0
 		_narrative_text.bbcode_enabled = true
 		_narrative_text.fit_content = true
-		_narrative_text.add_theme_font_size_override("normal_font_size", 18)
+		_narrative_text.add_theme_font_size_override("normal_font_size", 27)
 		_narrative_text.add_theme_color_override("default_color", Color(0.9, 0.85, 0.75))
 		_narrative_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_narrative_panel.add_child(_narrative_text)

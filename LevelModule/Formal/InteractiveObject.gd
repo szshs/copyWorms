@@ -70,7 +70,7 @@ func _create_prompt_label() -> void:
 	_prompt_label.name = "InteractionPrompt"
 	_prompt_label.text = prompt_text
 	_prompt_label.visible = false
-	_prompt_label.add_theme_font_size_override("font_size", 14)
+	_prompt_label.add_theme_font_size_override("font_size", 21)
 	_prompt_label.add_theme_color_override("font_color", Color(1, 0.9, 0.2, 0.95))
 	_prompt_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

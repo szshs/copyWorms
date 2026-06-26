@@ -383,7 +383,7 @@ func _build_interactives() -> void:
 	var warning_1 = Label.new()
 	warning_1.name = "ErrorLabel"
 	warning_1.text = "[Error_Data: 建议立刻清除]"
-	warning_1.add_theme_font_size_override("font_size", 11)
+	warning_1.add_theme_font_size_override("font_size", 16)
 	warning_1.add_theme_color_override("font_color", Color(1, 0.2, 0.2, 0.9))
 	warning_1.position = Vector2(-80, -75)
 	warning_1.size = Vector2(160, 18)
@@ -401,7 +401,7 @@ func _build_interactives() -> void:
 	var warning_2 = Label.new()
 	warning_2.name = "ErrorLabel"
 	warning_2.text = "[Error_Data: 建议立刻清除]"
-	warning_2.add_theme_font_size_override("font_size", 11)
+	warning_2.add_theme_font_size_override("font_size", 16)
 	warning_2.add_theme_color_override("font_color", Color(1, 0.2, 0.2, 0.9))
 	warning_2.position = Vector2(-80, -75)
 	warning_2.size = Vector2(160, 18)

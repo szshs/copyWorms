@@ -389,7 +389,7 @@ func _show_floating_text(txt: String) -> void:
 	if not _float_text:
 		_float_text = Label.new()
 		_float_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_float_text.add_theme_font_size_override("font_size", 16)
+		_float_text.add_theme_font_size_override("font_size", 24)
 		_float_text.add_theme_color_override("font_color", Color(1, 0.9, 0.4))
 		_float_text.size = Vector2(200, 30)
 		add_child(_float_text)
@@ -770,7 +770,7 @@ func _build_erosion_ui() -> void:
 	_erosion_label.text = "侵蚀 0%"
 	_erosion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_erosion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_erosion_label.add_theme_font_size_override("font_size", 12)
+	_erosion_label.add_theme_font_size_override("font_size", 18)
 	_erosion_label.add_theme_color_override("font_color", Color.WHITE)
 	_erosion_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	container.add_child(_erosion_label)
