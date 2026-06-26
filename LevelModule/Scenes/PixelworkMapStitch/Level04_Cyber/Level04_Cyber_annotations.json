@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "coordinate_system": "top_left_origin_y_down_pixels",
+  "unity_coordinate_system": "x_right_y_up_pixels",
+  "layers": [
+    { "id": "occlusion", "label": "遮挡层", "order": 100, "color": "#f2c94c", "shapes": [] },
+    { "id": "collision", "label": "碰撞层", "order": 110, "color": "#d73a49", "shapes": [] },
+    { "id": "adjust", "label": "调节层", "order": 120, "color": "#7a3eb1", "shapes": [] },
+    { "id": "top", "label": "最上层", "order": 130, "color": "#0f9f8f", "shapes": [] }
+  ]
+}

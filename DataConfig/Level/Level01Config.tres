@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="LevelConfig" format=3 uid="uid://bkmj80kxe6fmc"]
+
+[ext_resource type="Script" uid="uid://dra4tcclksicd" path="res://DataConfig/Level/LevelConfig.gd" id="1_main"]
+
+[resource]
+script = ExtResource("1_main")
+level_name = "现实的泥潭"
+level_id = "level_01"
+bg_color = Color(0.192, 0.196, 0.22, 1)
+camera_limit_left = 0
+camera_limit_right = 1592
+camera_limit_top = 0
+camera_limit_bottom = 648
+spawn_point = Vector2(100, 550)

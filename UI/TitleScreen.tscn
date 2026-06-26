@@ -1,0 +1,241 @@
+[gd_scene load_steps=5 format=3 uid="uid://bwehpx1c7lmui"]
+
+[ext_resource type="Script" uid="uid://46age76wsbif" path="res://UI/TitleScreen.gd" id="1_main"]
+[ext_resource type="Texture2D" uid="uid://dvicmvd3b4frl" path="res://Assets/menu bg.png" id="2_bg"]
+[ext_resource type="FontFile" uid="uid://dw57acwl4e6t5" path="res://Assets/Fonts/Silkscreen/Silkscreen-Bold.ttf" id="3_font_silk"]
+[ext_resource type="FontFile" uid="uid://bkh1sic8e83y" path="res://Assets/Fonts/FangZhengPixel/FangZhengPixel12.ttf" id="4_font_pixel"]
+[ext_resource type="Texture2D" uid="uid://3dyhmdfn6jib" path="res://Assets/UI/btn.png" id="5_btn"]
+
+[node name="TitleScreen" type="Control" unique_id=2533512]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Background" type="TextureRect" parent="." unique_id=163281037]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TransitionLayer" type="Control" parent="." unique_id=109912915]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BlackRect" type="ColorRect" parent="TransitionLayer" unique_id=1938798267]
+visible = false
+layout_mode = 0
+offset_left = 332.0
+offset_top = 349.0
+offset_right = 332.0
+offset_bottom = 349.0
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="TitleGroup" type="VBoxContainer" parent="." unique_id=429829592]
+layout_mode = 0
+offset_left = 240.0
+offset_top = 200.0
+offset_right = 1240.0
+offset_bottom = 380.0
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="TitleGroup" unique_id=776043165]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.98, 1, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.05, 0.12, 1)
+theme_override_constants/outline_size = 8
+theme_override_fonts/font = ExtResource("4_font_pixel")
+theme_override_font_sizes/font_size = 120
+text = "织梦者"
+horizontal_alignment = 2
+
+[node name="Subtitle" type="Label" parent="TitleGroup" unique_id=248372405]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.62, 0.85, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("3_font_silk")
+theme_override_font_sizes/font_size = 44
+text = "Dream builder
+亲手编织家乡的梦"
+horizontal_alignment = 2
+
+[node name="MenuCenter" type="VBoxContainer" parent="." unique_id=1622811245]
+layout_mode = 1
+offset_left = 200.0
+offset_top = 80.0
+offset_right = 560.0
+offset_bottom = 660.0
+mouse_filter = 2
+alignment = 1
+
+[node name="ButtonGroup" type="VBoxContainer" parent="MenuCenter" unique_id=994573752]
+visible = false
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="StartButton" type="TextureButton" parent="MenuCenter/ButtonGroup" unique_id=1801871478]
+custom_minimum_size = Vector2(360, 120)
+layout_mode = 2
+texture_normal = ExtResource("5_btn")
+texture_hover = ExtResource("5_btn")
+texture_pressed = ExtResource("5_btn")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Label" type="Label" parent="MenuCenter/ButtonGroup/StartButton" unique_id=1000000001]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "开始游戏 (正式模式)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spacer1" type="Control" parent="MenuCenter/ButtonGroup" unique_id=410921954]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HighlightButton" type="TextureButton" parent="MenuCenter/ButtonGroup" unique_id=1318538747]
+custom_minimum_size = Vector2(360, 120)
+layout_mode = 2
+texture_normal = ExtResource("5_btn")
+texture_hover = ExtResource("5_btn")
+texture_pressed = ExtResource("5_btn")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Label" type="Label" parent="MenuCenter/ButtonGroup/HighlightButton" unique_id=1000000002]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "从精彩处开始"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spacer2" type="Control" parent="MenuCenter/ButtonGroup" unique_id=402409474]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="SettingsButton" type="TextureButton" parent="MenuCenter/ButtonGroup" unique_id=2000000001]
+custom_minimum_size = Vector2(360, 120)
+layout_mode = 2
+texture_normal = ExtResource("5_btn")
+texture_hover = ExtResource("5_btn")
+texture_pressed = ExtResource("5_btn")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Label" type="Label" parent="MenuCenter/ButtonGroup/SettingsButton" unique_id=2000000002]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "设置 (按键)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spacer3" type="Control" parent="MenuCenter/ButtonGroup" unique_id=2000000003]
+custom_minimum_size = Vector2(0, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="QuitButton" type="TextureButton" parent="MenuCenter/ButtonGroup" unique_id=1159769299]
+custom_minimum_size = Vector2(360, 120)
+layout_mode = 2
+texture_normal = ExtResource("5_btn")
+texture_hover = ExtResource("5_btn")
+texture_pressed = ExtResource("5_btn")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="Label" type="Label" parent="MenuCenter/ButtonGroup/QuitButton" unique_id=1000000003]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "退出游戏"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ClickHotspot" type="Control" parent="." unique_id=816087668]
+anchors_preset = 0
+offset_left = 272.0
+offset_top = 289.0
+offset_right = 392.0
+offset_bottom = 409.0
+
+[node name="Glow" type="ColorRect" parent="ClickHotspot" unique_id=839561132]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 12.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0.9, 0.3, 0.3)
+
+[node name="Indicator" type="ColorRect" parent="ClickHotspot" unique_id=280928555]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -5.0
+offset_top = -5.0
+offset_right = 5.0
+offset_bottom = 5.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0.85, 0.2, 0.9)
+

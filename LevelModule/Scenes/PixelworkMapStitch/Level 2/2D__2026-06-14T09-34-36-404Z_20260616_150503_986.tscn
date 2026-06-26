@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://LevelModule/Scenes/PixelworkMapStitch/Level 2/2D__2026-06-14T09-34-36-404Z_20260616_150503_986_runtime.gd" id="script_runtime"]
+
+[node name="2D__2026-06-14T09-34-36-404Z_20260616_150503_986" type="Node2D"]
+
+script = ExtResource("script_runtime")
+enable_runtime_regions = false
+map_display_mode = 0
+metadata/map_stitch_manifest_path = "res://LevelModule/Scenes/PixelworkMapStitch/Level 2/2D__2026-06-14T09-34-36-404Z_20260616_150503_986_godot.json"
+
+[node name="overall" type="Node2D" parent="."]
+visible = true
+z_index = -10
