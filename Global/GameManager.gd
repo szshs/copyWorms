@@ -36,16 +36,16 @@ func _ready() -> void:
 	_apply_global_font()
 	_detect_run_mode()
 
-## 全局字体：所有 UI 节点默认使用汉仪像素体 11px
+## 全局字体：所有 UI 节点默认使用覆盖中文完整字形的像素字体
 func _apply_global_font() -> void:
-	var font := load("res://Assets/Fonts/HanYiXiangSu-11px-U/HYPixel11pxU-2.ttf") as FontFile
+	var font := load("res://Assets/Fonts/像素Silver/像素Silver.ttf") as FontFile
 	if font == null:
-		push_error("[GameManager] HYPixel11pxU-2.ttf 加载失败")
+		push_error("[GameManager] 像素Silver.ttf 加载失败")
 		return
 	# 设置项目默认主题字体，所有 Control 节点自动继承
 	var default_theme := ThemeDB.get_default_theme()
 	default_theme.set_default_font(font)
-	print("[GameManager] 全局字体已设为汉仪像素体11px")
+	print("[GameManager] 全局字体已设为像素Silver")
 
 ## 自动检测运行模式
 func _detect_run_mode() -> void:
@@ -142,23 +142,4 @@ func restart_from_checkpoint() -> void:
 	is_game_over = false
 	is_paused = false
 	get_tree().paused = false
-	# 清理引用
-	player_ref = null
-	enemy_list.clear()
-	boss_target = null
-	InputManager.force_unblock_all()
-	# 如果有检查点场景路径，重新加载该场景
-	if checkpoint_scene_path != "" and ResourceLoader.exists(checkpoint_scene_path):
-		print("[GameManager] 从检查点重新开始: %s (stage=%d)" % [checkpoint_scene_path, checkpoint_stage])
-		# 检查是否在MainEntry托管模式下（current_scene是MainEntry）
-		var cs = get_tree().current_scene
-		if cs and cs.has_method("_switch_to_level"):
-			# MainEntry模式：通过MainEntry的关卡切换逻辑重新加载检查点场景
-			cs._switch_to_level(checkpoint_scene_path)
-		else:
-			# 独立模式：直接change_scene_to_file
-			get_tree().change_scene_to_file(checkpoint_scene_path)
-	else:
-		# 无检查点，回退到reload_current_scene
-		print("[GameManager] 无检查点，reload_current_scene")
-		get_tree().reload_current_scene()
+	SceneTransitionManager.request_checkpoint_restart()

@@ -1,10 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://bwehpx1c7lmui"]
+[gd_scene format=3 uid="uid://bwehpx1c7lmui"]
 
-[ext_resource type="Script" uid="uid://46age76wsbif" path="res://UI/TitleScreen.gd" id="1_main"]
-[ext_resource type="Texture2D" uid="uid://dvicmvd3b4frl" path="res://Assets/menu bg.png" id="2_bg"]
-[ext_resource type="FontFile" uid="uid://dw57acwl4e6t5" path="res://Assets/Fonts/Silkscreen/Silkscreen-Bold.ttf" id="3_font_silk"]
-[ext_resource type="FontFile" uid="uid://bkh1sic8e83y" path="res://Assets/Fonts/FangZhengPixel/FangZhengPixel12.ttf" id="4_font_pixel"]
-[ext_resource type="Texture2D" uid="uid://3dyhmdfn6jib" path="res://Assets/UI/btn.png" id="5_btn"]
+[ext_resource type="Script" uid="uid://x6qi4w6dw0fd" path="res://UI/TitleScreen.gd" id="1_main"]
+[ext_resource type="Texture2D" uid="uid://cud86unx14kx0" path="res://Assets/menu bg.png" id="2_bg"]
+[ext_resource type="FontFile" uid="uid://clodsi6wikjia" path="res://Assets/Fonts/像素Silver/像素Silver.ttf" id="3_font_main"]
+[ext_resource type="Texture2D" uid="uid://0p3xcm7c836i" path="res://Assets/UI/btn.png" id="5_btn"]
 
 [node name="TitleScreen" type="Control" unique_id=2533512]
 layout_mode = 3
@@ -46,34 +45,54 @@ offset_bottom = 349.0
 mouse_filter = 2
 color = Color(0, 0, 0, 1)
 
-[node name="TitleGroup" type="VBoxContainer" parent="." unique_id=429829592]
-layout_mode = 0
+[node name="TitleGroup" type="Control" parent="." unique_id=429829592]
+anchors_preset = 0
 offset_left = 240.0
 offset_top = 200.0
 offset_right = 1240.0
-offset_bottom = 380.0
+offset_bottom = 460.0
 mouse_filter = 2
-theme_override_constants/separation = 8
 
 [node name="Title" type="Label" parent="TitleGroup" unique_id=776043165]
-layout_mode = 2
+layout_mode = 0
+offset_left = -48.0
+offset_top = -8.0
+offset_right = 952.0
+offset_bottom = 165.0
 theme_override_colors/font_color = Color(0.98, 0.98, 1, 1)
 theme_override_colors/font_outline_color = Color(0.05, 0.05, 0.12, 1)
 theme_override_constants/outline_size = 8
-theme_override_fonts/font = ExtResource("4_font_pixel")
-theme_override_font_sizes/font_size = 120
+theme_override_fonts/font = ExtResource("3_font_main")
+theme_override_font_sizes/font_size = 156
 text = "织梦者"
 horizontal_alignment = 2
 
 [node name="Subtitle" type="Label" parent="TitleGroup" unique_id=248372405]
-layout_mode = 2
+layout_mode = 0
+offset_left = -64.0
+offset_top = 96.0
+offset_right = 936.0
+offset_bottom = 157.0
 theme_override_colors/font_color = Color(0.55, 0.62, 0.85, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
 theme_override_constants/outline_size = 4
-theme_override_fonts/font = ExtResource("3_font_silk")
-theme_override_font_sizes/font_size = 44
-text = "Dream builder
-亲手编织家乡的梦"
+theme_override_fonts/font = ExtResource("3_font_main")
+theme_override_font_sizes/font_size = 54
+text = "DREAM BUILDER"
+horizontal_alignment = 2
+
+[node name="ChineseSubtitle" type="Label" parent="TitleGroup" unique_id=248372406]
+layout_mode = 0
+offset_left = -64.0
+offset_top = 136.0
+offset_right = 936.0
+offset_bottom = 175.0
+theme_override_colors/font_color = Color(0.55, 0.62, 0.85, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("3_font_main")
+theme_override_font_sizes/font_size = 34
+text = "亲手编织家乡的梦"
 horizontal_alignment = 2
 
 [node name="MenuCenter" type="VBoxContainer" parent="." unique_id=1622811245]
@@ -97,8 +116,8 @@ theme_override_constants/separation = 0
 custom_minimum_size = Vector2(360, 120)
 layout_mode = 2
 texture_normal = ExtResource("5_btn")
-texture_hover = ExtResource("5_btn")
 texture_pressed = ExtResource("5_btn")
+texture_hover = ExtResource("5_btn")
 ignore_texture_size = true
 stretch_mode = 0
 
@@ -109,15 +128,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_fonts/font = ExtResource("3_font_main")
+theme_override_font_sizes/font_size = 26
 text = "开始游戏 (正式模式)"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Spacer1" type="Control" parent="MenuCenter/ButtonGroup" unique_id=410921954]
-custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
 mouse_filter = 2
 
@@ -125,8 +143,8 @@ mouse_filter = 2
 custom_minimum_size = Vector2(360, 120)
 layout_mode = 2
 texture_normal = ExtResource("5_btn")
-texture_hover = ExtResource("5_btn")
 texture_pressed = ExtResource("5_btn")
+texture_hover = ExtResource("5_btn")
 ignore_texture_size = true
 stretch_mode = 0
 
@@ -137,15 +155,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_fonts/font = ExtResource("3_font_main")
+theme_override_font_sizes/font_size = 26
 text = "从精彩处开始"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Spacer2" type="Control" parent="MenuCenter/ButtonGroup" unique_id=402409474]
-custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
 mouse_filter = 2
 
@@ -153,8 +170,8 @@ mouse_filter = 2
 custom_minimum_size = Vector2(360, 120)
 layout_mode = 2
 texture_normal = ExtResource("5_btn")
-texture_hover = ExtResource("5_btn")
 texture_pressed = ExtResource("5_btn")
+texture_hover = ExtResource("5_btn")
 ignore_texture_size = true
 stretch_mode = 0
 
@@ -165,15 +182,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_fonts/font = ExtResource("3_font_main")
+theme_override_font_sizes/font_size = 26
 text = "设置 (按键)"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Spacer3" type="Control" parent="MenuCenter/ButtonGroup" unique_id=2000000003]
-custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
 mouse_filter = 2
 
@@ -181,8 +197,8 @@ mouse_filter = 2
 custom_minimum_size = Vector2(360, 120)
 layout_mode = 2
 texture_normal = ExtResource("5_btn")
-texture_hover = ExtResource("5_btn")
 texture_pressed = ExtResource("5_btn")
+texture_hover = ExtResource("5_btn")
 ignore_texture_size = true
 stretch_mode = 0
 
@@ -193,9 +209,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_fonts/font = ExtResource("3_font_main")
+theme_override_font_sizes/font_size = 26
 text = "退出游戏"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -209,7 +225,7 @@ offset_bottom = 409.0
 
 [node name="Glow" type="ColorRect" parent="ClickHotspot" unique_id=839561132]
 layout_mode = 1
-anchors_preset = 8
+anchors_preset = -1
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
@@ -238,4 +254,3 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 0.85, 0.2, 0.9)
-

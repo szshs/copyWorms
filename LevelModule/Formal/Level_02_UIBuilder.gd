@@ -58,7 +58,7 @@ func _build_narrative_panel() -> void:
 	label.offset_bottom = -20.0
 	label.bbcode_enabled = true
 	label.fit_content = true
-	label.add_theme_font_size_override("normal_font_size", 18)
+	label.add_theme_font_size_override("normal_font_size", 27)
 	label.add_theme_color_override("default_color", Color(0.9, 0.85, 0.75))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(label)
@@ -85,7 +85,7 @@ func _build_ending_prompt() -> void:
 	label.name = "EndingLabel"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_font_size_override("font_size", 36)
 	label.add_theme_color_override("font_color", Color(0.85, 0.8, 0.7))
 	label.position = Vector2(240, 240)
 	label.size = Vector2(800, 240)

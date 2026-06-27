@@ -6,7 +6,7 @@
 extends Control
 
 # ---- 节点引用 ----
-@onready var _title_group: VBoxContainer = $TitleGroup
+@onready var _title_group: Control = $TitleGroup
 @onready var _button_group: VBoxContainer = $MenuCenter/ButtonGroup
 @onready var _click_hotspot: Control = $ClickHotspot
 @onready var _hotspot_indicator: ColorRect = $ClickHotspot/Indicator
@@ -24,7 +24,7 @@ var _transitioned: bool = false
 func _ready() -> void:
 	print("[TitleScreen] 标题画面加载")
 	# 标题界面播放结局主题音乐
-	MusicManager.play_bgm("res://Assets/Music/lv5-end.wav")
+	MusicManager.restart_bgm("res://Assets/Music/lv5-end.ogg")
 	_setup_initial_state()
 	_connect_signals()
 	_start_hotspot_flicker()
@@ -162,13 +162,13 @@ func _on_start_game() -> void:
 	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	print("[TitleScreen] >>> 开始正式游戏按钮被点击 <<<")
 	GameManager.run_mode = GlobalDefine.RunMode.FORMAL
-	get_tree().change_scene_to_file("res://Global/MainEntry.tscn")
+	SceneTransitionManager.request_scene_change("res://Global/MainEntry.tscn", self)
 
 func _on_highlight_start() -> void:
 	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	print("[TitleScreen] >>> 从精彩处开始按钮被点击 <<<")
 	GameManager.run_mode = GlobalDefine.RunMode.FORMAL
-	get_tree().change_scene_to_file(HIGHLIGHT_SCENE)
+	SceneTransitionManager.request_scene_change(HIGHLIGHT_SCENE, self)
 
 func _on_quit() -> void:
 	SFXManager.play(SFXManager.SFX.UI_CLICK)

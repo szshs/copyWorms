@@ -40,7 +40,7 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "按键设置"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_font_size_override("font_size", 42)
 	title.add_theme_color_override("font_color", Color.WHITE)
 	title.position = Vector2(460, 55)
 	title.size = Vector2(500, 44)
@@ -50,7 +50,7 @@ func _build_ui() -> void:
 	var hint := Label.new()
 	hint.text = "点击 [修改] 后按下新按键，ESC 取消"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 14)
+	hint.add_theme_font_size_override("font_size", 21)
 	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	hint.position = Vector2(460, 97)
 	hint.size = Vector2(500, 24)
@@ -101,7 +101,7 @@ func _make_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton:
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lbl.add_theme_color_override("font_color", Color.WHITE)
-	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_font_size_override("font_size", 24)
 	btn.add_child(lbl)
 	# hover/pressed 动效：modulate 染底板淡蓝色，lbl self_modulate 反抵消保持白字
 	btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
@@ -120,14 +120,14 @@ func _add_action_row(action: StringName) -> void:
 	var name_label := Label.new()
 	name_label.text = KeybindManager.get_action_display_name(action)
 	name_label.custom_minimum_size = Vector2(80, 36)
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", 24)
 	name_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	row.add_child(name_label)
 
 	# 当前绑定显示
 	var bind_label := Label.new()
 	bind_label.custom_minimum_size = Vector2(400, 36)
-	bind_label.add_theme_font_size_override("font_size", 15)
+	bind_label.add_theme_font_size_override("font_size", 22)
 	bind_label.add_theme_color_override("font_color", Color(0.65, 0.82, 1.0))
 	row.add_child(bind_label)
 

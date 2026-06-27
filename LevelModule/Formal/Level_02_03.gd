@@ -183,7 +183,6 @@ func _on_ready() -> void:
 		InputManager.game_action.connect(_on_game_action)
 
 	set_process(true)
-	MusicManager.play_bgm("res://Assets/Music/2 test-2.wav")
 	print("[Level_02_03] 初始化完成 — DREAM_STREET")
 
 
@@ -480,7 +479,7 @@ func _trigger_fall_reset() -> void:
 	print("[Level_02_03] 坠崖重置 #%d" % fall_count)
 	# 首次坠崖：切换 BGM 从 2test2 → lv3
 	if fall_count == 1:
-		MusicManager.fade_to("res://Assets/Music/lv3.wav", 1.0)
+		MusicManager.fade_to("res://Assets/Music/lv3.ogg", 1.0)
 	InputManager.block_input("坠落重置", self)
 	_freeze_player(true)
 
@@ -1159,7 +1158,7 @@ func _trigger_level_end() -> void:
 	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	end_label.anchor_right = 1.0; end_label.anchor_bottom = 1.0
-	end_label.add_theme_font_size_override("font_size", 22)
+	end_label.add_theme_font_size_override("font_size", 33)
 	end_label.add_theme_color_override("font_color", Color(0.522, 0.357, 0.227))
 	text_panel.add_child(end_label)
 
@@ -1186,9 +1185,7 @@ func _emit_level_complete() -> void:
 	EventBus.unsubscribe_all(self)
 	if not _is_loaded_under_main_entry():
 		print("[Level_02_03] 无 MainEntry，直接切换场景 → ", next_path)
-		var err = get_tree().change_scene_to_file(next_path)
-		if err != OK:
-			push_warning("[Level_02_03] 直接切换失败: %s (err=%d)" % [next_path, err])
+		SceneTransitionManager.request_scene_change(next_path, self)
 		return
 	print("[Level_02_03] 发射 LEVEL_COMPLETE → ", next_path)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {
@@ -1340,7 +1337,7 @@ func _build_all_ui() -> void:
 	_narrative_text.offset_left = 20.0; _narrative_text.offset_top = 20.0
 	_narrative_text.offset_right = -20.0; _narrative_text.offset_bottom = -20.0
 	_narrative_text.bbcode_enabled = true; _narrative_text.fit_content = true
-	_narrative_text.add_theme_font_size_override("normal_font_size", 18)
+	_narrative_text.add_theme_font_size_override("normal_font_size", 27)
 	_narrative_text.add_theme_color_override("default_color", Color(0.9, 0.85, 0.75))
 	_narrative_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_narrative_panel.add_child(_narrative_text)
@@ -1360,7 +1357,7 @@ func _build_all_ui() -> void:
 	_wake_hint_label.visible = false
 	_wake_hint_label.text = "长按【Tab】睁开眼睛"
 	_wake_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_wake_hint_label.add_theme_font_size_override("font_size", 22)
+	_wake_hint_label.add_theme_font_size_override("font_size", 33)
 	_wake_hint_label.add_theme_color_override("font_color", Color(1, 0.85, 0.85, 0.95))
 	_wake_hint_label.position = Vector2(440, 70); _wake_hint_label.size = Vector2(400, 40)
 	_wake_hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1383,7 +1380,7 @@ func _build_all_ui() -> void:
 	_phone_msg_text.name = "MessageText"
 	_phone_msg_text.size = Vector2(348, 150); _phone_msg_text.position = Vector2(16, 14)
 	_phone_msg_text.bbcode_enabled = true
-	_phone_msg_text.add_theme_font_size_override("normal_font_size", 14)
+	_phone_msg_text.add_theme_font_size_override("normal_font_size", 21)
 	_phone_msg_text.add_theme_color_override("default_color", Color(0.95, 0.85, 0.85))
 	_phone_msg_panel.add_child(_phone_msg_text)
 
@@ -1459,13 +1456,13 @@ func _build_all_ui() -> void:
 	sidebar.add_child(logo_bg)
 	var logo = Label.new()
 	logo.name = "LogoLabel"; logo.text = "CODE-BUDDY"
-	logo.add_theme_font_size_override("font_size", 18)
+	logo.add_theme_font_size_override("font_size", 27)
 	logo.add_theme_color_override("font_color", Color(0.35, 0.78, 1.0))
 	logo.position = Vector2(16, 8)
 	sidebar.add_child(logo)
 	var logo_sub = Label.new()
 	logo_sub.name = "LogoVersion"; logo_sub.text = ">_ v1.4.2 — recovered"
-	logo_sub.add_theme_font_size_override("font_size", 11)
+	logo_sub.add_theme_font_size_override("font_size", 16)
 	logo_sub.add_theme_color_override("font_color", Color(0.35, 0.5, 0.6))
 	logo_sub.position = Vector2(16, 32)
 	sidebar.add_child(logo_sub)
@@ -1473,13 +1470,13 @@ func _build_all_ui() -> void:
 	# 边栏 — 项目名
 	var proj_section = Label.new()
 	proj_section.name = "SectionProject"; proj_section.text = "PROJECT"
-	proj_section.add_theme_font_size_override("font_size", 10)
+	proj_section.add_theme_font_size_override("font_size", 15)
 	proj_section.add_theme_color_override("font_color", Color(0.3, 0.35, 0.45))
 	proj_section.position = Vector2(16, 72)
 	sidebar.add_child(proj_section)
 	var proj_name = Label.new()
 	proj_name.name = "ProjectName"; proj_name.text = "▣ Xiguan_Dream"
-	proj_name.add_theme_font_size_override("font_size", 13)
+	proj_name.add_theme_font_size_override("font_size", 20)
 	proj_name.add_theme_color_override("font_color", Color(0.75, 0.8, 0.85))
 	proj_name.position = Vector2(16, 86)
 	sidebar.add_child(proj_name)
@@ -1493,7 +1490,7 @@ func _build_all_ui() -> void:
 	# 边栏 — 文件树菜单
 	var files_label = Label.new()
 	files_label.name = "FilesLabel"; files_label.text = "FILES"
-	files_label.add_theme_font_size_override("font_size", 10)
+	files_label.add_theme_font_size_override("font_size", 15)
 	files_label.add_theme_color_override("font_color", Color(0.3, 0.35, 0.45))
 	files_label.position = Vector2(16, 126)
 	sidebar.add_child(files_label)
@@ -1501,7 +1498,7 @@ func _build_all_ui() -> void:
 	for j in range(file_items.size()):
 		var fi = Label.new()
 		fi.text = file_items[j]
-		fi.add_theme_font_size_override("font_size", 12)
+		fi.add_theme_font_size_override("font_size", 18)
 		fi.add_theme_color_override("font_color", Color(0.55, 0.6, 0.7))
 		fi.position = Vector2(16, 142 + j * 22)
 		sidebar.add_child(fi)
@@ -1515,7 +1512,7 @@ func _build_all_ui() -> void:
 	# 边栏 — 底部状态
 	var status = Label.new()
 	status.name = "StatusLabel"; status.text = "SESSION: RECOVERED"
-	status.add_theme_font_size_override("font_size", 10)
+	status.add_theme_font_size_override("font_size", 15)
 	status.add_theme_color_override("font_color", Color(0.35, 0.5, 0.6))
 	status.position = Vector2(16, VH - 28)
 	sidebar.add_child(status)
@@ -1535,7 +1532,7 @@ func _build_all_ui() -> void:
 	_chat_window.name = "ChatWindow"
 	_chat_window.position = Vector2(20, 20); _chat_window.size = Vector2(VW - 240, VH - 60)
 	_chat_window.bbcode_enabled = true; _chat_window.scroll_following = true
-	_chat_window.add_theme_font_size_override("normal_font_size", 14)
+	_chat_window.add_theme_font_size_override("normal_font_size", 21)
 	_chat_window.add_theme_color_override("default_color", Color(0.88, 0.88, 0.92))
 	_chat_window.add_theme_constant_override("line_separation", 6)
 	chat_panel.add_child(_chat_window)
@@ -1545,7 +1542,7 @@ func _build_all_ui() -> void:
 	_chat_input.name = "ChatInput"
 	_chat_input.position = Vector2(10, VH - 36); _chat_input.size = Vector2(VW - 240, 28)
 	_chat_input.placeholder_text = "输入消息，按 Enter 发送..."
-	_chat_input.add_theme_font_size_override("font_size", 13)
+	_chat_input.add_theme_font_size_override("font_size", 20)
 	_chat_input.add_theme_color_override("font_color", Color(0.88, 0.88, 0.92))
 	_chat_input.add_theme_color_override("font_placeholder_color", Color(0.35, 0.4, 0.5))
 	var istyle = StyleBoxFlat.new()
@@ -1576,7 +1573,7 @@ func _build_all_ui() -> void:
 	_config_ui.add_theme_stylebox_override("panel", xstyle)
 	var ctitle = Label.new()
 	ctitle.name = "ConfigTitle"; ctitle.text = "▣ Xiguan_Dream.ini — 配置编辑器"
-	ctitle.add_theme_font_size_override("font_size", 18)
+	ctitle.add_theme_font_size_override("font_size", 27)
 	ctitle.add_theme_color_override("font_color", Color(0.5, 0.9, 0.6))
 	ctitle.position = Vector2(24, 16)
 	_config_ui.add_child(ctitle)
@@ -1585,24 +1582,24 @@ func _build_all_ui() -> void:
 		var row_y = 70 + i * 100
 		var il = Label.new()
 		il.name = "ItemLabel_%d" % i
-		il.add_theme_font_size_override("font_size", 16)
+		il.add_theme_font_size_override("font_size", 24)
 		il.add_theme_color_override("font_color", Color(0.85, 0.85, 0.8))
 		il.position = Vector2(36, row_y); il.size = Vector2(480, 24)
 		_config_ui.add_child(il)
 		var vl = Label.new()
 		vl.name = "ValueLabel_%d" % i
-		vl.add_theme_font_size_override("font_size", 16)
+		vl.add_theme_font_size_override("font_size", 24)
 		vl.add_theme_color_override("font_color", Color(0.95, 0.6, 0.3))
 		vl.position = Vector2(540, row_y); vl.size = Vector2(140, 24)
 		_config_ui.add_child(vl); _config_value_labels.append(vl)
 		var btn = Button.new()
 		btn.name = "ModifyButton_%d" % i; btn.text = "修改"
 		btn.position = Vector2(700, row_y - 4); btn.size = Vector2(100, 34)
-		btn.add_theme_font_size_override("font_size", 15); btn.focus_mode = Control.FOCUS_NONE
+		btn.add_theme_font_size_override("font_size", 22); btn.focus_mode = Control.FOCUS_NONE
 		_config_ui.add_child(btn); _config_buttons.append(btn)
 		var fb = Label.new()
 		fb.name = "Feedback_%d" % i
-		fb.add_theme_font_size_override("font_size", 13)
+		fb.add_theme_font_size_override("font_size", 20)
 		fb.add_theme_color_override("font_color", Color(0.4, 0.8, 0.5))
 		fb.position = Vector2(36, row_y + 32); fb.size = Vector2(760, 22); fb.text = ""
 		_config_ui.add_child(fb); _config_feedback_labels.append(fb)
@@ -1610,7 +1607,7 @@ func _build_all_ui() -> void:
 	_recompile_button.name = "RecompileButton"; _recompile_button.text = "⟳ 重新编译并注入梦境"
 	_recompile_button.disabled = true; _recompile_button.position = Vector2(280, 392)
 	_recompile_button.size = Vector2(280, 44)
-	_recompile_button.add_theme_font_size_override("font_size", 16); _recompile_button.focus_mode = Control.FOCUS_NONE
+	_recompile_button.add_theme_font_size_override("font_size", 24); _recompile_button.focus_mode = Control.FOCUS_NONE
 	_config_ui.add_child(_recompile_button)
 	canvas.add_child(_config_ui)
 
@@ -1628,7 +1625,7 @@ func _build_all_ui() -> void:
 	_recompile_log.name = "LogText"
 	_recompile_log.size = Vector2(792, 380); _recompile_log.position = Vector2(24, 20)
 	_recompile_log.bbcode_enabled = true; _recompile_log.scroll_following = true
-	_recompile_log.add_theme_font_size_override("normal_font_size", 15)
+	_recompile_log.add_theme_font_size_override("normal_font_size", 22)
 	_recompile_log.add_theme_color_override("default_color", Color(0.5, 0.9, 0.55))
 	_recompile_panel.add_child(_recompile_log)
 	canvas.add_child(_recompile_panel)

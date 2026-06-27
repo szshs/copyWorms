@@ -347,7 +347,7 @@ func _show_combat_hint() -> void:
 	_combat_hint_label.name = "CombatHintLabel"
 	_combat_hint_label.text = "[空格] 跳跃    [J] 攻击    [Shift] 冲刺    [I] 技能"
 	_combat_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_combat_hint_label.add_theme_font_size_override("font_size", 18)
+	_combat_hint_label.add_theme_font_size_override("font_size", 27)
 	_combat_hint_label.add_theme_color_override("font_color", Color(1, 0.95, 0.7, 0.9))
 	_combat_hint_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	_combat_hint_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -602,9 +602,7 @@ func _emit_level_complete() -> void:
 	_full_cleanup()
 	if not _is_loaded_under_main_entry():
 		print("[Level_02] 无 MainEntry，直接切换场景 → ", next_path)
-		var err = get_tree().change_scene_to_file(next_path)
-		if err != OK:
-			push_warning("[Level_02] 直接切换失败: %s (err=%d)" % [next_path, err])
+		SceneTransitionManager.request_scene_change(next_path, self)
 		return
 	print("[Level_02] 发射 LEVEL_COMPLETE → ", next_path)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {

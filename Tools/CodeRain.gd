@@ -21,7 +21,7 @@ class_name CodeRain
 @export var trail_length_min: int = 10
 @export var trail_length_max: int = 22
 
-## 字符大小（Silkscreen 16px = 2x 原生）
+## 字符大小（像素Silver 16px）
 @export var char_size: int = 16
 
 ## 基色（#0aae43 终端绿）
@@ -46,8 +46,8 @@ class_name CodeRain
 @export var fn_speed_min: float = 22.0
 @export var fn_speed_max: float = 48.0
 
-## 前景字号（Silkscreen 2x 保证可读）
-@export var fn_font_size: int = 16
+## 前景字号（像素Silver 保证可读）
+@export var fn_font_size: int = 24
 
 ## 前景透明度
 @export var fn_alpha: float = 0.9
@@ -90,8 +90,8 @@ func _ready() -> void:
 	set_anchors_preset(PRESET_FULL_RECT)
 	visible = false
 	modulate.a = 0.0
-	# 加载 Silkscreen 像素字体
-	_font = load("res://Assets/Fonts/Silkscreen/Silkscreen-Bold.ttf") as Font
+	# 加载像素Silver字体
+	_font = load("res://Assets/Fonts/像素Silver/像素Silver.ttf") as Font
 	_build_char_pool()
 	_build_fn_pool()
 	set_process(false)
