@@ -63,7 +63,7 @@ var _erosion_bar_bg: ColorRect = null
 var _erosion_bar_fill: ColorRect = null
 var _erosion_label: Label = null
 const EROSION_MAX: float = 100.0
-const EROSION_RATE: float = 0.35
+const EROSION_RATE: float = 0.7
 const EROSION_KILL_REDUCE: float = 15.0
 
 # ---- 敌人 ----

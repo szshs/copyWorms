@@ -740,6 +740,8 @@ func _try_unlock_computer() -> void:
 
 func _enter_ide_mode() -> void:
 	_mark_interaction_completed("computer")
+	_mark_interaction_completed("notice")
+	_mark_interaction_completed("thermos")
 	_is_interacting = true
 	current_state = LevelState.IDE_CHAT
 	_freeze_player(true)

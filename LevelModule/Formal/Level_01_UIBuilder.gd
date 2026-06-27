@@ -162,18 +162,12 @@ func _build_ide_ui() -> void:
 
 func _load_ide_background_texture() -> Texture2D:
 	const BG_PATH := "res://Assets/UI/ai_ide_background.png"
-	var image := Image.new()
-	var bytes := FileAccess.get_file_as_bytes(BG_PATH)
-	var err: int = ERR_FILE_CANT_OPEN
-	if not bytes.is_empty():
-		err = image.load_png_from_buffer(bytes)
-		if err != OK:
-			err = image.load_jpg_from_buffer(bytes)
-	if err != OK:
-		push_warning("[Level_01_UIBuilder] 无法加载 IDE 背景图: %s (err=%d)" % [BG_PATH, err])
-		var fallback := Image.create(1280, 720, false, Image.FORMAT_RGBA8)
-		fallback.fill(Color(0.06, 0.07, 0.12, 1.0))
-		return ImageTexture.create_from_image(fallback)
+	var texture := load(BG_PATH) as Texture2D
+	if texture:
+		return texture
+	push_warning("[Level_01_UIBuilder] 无法加载 IDE 背景图: %s" % BG_PATH)
+	var image := Image.create(1280, 720, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0.06, 0.07, 0.12, 1.0))
 	return ImageTexture.create_from_image(image)
 
 func _build_left_edge_flash() -> void:

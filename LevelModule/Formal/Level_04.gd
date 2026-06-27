@@ -56,7 +56,7 @@ var _erosion_bar_fill: ColorRect = null
 var _erosion_label: Label = null
 var _erosion_vignette: ColorRect = null
 const EROSION_MAX: float = 100.0
-const EROSION_RATE: float = 0.35
+const EROSION_RATE: float = 0.7
 const EROSION_KILL_REDUCE: float = 15.0
 
 # ---- 阶段2敌人 + 阶段3 ----
@@ -805,7 +805,7 @@ func _build_erosion_ui() -> void:
 	_erosion_vignette.name = "ErosionVignette"
 	_erosion_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_erosion_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_erosion_vignette.z_index = 120
+	_erosion_vignette.z_index = 140
 	var shader = load("res://LevelModule/Formal/erosion_vignette.gdshader")
 	if shader:
 		var mat = ShaderMaterial.new()
@@ -827,14 +827,8 @@ func _update_erosion_ui() -> void:
 	else:
 		_erosion_bar_fill.color = Color(0.65, 0.15, 0.8, 0.95)
 
-	# 边缘扭曲强度：25/50/75 三档平滑渐变
-	var vignette_intensity: float = 0.0
-	if _erosion_value >= 75.0:
-		vignette_intensity = 0.7 + 0.3 * (_erosion_value - 75.0) / 25.0  # 0.7→1.0
-	elif _erosion_value >= 50.0:
-		vignette_intensity = 0.35 + 0.35 * (_erosion_value - 50.0) / 25.0  # 0.35→0.7
-	elif _erosion_value >= 25.0:
-		vignette_intensity = 0.35 * (_erosion_value - 25.0) / 25.0  # 0→0.35
+	# 侵蚀视觉强度跟随 0%→100% 连续增强，shader 内部仍保留阶段感。
+	var vignette_intensity: float = pow(ratio, 0.85)
 	if _erosion_vignette and _erosion_vignette.material:
 		_erosion_vignette.material.set_shader_parameter("intensity", vignette_intensity)
 
