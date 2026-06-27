@@ -97,6 +97,9 @@ func _physics_process(delta: float) -> void:
 	_apply_gravity(delta)
 	_update_target()
 	_handle_ai(delta)
+	# 攻击锁定：完成此次攻击前禁止水平移动（冲撞类攻击性移动由子类 _is_attack_locked 排除）
+	if _is_attack_locked():
+		velocity.x = 0.0
 	move_and_slide()
 	_update_facing()
 	_update_idle_walk_sfx(delta)
@@ -127,6 +130,9 @@ func _update_target() -> void:
 
 func _update_facing() -> void:
 	if stun_timer > 0:
+		return
+	# 攻击锁定：完成此次攻击前禁止转向
+	if _is_attack_locked():
 		return
 	if velocity.x > 5:
 		is_facing_right = true
@@ -226,9 +232,9 @@ func _ai_chase(delta: float) -> void:
 		_change_state(GlobalDefine.EnemyState.IDLE)
 		return
 
-	# 攻击后暂停：只减速，不追踪
-	if _post_attack_pause > 0:
-		velocity.x = move_toward(velocity.x, 0, 400 * delta)
+	# 攻击锁定：完成此次攻击前禁止移动与转向
+	if _is_attack_locked():
+		velocity.x = 0.0
 		return
 
 	var dist = global_position.distance_to(target.global_position)
@@ -255,12 +261,13 @@ func _ai_attack(delta: float) -> void:
 	if attack_cooldown_timer <= 0 and target and is_instance_valid(target):
 		_perform_attack()
 		attack_cooldown_timer = config.attack_cooldown if config else 1.5
-		# 攻击后暂停追踪0.3秒 + 微后退制造间距
+		# 攻击锁定：完成此次攻击前禁止转向与移动（不再后退制造间距）
 		_post_attack_pause = 0.7
-		if target:
-			var retreat_dir = -signf(target.global_position.x - global_position.x)
-			velocity.x = retreat_dir * 220.0
-	_change_state(GlobalDefine.EnemyState.CHASE)
+		velocity.x = 0.0
+		return  # 保持 ATTACK 状态，攻击动作完成前不进入决策
+	# 攻击锁定结束后才切回 CHASE
+	if _post_attack_pause <= 0:
+		_change_state(GlobalDefine.EnemyState.CHASE)
 
 func _ai_hurt(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0, 300 * delta)
@@ -300,7 +307,7 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 		return
 
 	current_health = maxi(current_health - damage, 0)
-	print("[EnemyBase] 受到伤害=%d 剩余血量=%d" % [damage, current_health])
+
 
 	if knockback_dir != Vector2.ZERO:
 		var resist = config.knockback_resistance if config else 0.3
@@ -357,6 +364,11 @@ func _get_move_speed() -> float:
 	return config.move_speed if config else 100.0
 
 # ---- 虚函数（子类重写点，不要修改基类源码） ----
+
+## 攻击锁定判定：返回 true 时禁止转向与水平移动
+## 子类重写以纳入各自的攻击动作锁定条件（前摇/连击/冲撞等）
+func _is_attack_locked() -> bool:
+	return _post_attack_pause > 0
 
 ## 节点就绪后的初始化
 func _on_ready() -> void:

@@ -283,7 +283,7 @@ animations = [{
 }]
 
 [sub_resource type="RectangleShape2D" id="melee_box"]
-size = Vector2(180, 200)
+size = Vector2(120, 200)
 
 [node name="Enemy_BossHuadan" type="CharacterBody2D" unique_id=2088881473]
 script = ExtResource("scr")

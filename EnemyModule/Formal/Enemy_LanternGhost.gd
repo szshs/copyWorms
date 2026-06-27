@@ -127,7 +127,7 @@ func _ai_chase(delta: float) -> void:
 		return
 
 	if _post_attack_pause > 0:
-		velocity.x = move_toward(velocity.x, 0, 300 * delta)
+		velocity.x = 0.0
 		return
 
 	var x_diff: float = target.global_position.x - global_position.x
@@ -166,6 +166,7 @@ func _ai_attack(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0, 300 * delta)
 	_fire_fireball()
 	attack_cooldown_timer = config.attack_cooldown if config else 2.0
+	_post_attack_pause = 0.7
 	_change_state(GlobalDefine.EnemyState.CHASE)
 
 # ---- 覆写攻击判定：用火球射程代替近战距离 ----
@@ -192,7 +193,7 @@ func _fire_fireball() -> void:
 	if parent:
 		parent.add_child(fireball)
 		fireball.global_position = global_position + dir * 20
-		fireball.setup(dir, FIREBALL_DAMAGE, self, FIREBALL_MAX_DIST, FIREBALL_SPEED)
+		fireball.setup(dir, config.attack_damage if config else FIREBALL_DAMAGE, self, FIREBALL_MAX_DIST, FIREBALL_SPEED)
 
 # ---- 无接触伤害 ----
 
@@ -203,6 +204,8 @@ func deals_contact_damage() -> bool:
 
 func _update_facing() -> void:
 	if stun_timer > 0:
+		return
+	if _is_attack_locked():
 		return
 	var should_face_right: bool = is_facing_right
 	if target and is_instance_valid(target):

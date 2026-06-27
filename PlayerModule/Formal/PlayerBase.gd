@@ -246,7 +246,7 @@ func _check_enemy_contact(_delta: float) -> void:
 
 func _take_contact_damage(enemy: Node2D) -> void:
 	var atk = 8
-	if enemy.has_method("_get_placeholder_color") and enemy.config:
+	if enemy.config:
 		atk = enemy.config.attack_damage
 	current_health = maxi(current_health - atk, 0)
 	# 霸体：只扣血，不击退不中断，但仍需无敌帧防止连续受伤

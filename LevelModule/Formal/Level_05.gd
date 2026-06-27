@@ -19,6 +19,11 @@ var _in_boss_arena: bool = false
 var _boss_instance: Node2D = null
 var _current_player_skin: String = "Cyber"   # 当前玩家皮肤（"Cyber"/"Lingnan"），用于G键切换
 var _layer_swap_cd: float = 0.0              # 双世界切换冷却（防战斗中频繁切换）
+
+# ---- 双角色独立血量（Boss战：Cyber/Lingnan 各100血，切人换血条，总200血） ----
+const DUAL_CHAR_MAX_HP: int = 100
+var _cyber_health: int = DUAL_CHAR_MAX_HP
+var _lingnan_health: int = DUAL_CHAR_MAX_HP
 const LAYER_SWAP_COOLDOWN: float = 1.2       # 切换冷却时长
 
 # ---- bg5 区域（Boss击杀后灯笼对话跳转） ----
@@ -82,8 +87,13 @@ func _setup_player() -> void:
 		var p = load(path).instantiate()
 		p.position = Vector2(-1603, 380)
 		_current_player_skin = "Cyber"
+		# Lingnan 角色初始满血100（Cyber 的初始血量由 _on_ready 从 lv4 继承设置）
+		_lingnan_health = DUAL_CHAR_MAX_HP
 		add_child(p)
 		GameManager.register_player(p)
+		# _ready 中 _apply_config 会重置血量,需在此之后设为独立血量
+		p.max_health = DUAL_CHAR_MAX_HP
+		p.current_health = _cyber_health
 		var cam = p.get_node_or_null("SmoothCamera") as SmoothCamera
 		if cam:
 			cam.zoom = Vector2(1.33, 1.33)
@@ -102,7 +112,11 @@ func _setup_player() -> void:
 func _swap_player_skin(skin: String) -> void:
 	var old = GameManager.player_ref
 	if not old or not is_instance_valid(old): return
-	var h = old.current_health; var m = old.max_health
+	# 保存旧角色的血量到对应变量（双角色独立血量，切人不回满）
+	if _current_player_skin == "Cyber":
+		_cyber_health = old.current_health
+	else:
+		_lingnan_health = old.current_health
 	var f = old.is_facing_right; var pos = old.global_position
 	# 保存旧摄像机限制
 	var old_cam = old.get_node_or_null("SmoothCamera")
@@ -115,9 +129,16 @@ func _swap_player_skin(skin: String) -> void:
 	var path = "res://PlayerModule/Formal/Player_Warrior_" + skin + ".tscn"
 	if not ResourceLoader.exists(path): return
 	var p = load(path).instantiate()
-	p.global_position = pos; p.current_health = h
-	p.max_health = m; p.is_facing_right = f; p.velocity = Vector2.ZERO
+	p.global_position = pos
+	# 恢复目标角色的独立血量（不回满）
+	p.max_health = DUAL_CHAR_MAX_HP
+	p.current_health = _cyber_health if skin == "Cyber" else _lingnan_health
+	p.is_facing_right = f; p.velocity = Vector2.ZERO
 	add_child(p); GameManager.register_player(p)
+	# _ready 中 _apply_config 会重置血量为 max_health，需在此之后恢复独立血量
+	p.max_health = DUAL_CHAR_MAX_HP
+	p.current_health = _cyber_health if skin == "Cyber" else _lingnan_health
+	_current_player_skin = skin  # 更新为新skin
 	# 恢复摄像机：设限制 → bind_target(snap+reset) → 激活
 	var cam = p.get_node_or_null("SmoothCamera") as SmoothCamera
 	if cam:
@@ -142,7 +163,6 @@ func _toggle_boss_skin() -> void:
 	if not ResourceLoader.exists(path):
 		print("[Level_05] 切换皮肤失败，场景不存在: %s" % path)
 		return
-	_current_player_skin = new_skin
 	_swap_player_skin(new_skin)
 
 func _snap_camera(p: CharacterBody2D) -> void:
@@ -183,15 +203,24 @@ func _on_ready() -> void:
 	# 入场黑屏遮罩（初始化在黑屏下进行，末尾淡出呈现关卡）
 	_play_intro_fade_in()
 
-	# 继承 lv4 的侵蚀值和血量
+	# 继承 lv4 的侵蚀值
 	var flags = GameManager.dream_runtime_flags
 	if flags.has("erosion_value"):
 		_erosion_value = flags["erosion_value"]
-	if flags.has("player_health") and flags.has("player_max_health"):
-		var p = GameManager.player_ref
-		if p and is_instance_valid(p):
-			p.current_health = flags["player_health"]
-			p.max_health = flags["player_max_health"]
+	# 继承 lv4 的玩家血量：作为 Cyber 角色的初始血量（Boss战前玩家的血量延续到Cyber）
+	# Lingnan 角色初始为满血100（Boss战双角色独立血量）
+	if flags.has("player_health"):
+		_cyber_health = clampi(int(flags["player_health"]), 1, DUAL_CHAR_MAX_HP)
+	_lingnan_health = DUAL_CHAR_MAX_HP
+	var p = GameManager.player_ref
+	if p and is_instance_valid(p):
+		p.max_health = DUAL_CHAR_MAX_HP
+		p.current_health = _cyber_health
+		EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+			"target": p,
+			"current_health": p.current_health,
+			"max_health": p.max_health
+		})
 
 	# 订阅敌人死亡事件
 	EventBus.subscribe(GlobalDefine.EventName.ENEMY_DIED, self, "_on_enemy_died")
@@ -274,10 +303,13 @@ func _on_ready() -> void:
 		_set_map_sprites_visible(false)
 		_spawn_boss()
 		_show_boss_bar()
-		# 恢复玩家满血
+		# 恢复玩家满血（检查点重开：双角色都回满100血）
+		_cyber_health = DUAL_CHAR_MAX_HP
+		_lingnan_health = DUAL_CHAR_MAX_HP
 		var pp = GameManager.player_ref
 		if pp and is_instance_valid(pp):
-			pp.current_health = pp.max_health
+			pp.max_health = DUAL_CHAR_MAX_HP
+			pp.current_health = DUAL_CHAR_MAX_HP
 			EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
 				"target": pp,
 				"current_health": pp.current_health,
