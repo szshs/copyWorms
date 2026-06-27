@@ -61,7 +61,7 @@ func _build_narrative_panel() -> void:
 	label.offset_bottom = -20.0
 	label.bbcode_enabled = true
 	label.fit_content = true
-	label.add_theme_font_size_override("normal_font_size", 18)
+	label.add_theme_font_size_override("normal_font_size", 27)
 	label.add_theme_color_override("default_color", Color(0.9, 0.85, 0.75))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(label)
@@ -108,7 +108,7 @@ func _build_ide_ui() -> void:
 	chat.scroll_following = true
 	chat.fit_content = false
 	chat.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chat.add_theme_font_size_override("normal_font_size", 14)
+	chat.add_theme_font_size_override("normal_font_size", 21)
 	chat.add_theme_color_override("default_color", Color(0.9, 0.9, 0.95))
 	ide.add_child(chat)
 	level._chat_window = chat
@@ -135,7 +135,7 @@ func _build_ide_ui() -> void:
 	code_text.scroll_following = true
 	code_text.fit_content = false
 	code_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	code_text.add_theme_font_size_override("normal_font_size", 15)
+	code_text.add_theme_font_size_override("normal_font_size", 22)
 	code_text.add_theme_color_override("default_color", Color(0.55, 0.95, 0.65))
 	code_panel.add_child(code_text)
 	level._code_scroll_panel = code_panel

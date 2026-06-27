@@ -183,8 +183,7 @@ func _on_ready() -> void:
 
 	_load_hud()
 	set_process(true)
-	# 确保播放 lv3（从断崖延续，若未播放则启动）
-	MusicManager.play_bgm("res://Assets/Music/lv3.wav")
+	MusicManager.restart_bgm("res://Assets/Music/lv3.ogg")
 	print("[Level_03] 初始化完成 — 当前: TEA_SHOP_FRONT")
 	# 初始化完成，淡出黑屏呈现关卡
 	_finish_intro_fade_in()
@@ -1288,9 +1287,7 @@ func _emit_level_complete() -> void:
 	# 双模切换：无 MainEntry 托管时直接换场景，否则走 EventBus 由 MainEntry 接管
 	if not _is_loaded_under_main_entry():
 		print("[Level_03] 无 MainEntry，直接切换场景 → ", next_path)
-		var err = get_tree().change_scene_to_file(next_path)
-		if err != OK:
-			push_warning("[Level_03] 直接切换失败: %s (err=%d)" % [next_path, err])
+		SceneTransitionManager.request_scene_change(next_path, self)
 		return
 	print("[Level_03] 发射 LEVEL_COMPLETE → ", next_path)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {"level": self, "next_level": next_path})

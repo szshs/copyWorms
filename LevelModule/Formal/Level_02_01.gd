@@ -63,7 +63,6 @@ func _on_ready() -> void:
 	_spawn_lantern_ghosts()
 	_load_hud()
 	_build_exit_white_overlay()
-	MusicManager.play_bgm("res://Assets/Music/2 test-2.wav")
 	print("[Level_02_01] 初始化完成")
 
 
@@ -347,9 +346,7 @@ func _emit_level_complete() -> void:
 	EventBus.unsubscribe_all(self)
 	if not _is_loaded_under_main_entry():
 		print("[Level_02_01] 无 MainEntry，直接切换场景 → ", next_level_path)
-		var err = get_tree().change_scene_to_file(next_level_path)
-		if err != OK:
-			push_warning("[Level_02_01] 直接切换失败: %s (err=%d)" % [next_level_path, err])
+		SceneTransitionManager.request_scene_change(next_level_path, self)
 		return
 	print("[Level_02_01] 发射 LEVEL_COMPLETE（白屏转场）→ ", next_level_path)
 	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {

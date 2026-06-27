@@ -101,7 +101,7 @@ func setup(trigger: Area2D, shader: Shader) -> void:
 	_warning_label.text = warning_text
 	_warning_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_warning_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_warning_label.add_theme_font_size_override("font_size", 14)
+	_warning_label.add_theme_font_size_override("font_size", 21)
 	_warning_label.add_theme_color_override("font_color", Color(1.0, 0.12, 0.08, 0.9))
 	_warning_label.position = Vector2(-500, -14)
 	_warning_label.size = Vector2(s.x * 4, 28)

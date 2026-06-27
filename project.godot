@@ -26,6 +26,10 @@ InputManager="*res://Global/InputManager.gd"
 KeybindManager="*res://Global/KeybindManager.gd"
 MusicManager="*res://Global/MusicManager.gd"
 SFXManager="*res://Global/SFXManager.gd"
+SceneTransitionManager="*res://Global/SceneTransitionManager.gd"
+MCPScreenshot="*res://addons/godot_mcp/mcp_screenshot_service.gd"
+MCPInputService="*res://addons/godot_mcp/mcp_input_service.gd"
+MCPGameInspector="*res://addons/godot_mcp/mcp_game_inspector_service.gd"
 
 [display]
 
@@ -34,6 +38,10 @@ window/size/viewport_height=720
 window/size/mode=2
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
 
 [input]
 

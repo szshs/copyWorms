@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://cxmk1rrycfmp3" path="res://LevelModule/Formal/InteractiveObject.gd" id="2_interactive"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
-size = Vector2(1592, 32)
+size = Vector2(1604, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
 size = Vector2(20, 720)
@@ -32,7 +32,7 @@ position = Vector2(796, 660)
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Terrain/RealityGround" unique_id=2080883151]
-position = Vector2(0, 4)
+position = Vector2(-6, 4)
 shape = SubResource("RectangleShape2D_ground")
 
 [node name="RealityLeftWall" type="StaticBody2D" parent="Terrain" unique_id=1165605168]
