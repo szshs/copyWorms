@@ -1,118 +1,169 @@
-# 织梦者 · HackathonGame
+织梦者 — Dreamweaver
+Godot 4.6 2D 横向叙事探索动作游戏 | 黑客松项目
+岭南文化 × 赛博未来 × 梦境撕裂
 
-> 一款用 **Godot 4.6** 制作的 2D 横版叙事探索游戏——在岭南骑楼与赛博幻景之间，跟随开发者阿明，从一场「西关梦境」走向现实。
+🎮 游戏简介
+织梦者 是一款以「岭南文化」与「赛博朋克」碰撞融合为主题的 2D 动作叙事游戏。玩家扮演一名剑客，穿梭于被数字侵蚀撕裂的梦境世界，在岭南旧梦与赛博蜃境之间切换，迎战越来越强的敌人，最终直面花旦 Boss 守护梦境核心。
 
-**当前版本：v0.13.0** · GDScript · GL Compatibility · 1280×720
+世界观
+一场数据入侵正在吞噬梦境。梦境深处的记忆碎片被数字化侵蚀，古老的街巷与赛博城市交替闪现——你需要找到侵蚀的源头，并斩断它。
 
----
+🎯 核心特性
 
-## 游戏简介
+🎨 双世界切换 — 岭南古风与赛博未来两种风格的自由切换，像素地图拼接渲染
 
-《织梦者》以**叙事驱动**为核心：关卡即状态机，探索、对话与交互推动剧情，战斗为叙事服务。玩家从卧室醒来，穿过老街与断崖，在 IDE 里与 AI 对话、篡改「梦境配置」，最终在维度侵蚀与 Boss 战中觉醒——结局落在一句：**「太阳照常升起」**。
+⚔️ 多样化敌人 AI — 5 种不同敌人类型，包含漂浮、冲撞、远程、召唤等行为模式
 
----
+👹 花旦 Boss 战 — 4 阶段 Boss AI，2800+ 行决策逻辑，悬停系统、剑气弹幕、近战连击
 
-## 特色
+📖 深度叙事 — 7 态叙事状态机，多角色对话系统，可交互式 IDE 自由对话
 
-- **完整 7 关流水线**：从标题界面到终局再回标题，全流程可通关
-- **双世界视觉**：岭南骑楼 ↔ 赛博城市场景切换，PixelTearing 侵蚀与 Glitch 演出
-- **分段式大关卡**：Level_02 拆为 4 段（阁楼→老街→梯子谜题→断崖/现实房间/IDE）
-- **IDE 解谜**：CODE-BUDDY 风格对话界面，配置篡改 + 重编译叙事
-- **多样敌人**：灯笼鬼、纸扎人、赛博狼/牛、花旦 Boss（4 阶段 AI）
-- **全局音频**：`MusicManager` BGM 淡入淡出 + `SFXManager` 音效池
-- **Shader 特效**：代码雨、防火墙结界、记忆光团、像素崩坏等
+🌀 维度侵蚀系统 — 侵蚀值实时增长机制，shader 驱动的画面撕裂与色彩腐蚀特效
 
----
+🛡️ 防火墙屏障 — Glitch 特效系统，能量带流动 + 横向撕裂 + RGB 色散
 
-## 关卡流程
+🔧 Code-Buddy 主题 IDE — 关卡内嵌可交互代码编辑器，模拟 AI 编译
 
-```
-TitleScreen
-  → Level_01   卧室觉醒 · IDE · 手机 climax
-  → Level_02   阁楼 → 老街（+ 02_01 / 02_02 / 02_03 分段）
-  → Level_03   赛博蜃景 · 爷爷 · 记忆光团
-  → Level_04   维度侵蚀 · 双世界硬切
-  → Level_05   Boss 花旦战 · 视频演出
-  → Level_final  「太阳照常升起」
-  → TitleScreen  （闭环）
-```
+🛠️ 技术栈
 
----
+技术	说明
 
-## 操作说明
+引擎	Godot 4.6 (GL Compatibility Mode)
 
-| 按键 | 功能 |
-|------|------|
-| `A` / `D` 或方向键 | 移动 |
-| `Space` | 跳跃 |
-| `J` / 鼠标左键 | 攻击 |
-| `K` / `Shift` | 闪身 |
-| `I` | 技能 |
-| `Enter` | 交互 / 确认对话 |
-| `Esc` | 暂停 |
-| `W` / `S` | 梯子攀爬（部分关卡） |
-| `G` | 切换外观（Level_05） |
-| 长按 `Tab` | 睁眼（Level_02_03 干扰期） |
+语言	GDScript
 
-> 叙事关卡会动态禁用部分操作（如 Level_01 禁攻击/跳跃/闪身）。
+分辨率	1280×720，canvas_items 拉伸
 
----
+部署	Docker + Nginx (Alpine)
 
-## 快速开始
+Web 导出	Godot Web Export (WASM + SharedArrayBuffer)
 
-### 环境要求
+架构模式	事件驱动 (EventBus) + 状态机 (FSM)
 
-- [Godot 4.6](https://godotengine.org/)（GL Compatibility 渲染器）
-- 无需额外依赖，克隆即用
+📁 项目结构
 
-### 运行
+黑客松正式项目文档/
+├── build/web/             # Godot Web 导出产物
+│   ├── index.html         # 入口 HTML
+│   ├── index.js           # JS 胶水层
+│   ├── index.wasm         # WebAssembly 核心
+│   ├── index.pck          # 资源包
+│   └── index.*.worklet.js # Audio Worklet
+├── Dockerfile             # Docker 构建配置
+├── nginx.conf             # Nginx 配置（含 COOP/COEP 头）
+├── entrypoint.sh          # 容器启动脚本
+├── TECHNICAL_ARCHITECTURE_REPORT.md  # 技术架构报告
+└── WORK_SESSION_SUMMARY.md           # 工作会话总结
+注意：以上仅为部署相关文件。完整游戏源码（Godot 项目）包含以下关键模块：
 
-1. 克隆仓库
-2. 用 Godot 4.6 打开项目根目录（含 `project.godot`）
-3. 按 **F5** 运行，或导入后点击「运行项目」
+模块	路径	说明
 
-主场景：`res://UI/TitleScreen.tscn`
+全局系统	Global/	EventBus、GameManager、InputManager、GlobalDefine、KeybindManager
 
-### Web 导出（可选）
+玩家系统	PlayerModule/Formal/	PlayerBase + 3 种皮肤（Warrior/Cyber/Lingnan）
 
-项目已配置 HTML5 导出预设，导出路径：`../织梦者导出/index.html`
+敌人系统	EnemyModule/Formal/	5 种敌人 + Boss 花旦 4 阶段 AI
 
----
+关卡系统	LevelModule/Formal/	Level_01 ~ Level_05，关卡基类 + 场景构建器
 
-## 技术概览
+像素地图	LevelModule/Scenes/PixelworkMapStitch/	多层拼接地图系统
 
-| 项目 | 说明 |
-|------|------|
-| 引擎 | Godot 4.6 · GDScript |
-| 架构 | 事件总线（EventBus）+ Autoload 全局系统 |
-| Autoload | `GlobalDefine` · `EventBus` · `GameManager` · `InputManager` · `KeybindManager` · `MusicManager` · `SFXManager` |
-| 关卡模式 | 主控 + SceneBuilder + FSM + UIBuilder + Config/Data 资源 |
-| 玩家皮肤 | Warrior / Cyber / Lingnan（含 SmoothCamera） |
+工具类	Tools/	剑气弹体、CodeRain 渲染、防火墙特效
 
-```
-copyWorms/
-├── Global/           # Autoload、MainEntry 正式入口
-├── LevelModule/      # 关卡脚本与场景（Level_01 ~ Level_final）
-├── PlayerModule/     # 玩家与摄像机
-├── EnemyModule/      # 敌人与 Boss
-├── DataConfig/       # LevelConfig / LevelData 数值与文案
-├── UI/               # TitleScreen、HUD、键位设置
-├── Tools/            # CodeRain、WarningBarrier、弹体特效等
-└── Assets/           # 音乐、音效、贴图、字体
-```
+UI 系统	UI/	TitleScreen、MainEntry、HUD
 
-详细设计文档见 **[TECHNICAL_ARCHITECTURE_REPORT.md](./TECHNICAL_ARCHITECTURE_REPORT.md)**（面向关卡设计与二次开发）。
+资源	Assets/	精灵图、音乐、Shader 特效
 
----
+🎮 关卡概览
 
-## 开发说明
+关卡	名称	核心玩法
 
-- **叙事文案**：优先编辑 `DataConfig/Level/LevelXXData.tres`，避免在 `.gd` 中硬编码字符串
-- **跨模块通信**：统一走 `EventBus`，碰撞层使用 `GlobalDefine.Collision.*` 常量
-- **关卡切换**：Level_01~04 由 `MainEntry` 托管；Level_04 之后使用 `change_scene_to_file` 整树切换
+Level_01	苏醒	7 态叙事状态机，熟悉操作，IDE 编码互动
 
----
+Level_02	阁楼→老街	分段式关卡链，纸扎人 + 灯笼鬼，梯子攀爬解谜
 
-## 致谢
+Level_03	赛博蜃景	6 态空间异化，回声收集，防火墙系统
 
-黑客松参赛项目 · 岭南文化 × 赛博叙事 × meta 解谜
+Level_04	维度侵蚀	半对半空间硬切，赛博↔岭南瞬移切换
+
+Level_05	双世界撕裂	双世界 Map Stitch，侵蚀值系统，花旦 Boss 战
+
+👹 Boss：花旦（Huadan）
+
+花旦是本作的最终 Boss，拥有 4 阶段 渐进式 AI 系统：
+
+阶段	HP 范围	核心特性
+
+Phase 1	600~451	基础行为，高闪避(70%)，易打断
+
+Phase 2	450~301	霸体免疫打断，移速+10%
+
+Phase 3	300~151	🔥 跳跃悬停，3 发独立瞄准剑气，空中 10s
+
+Phase 4	150~0	🔥 近战+剑气连击，移速暴增至 350，极低闪避(15%)
+
+行为决策：每 0.3s 评估一次，包含 IDLE / APPROACH / RETREAT / RANGED / MELEE / EVADE / JUMP / HOVER 共 8 种行为，各阶段独立决策树。
+
+
+🔧 本地开发
+
+环境要求
+
+Godot 4.6（GL Compatibility Mode）
+
+使用 Godot 编辑器打开项目根目录
+
+Web 导出
+
+在 Godot 编辑器中配置 Web 导出预设
+
+确保启用 ensure_cross_origin_isolation_headers = true
+
+导出到 build/web/ 目录
+
+使用上述 Docker 方式部署
+
+注意：Godot 4 Web 导出依赖 SharedArrayBuffer，需要服务端返回 Cross-Origin-Opener-Policy 和 Cross-Origin-Embedder-Policy 头，已在内置 Nginx 配置中处理。
+
+🎨 视觉风格
+
+像素艺术: 基于像素拼接的地图系统（PixelworkMapStitch）
+
+Shader 特效: Glitch 撕裂、RGB 色散、色彩腐蚀、警告屏障
+
+CodeRain: 自绘代码雨系统（_draw() + Silkscreen 像素字体）
+
+双世界美学: 岭南古风（暖色调街巷）+ 赛博未来（终端绿霓虹）
+
+📝 变更日志
+
+最新版本 v0.12.0 主要更新：
+
+
+
+✅ CodeRain 完全重写（_draw() 实时渲染）
+
+✅ 防火墙屏障 Glitch 特效系统
+
+✅ Level_05 双世界侵蚀 + BossHuadan 花旦 4 阶段 AI
+
+✅ 剑气弹道追踪系统
+
+✅ 花旦悬停 + 3 发独立瞄准剑气
+
+✅ 近战附带剑气连击（Phase 4）
+
+✅ 全局事件驱动架构完善
+
+详细变更请参见 TECHNICAL_ARCHITECTURE_REPORT.md
+
+
+🤝 贡献
+
+本项目为黑客松竞赛作品，欢迎 Fork 和 Star！
+
+📄 许可证
+
+本项目仅供学习和竞赛用途。
+
+Made with Godot 4.6
