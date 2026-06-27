@@ -3,12 +3,16 @@ class_name Player_Warrior_Cyber
 
 var _hit_pending: bool = false
 
-# ---- 闪电突进技能 ----
-var _is_charging: bool = false
-var _charge_time: float = 0.0
-const CYBER_SKILL_CD := 4.0        # 赛博技能CD
-const CHARGE_THRESHOLD := 0.15     # 最短蓄力时间才算长按
-const MAX_CHARGE_TIME := 1.0       # 最大蓄力时间
+# ---- 长按普攻：闪电突进（原技能突进逻辑，独立CD不影响普攻） ----
+var _attack_hold_time: float = 0.0
+const ATTACK_HOLD_THRESHOLD := 0.25   # 长按阈值
+var _dash_cd_timer: float = 0.0        # 突进独立CD（不影响普攻）
+const DASH_CD := 4.0                   # 突进CD（原CYBER_SKILL_CD）
+const DASH_WINDUP_TIME := 0.2          # 突进前摇蓄力时长
+var _dash_windup: bool = false         # 突进蓄力中
+var _dash_windup_timer: float = 0.0    # 蓄力计时
+
+# ---- 闪电突进状态 ----
 var _is_lightning_dash: bool = false
 var _dash_timer: float = 0.0
 var _dash_dir: float = 1.0
@@ -66,48 +70,50 @@ func _do_delayed_hit() -> void:
 			})
 			break
 
-# ---- 赛博技能：长按蓄力 → 闪电突进 ----
-
-func _on_skill() -> void:
-	# 不调用 super，完全覆盖为赛博专属技能
-	_is_charging = true
-	_charge_time = 0.0
-	attack_cooldown_timer = 0.0
-	_skill_cooldown_timer = CYBER_SKILL_CD
-	_change_state(GlobalDefine.PlayerState.SKILL)
-	# 蓄力期间霸体：受击不击退不中断，只扣血
-	_is_super_armor = true
-	# 蓄力中减速
-	velocity.x = move_toward(velocity.x, 0, 600.0)
-	# 播放 attack 动画并冻结在第2帧
-	if _anim_sprite and _anim_sprite.sprite_frames:
-		if _anim_sprite.sprite_frames.has_animation("attack"):
-			_anim_sprite.play("attack")
-			_anim_sprite.frame = 2
-			_anim_sprite.pause()
+# ---- 长按普攻：闪电突进 ----
 
 func _on_physics_process(delta: float) -> void:
 	super._on_physics_process(delta)
 
-	# 蓄力帧逻辑
-	if _is_charging:
-		_charge_time += delta
+	# 突进CD递减
+	if _dash_cd_timer > 0:
+		_dash_cd_timer -= delta
+
+	# 长按普攻检测：按下时计时，超过阈值触发突进蓄力
+	if not _is_lightning_dash and not _dash_windup and not is_attacking and not is_dashing:
+		if Input.is_action_pressed("player_attack") and _dash_cd_timer <= 0:
+			_attack_hold_time += delta
+			if _attack_hold_time >= ATTACK_HOLD_THRESHOLD:
+				_attack_hold_time = 0.0
+				_start_dash_windup()
+		else:
+			_attack_hold_time = 0.0
+	else:
+		_attack_hold_time = 0.0
+
+	# 突进蓄力帧逻辑
+	if _dash_windup:
+		_dash_windup_timer -= delta
 		# 蓄力视觉：角色微闪烁
 		if _anim_sprite:
-			var blink = 0.7 + 0.3 * abs(sin(_charge_time * 15.0))
+			var blink = 0.7 + 0.3 * abs(sin(_dash_windup_timer * 30.0))
 			_anim_sprite.modulate = Color(blink, blink, 1.2, 1.0)
-		# 冻结动画帧
-		if _anim_sprite and _anim_sprite.animation == "attack":
-			var max_frame = _anim_sprite.sprite_frames.get_frame_count("attack") - 1 if _anim_sprite.sprite_frames else 0
-			_anim_sprite.frame = mini(2, max(0, max_frame))
-			_anim_sprite.pause()
-		# 超过最大蓄力自动释放
-		if _charge_time >= MAX_CHARGE_TIME:
-			_release_skill()
-			return
-		# 检测松开
-		if not Input.is_action_pressed("player_skill"):
-			_release_skill()
+		# 冻结 attack 动画在第2帧
+		if _anim_sprite and _anim_sprite.sprite_frames:
+			if _anim_sprite.sprite_frames.has_animation("attack"):
+				if _anim_sprite.animation != "attack":
+					_anim_sprite.play("attack")
+				var max_frame = _anim_sprite.sprite_frames.get_frame_count("attack") - 1
+				_anim_sprite.frame = mini(2, max(0, max_frame))
+				_anim_sprite.pause()
+		# 蓄力期间减速
+		velocity.x = move_toward(velocity.x, 0, 600.0)
+		# 蓄力结束 → 突进
+		if _dash_windup_timer <= 0:
+			_dash_windup = false
+			if _anim_sprite:
+				_anim_sprite.modulate = Color.WHITE
+			_do_lightning_dash()
 		return
 
 	# 闪电突进帧逻辑
@@ -126,64 +132,50 @@ func _on_physics_process(delta: float) -> void:
 			_end_lightning_dash()
 		return
 
-# ---- 释放技能 ----
+# ---- 技能（I键）：5发远程剑气 ----
 
-func _release_skill() -> void:
-	_is_charging = false
-	_is_super_armor = false
-	if _anim_sprite:
-		_anim_sprite.modulate = Color.WHITE
-		_anim_sprite.position = Vector2.ZERO
-
-	if _charge_time < CHARGE_THRESHOLD:
-		# 短按 → 发射冲击波
-		_fire_shockwave()
-		is_attacking = true
-		attack_timer = 0.3
-		return
-
-	# 长按 → 闪电突进
-	_do_lightning_dash()
-
-# ---- 短按：发射冲击波 ----
-
-func _fire_shockwave() -> void:
+func _on_skill() -> void:
+	is_attacking = true
+	has_hit_this_attack = false
+	attack_timer = 0.6
+	attack_cooldown_timer = 0.0
+	_skill_cooldown_timer = CYBER_SKILL_CD
+	_change_state(GlobalDefine.PlayerState.SKILL)
+	# 连发5道剑气弹体（散射+追踪Boss）
 	var facing_dir := 1.0 if is_facing_right else -1.0
+	# Boss战时散射中心朝向Boss，否则朝面向方向
+	var base_dir = Vector2(facing_dir, 0)
+	if GameManager.boss_target and is_instance_valid(GameManager.boss_target):
+		var to_boss = GameManager.boss_target.global_position - global_position
+		if to_boss.length() > 10:
+			base_dir = to_boss.normalized()
 	var projectile_script = load("res://Tools/SwordQiProjectile.gd")
-	var projectile = Area2D.new()
-	projectile.set_script(projectile_script)
 	var parent = get_parent()
-	if parent:
-		parent.add_child(projectile)
-		projectile.global_position = global_position + Vector2(facing_dir * 25, -10)
-		projectile.setup(Vector2(facing_dir, 0), 25, self, 350.0)
-	# 电弧视觉
-	_spawn_shockwave_arc(facing_dir)
+	for i in range(5):
+		var projectile = Area2D.new()
+		projectile.set_script(projectile_script)
+		if parent:
+			parent.add_child(projectile)
+			# 扇形散布5发，散射后追踪Boss
+			var spread_angle = deg_to_rad(-30 + i * 15)
+			var dir = base_dir.rotated(spread_angle)
+			projectile.global_position = global_position + Vector2(facing_dir * 25, -10) + Vector2(0, (i - 2) * 8)
+			projectile.setup_homing(dir, 20, self, 600.0, true)
+	# 扇形电弧视觉
+	_spawn_arc_effect(Vector2(facing_dir, -0.2).normalized(), facing_dir)
+	# 震屏
+	var cam = get_node_or_null("SmoothCamera")
+	if cam and cam.has_method("shake"):
+		cam.shake(6.0, 0.15)
 
-## 短按电弧视觉（单道，比技能全扇形简单）
-func _spawn_shockwave_arc(facing_dir: float) -> void:
-	var parent = get_parent()
-	if not parent:
-		return
-	var attack_dir = Vector2(facing_dir, -0.15).normalized()
-	var line = Line2D.new()
-	line.width = 2.5
-	line.default_color = Color(0.4, 0.7, 1.0, 0.9)
-	line.z_index = 9
-	var start = global_position + Vector2(facing_dir * 15, -10)
-	var points = [parent.to_local(start)]
-	var pos = start
-	for j in range(4):
-		var seg_len = 18.0 + randf() * 12.0
-		var jitter = randf_range(-0.25, 0.25)
-		pos += attack_dir * seg_len + Vector2(jitter * 18, randf_range(-8, 8))
-		points.append(parent.to_local(pos))
-	for pt in points:
-		line.add_point(pt)
-	parent.add_child(line)
-	var tween = line.create_tween()
-	tween.tween_property(line, "modulate:a", 0.0, 0.25)
-	tween.tween_callback(line.queue_free)
+const CYBER_SKILL_CD := 4.0  # 技能CD（保持不变）
+
+# ---- 突进蓄力 ----
+
+func _start_dash_windup() -> void:
+	_dash_windup = true
+	_dash_windup_timer = DASH_WINDUP_TIME
+	_change_state(GlobalDefine.PlayerState.ATTACK)
 
 # ---- 闪电突进 ----
 
@@ -194,19 +186,19 @@ func _do_lightning_dash() -> void:
 	_dash_start_pos = global_position
 	_dash_hit_enemies.clear()
 	_lightning_cooldown = 0.0
+	_dash_cd_timer = DASH_CD  # 突进独立CD
 	is_attacking = true
 	attack_timer = _dash_duration + 0.1
 	# 全程无敌
 	_was_invincible = is_invincible
 	is_invincible = true
 	invincible_timer = _dash_duration + 0.1
-	_change_state(GlobalDefine.PlayerState.SKILL)
+	_change_state(GlobalDefine.PlayerState.ATTACK)
 	# 起手闪电爆发
 	_spawn_lightning_burst()
 
 func _end_lightning_dash() -> void:
 	_is_lightning_dash = false
-	_is_super_armor = false
 	# 恢复无敌状态
 	if not _was_invincible:
 		is_invincible = false
@@ -315,31 +307,60 @@ func _spawn_lightning_burst() -> void:
 		tween.tween_property(line, "modulate:a", 0.0, 0.25)
 		tween.tween_callback(line.queue_free)
 
-# ---- 覆盖：蓄力期间冻结动画 ----
+# ---- 扇形电弧视觉（技能用） ----
+
+func _spawn_arc_effect(attack_dir: Vector2, facing_dir: float) -> void:
+	var parent = get_parent()
+	if not parent:
+		return
+	for i in range(3):
+		var arc_angle = attack_dir.angle() + deg_to_rad(-40 + i * 40) + randf_range(-0.1, 0.1)
+		var arc_dir = Vector2.from_angle(arc_angle)
+		var line = Line2D.new()
+		line.width = 2.0
+		line.default_color = Color(0.4, 0.7, 1.0, 0.9)
+		line.z_index = 9
+		var start = global_position + Vector2(facing_dir * 15, -10)
+		var points = [start]
+		var pos = start
+		var seg_count = 5 + randi_range(0, 3)
+		for j in range(seg_count):
+			var seg_len = 20.0 + randf() * 15.0
+			var jitter = randf_range(-0.3, 0.3)
+			pos += arc_dir * seg_len + Vector2(jitter * 20, randf_range(-10, 10))
+			points.append(pos)
+		for pt in points:
+			line.add_point(parent.to_local(pt))
+		parent.add_child(line)
+		var tween = line.create_tween()
+		tween.tween_property(line, "modulate:a", 0.0, 0.3)
+		tween.tween_callback(line.queue_free)
+
+# ---- 覆盖：突进期间不更新动画 ----
 
 func _update_animation() -> void:
-	if _is_charging and _anim_sprite:
-		return  # 蓄力期间不更新动画
+	if _is_lightning_dash or _dash_windup:
+		return  # 突进/蓄力有自己的动画控制
 	super._update_animation()
 
 func _handle_attack_state(delta: float) -> void:
-	if _is_lightning_dash:
-		return  # 突进有自己的速度控制
+	if _is_lightning_dash or _dash_windup:
+		return  # 突进/蓄力有自己的速度控制
 	super._handle_attack_state(delta)
 
-# ---- 覆盖：技能执行中不接受其他操作 ----
+# ---- 覆盖：突进/蓄力中不接受其他操作 ----
 
 func _on_game_action(action: StringName, _event: InputEvent) -> void:
-	if _is_charging or _is_lightning_dash:
+	if _is_lightning_dash or _dash_windup:
 		return
 	super._on_game_action(action, _event)
 
-# ---- 死亡时清理技能状态 ----
+# ---- 死亡时清理状态 ----
 
 func _on_die() -> void:
-	_is_charging = false
 	_is_lightning_dash = false
-	_is_super_armor = false
+	_dash_windup = false
+	_attack_hold_time = 0.0
 	if _anim_sprite:
 		_anim_sprite.modulate = Color.WHITE
 		_anim_sprite.position = Vector2.ZERO

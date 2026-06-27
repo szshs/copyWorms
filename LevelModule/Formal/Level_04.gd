@@ -199,6 +199,17 @@ func _on_ready() -> void:
 	else:
 		_spawn_stage1_enemies(); _restore_combat_mechanics()
 	print("[Level_04] 初始化完成")
+	# 调试：阶段测试面板（按0开关）
+	_setup_stage_test_panel()
+
+
+func _setup_stage_test_panel() -> void:
+	var panel = load("res://Tools/StageTestPanel.gd").new(self, [
+		{"name": "阶段1: 同构战斗", "action": func(): _goto_stage1_test()},
+		{"name": "阶段2: 世界切换", "action": func(): _goto_stage2_test()},
+		{"name": "阶段3: 出口交互", "action": func(): _goto_stage3_test()},
+	])
+	add_child(panel)
 
 
 func _exit_tree() -> void:
@@ -1136,3 +1147,38 @@ func _full_cleanup() -> void:
 		if is_instance_valid(e): GameManager.unregister_enemy(e); e.queue_free()
 	_stage2_cyber_enemies.clear()
 	EventBus.unsubscribe_all(self)
+
+# ---- 测试面板跳转 ----
+
+func _goto_stage1_test() -> void:
+	current_state = LevelState.HOMOMORPHIC_COMBAT
+	var p = GameManager.player_ref
+	if p and is_instance_valid(p):
+		p.global_position = Vector2(400, 550)
+		_swap_player_skin("Cyber")
+		_snap_camera(GameManager.player_ref)
+		_set_cam_from_group($Stage1Collisions, -696)
+
+func _goto_stage2_test() -> void:
+	if not _stage2_entered:
+		_enter_stage2()
+	else:
+		var p = GameManager.player_ref
+		if p and is_instance_valid(p):
+			p.global_position = STAGE2_SPAWN
+			_swap_player_skin("Lingnan")
+			_snap_camera(GameManager.player_ref)
+			_set_camera_limits(0, 7472, 4000, 5032)
+
+func _goto_stage3_test() -> void:
+	# 直接跳到阶段3交互点附近
+	if not _stage2_entered:
+		_enter_stage2()
+	var p = GameManager.player_ref
+	if p and is_instance_valid(p):
+		# 移动到 enter_stage3 交互点附近
+		for obj in _all_interactives:
+			if obj.object_id == "enter_stage3" and is_instance_valid(obj):
+				p.global_position = obj.global_position + Vector2(-60, 0)
+				break
+		_snap_camera(p)

@@ -28,6 +28,7 @@ func _ready() -> void:
 	_setup_initial_state()
 	_connect_signals()
 	_start_hotspot_flicker()
+	set_process_input(true)
 
 # ============================================================
 # 光点闪烁：复用关卡1 InteractiveObject.apply_level01_dot_visual 的正弦呼吸
@@ -197,3 +198,11 @@ func _on_open_settings() -> void:
 		add_child(screen)
 	else:
 		push_error("[TitleScreen] 无法加载按键设置界面")
+
+func _input(event: InputEvent) -> void:
+	# 按1进入玩家测试场景
+	if event is InputEventKey and event.pressed and event.keycode == KEY_1:
+		SFXManager.play(SFXManager.SFX.UI_CLICK)
+		print("[TitleScreen] >>> 进入玩家测试场景 <<<")
+		GameManager.run_mode = GlobalDefine.RunMode.FORMAL
+		SceneTransitionManager.request_scene_change("res://Scenes/TestArena.tscn", self)

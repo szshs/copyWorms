@@ -318,6 +318,54 @@ func _on_ready() -> void:
 		print("[Level_05] 从检查点恢复：直接进入bg4 Boss战")
 		# 显示"按G切换人物外观"指引
 		_show_skin_hint()
+	# 调试：阶段测试面板（按0开关）
+	_setup_stage_test_panel()
+
+
+func _setup_stage_test_panel() -> void:
+	var panel = load("res://Tools/StageTestPanel.gd").new(self, [
+		{"name": "bg3: 双世界侵蚀", "action": func(): _goto_bg3_test()},
+		{"name": "bg4: Boss战", "action": func(): _goto_bg4_test()},
+		{"name": "bg5: 灯笼结局", "action": func(): _goto_bg5_test()},
+	])
+	add_child(panel)
+
+func _goto_bg3_test() -> void:
+	_in_boss_arena = false
+	_in_bg5 = false
+	_set_boss_area_active(false)
+	_set_bg5_area_active(false)
+	_set_map_sprites_visible(true)
+	_set_collision_group_active(_cyber_collisions, true)
+	_set_collision_group_active(_lingnan_collisions, false)
+	_teleport_and_setup_camera(Vector2(-1603, 380), 0, 0, 80, 648, 1.33)
+	_set_cam_from_group($CyberCollisions, 80, 648)
+	_despawn_boss()
+	_hide_boss_bar()
+	_spawn_all_enemies(true)
+
+func _goto_bg4_test() -> void:
+	_in_boss_arena = true
+	_in_bg5 = false
+	_set_boss_area_active(true)
+	_set_map_sprites_visible(false)
+	_set_bg5_area_active(false)
+	_teleport_and_setup_camera(Vector2(931, 5037), 620, 1710, 4509, 5135, 1.5)
+	_set_cam_from_group($BossCollisions, 4512)
+	_spawn_boss()
+	_show_boss_bar()
+	_show_skin_hint()
+
+func _goto_bg5_test() -> void:
+	_in_boss_arena = false
+	_in_bg5 = true
+	_set_boss_area_active(false)
+	_set_map_sprites_visible(false)
+	_set_bg5_area_active(true)
+	_teleport_and_setup_camera(BG5_PLAYER_POS, BG5_CAM_LEFT, BG5_CAM_RIGHT, 7448, BG5_CAM_BOTTOM, 1.33)
+	_set_cam_from_group($Bg5Collisions, 7448)
+	_hide_boss_bar()
+	_despawn_boss()
 
 
 func _exit_tree() -> void:

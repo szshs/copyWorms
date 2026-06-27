@@ -15,6 +15,7 @@ var max_distance: float = 350.0
 var _traveled: float = 0.0
 var _hit_enemies: Array = []  # 已命中敌人ID，防止重复
 var _owner: Node2D = null
+var _homing: bool = false  # 是否追踪（仅Boss战特定弹体启用）
 
 # 视觉
 var _trail_line: Line2D = null
@@ -68,9 +69,14 @@ func setup(dir: Vector2, dmg: int, owner: Node2D, dist: float = 350.0) -> void:
 	_owner = owner
 	max_distance = dist
 
+## 带追踪参数的初始化（homing=true 时弹体追踪 boss_target）
+func setup_homing(dir: Vector2, dmg: int, owner: Node2D, dist: float = 350.0, homing: bool = false) -> void:
+	setup(dir, dmg, owner, dist)
+	_homing = homing
+
 func _physics_process(delta: float) -> void:
-	# Boss 战自动瞄准：仅在 bg4（GameManager.boss_target 存在时）生效
-	if GameManager.boss_target and is_instance_valid(GameManager.boss_target):
+	# 仅追踪弹体（_homing=true）才追踪 boss_target
+	if _homing and GameManager.boss_target and is_instance_valid(GameManager.boss_target):
 		var to_boss = GameManager.boss_target.global_position - global_position
 		if to_boss.length() > 10:
 			direction = to_boss.normalized()
