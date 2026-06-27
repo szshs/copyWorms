@@ -405,6 +405,39 @@ func _update_skill_cooldown() -> void:
 		var t = Time.get_ticks_msec() * 0.004
 		_skill_ready_glow.color.a = 0.15 + 0.2 * abs(sin(t))
 
+## 每帧更新蓄力攻击冷却UI
+func _update_dash_cooldown() -> void:
+	if not _dash_icon_container: return
+	if _skill_icon_suppressed:
+		_dash_icon_container.visible = false
+		return
+	var p = GameManager.player_ref
+	if not p or not is_instance_valid(p):
+		_dash_icon_container.visible = false
+		return
+	var cd_remaining: float = 0.0
+	var cd_max: float = 1.0
+	if "_dash_cd_timer" in p:
+		cd_remaining = p.get("_dash_cd_timer")
+		cd_max = p.get("DASH_CD") if "DASH_CD" in p else 4.0
+	elif "_dash_attack_cd_timer" in p:
+		cd_remaining = p.get("_dash_attack_cd_timer")
+		cd_max = p.get("DASH_ATTACK_CD") if "DASH_ATTACK_CD" in p else 5.0
+	else:
+		_dash_icon_container.visible = false
+		return
+	_dash_icon_container.visible = true
+	if cd_remaining > 0.01:
+		var ratio = clampf(cd_remaining / cd_max, 0.0, 1.0)
+		_dash_cooldown_overlay.size.y = SKILL_ICON_SIZE * ratio
+		_dash_cd_label.text = "%.1f" % cd_remaining
+		_dash_ready_glow.color.a = 0.0
+	else:
+		_dash_cooldown_overlay.size.y = 0
+		_dash_cd_label.text = ""
+		var t = Time.get_ticks_msec() * 0.004
+		_dash_ready_glow.color.a = 0.15 + 0.2 * abs(sin(t))
+
 func _update_skill_key_hint() -> void:
 	if not _skill_key_label:
 		return
