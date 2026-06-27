@@ -15,7 +15,7 @@ config/description="2D横版动作游戏 - 黑客松项目"
 config/version="0.1.0"
 run/main_scene="res://UI/TitleScreen.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
-config/icon="res://Assets/Sprites/icon.svg"
+config/icon="uid://c3qto22tq6eto"
 
 [autoload]
 
@@ -27,9 +27,9 @@ KeybindManager="*res://Global/KeybindManager.gd"
 MusicManager="*res://Global/MusicManager.gd"
 SFXManager="*res://Global/SFXManager.gd"
 SceneTransitionManager="*res://Global/SceneTransitionManager.gd"
-MCPScreenshot="*res://addons/godot_mcp/mcp_screenshot_service.gd"
-MCPInputService="*res://addons/godot_mcp/mcp_input_service.gd"
-MCPGameInspector="*res://addons/godot_mcp/mcp_game_inspector_service.gd"
+MCPScreenshot="res://addons/godot_mcp/mcp_screenshot_service.gd"
+MCPInputService="res://addons/godot_mcp/mcp_input_service.gd"
+MCPGameInspector="res://addons/godot_mcp/mcp_game_inspector_service.gd"
 
 [display]
 
@@ -38,10 +38,6 @@ window/size/viewport_height=720
 window/size/mode=2
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
 
 [input]
 

@@ -41,7 +41,7 @@ func _ready() -> void:
 	add_child(vis)
 
 	_label_w = Label.new()
-	_label_w.text = "W ↑"
+	_label_w.text = "W 上"
 	_label_w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_w.add_theme_font_size_override("font_size", 20)
 	_label_w.add_theme_color_override("font_color", Color(0, 1, 0.3))
@@ -51,7 +51,7 @@ func _ready() -> void:
 	add_child(_label_w)
 
 	_label_s = Label.new()
-	_label_s.text = "S ↓"
+	_label_s.text = "S 下"
 	_label_s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_s.add_theme_font_size_override("font_size", 20)
 	_label_s.add_theme_color_override("font_color", Color(0, 1, 0.3))

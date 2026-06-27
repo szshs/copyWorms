@@ -1,6 +1,6 @@
 # ============================================================
 # HUD.gd - 游戏抬头显示（纯代码构建UI）
-# 显示血条、状态、返回主界面按钮
+# 显示血条、状态、暂停与游戏结束面板
 # ============================================================
 extends CanvasLayer
 
@@ -94,17 +94,6 @@ func _build_ui() -> void:
 	_health_frame.z_index = 10
 	bar_container.add_child(_health_frame)
 	_update_health_frame()
-
-	# === 返回主界面按钮（右上角） ===
-	var back_btn = Button.new()
-	back_btn.name = "BackButton"
-	back_btn.text = "返回主界面"
-	back_btn.position = Vector2(1120, 20)
-	back_btn.size = Vector2(140, 36)
-	back_btn.add_theme_font_size_override("font_size", 21)
-	back_btn.focus_mode = Control.FOCUS_NONE
-	back_btn.pressed.connect(_on_back_pressed)
-	add_child(back_btn)
 
 	# === 暂停面板 ===
 	pause_panel = Panel.new()
@@ -255,12 +244,14 @@ func _build_skill_icon() -> void:
 	_skill_cd_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_skill_icon_container.add_child(_skill_cd_label)
 
-	# 按键提示"I"（左下角小字）
+	# 技能按键提示（读取当前 player_skill 绑定）
 	_skill_key_label = Label.new()
 	_skill_key_label.name = "KeyHint"
-	_skill_key_label.text = "[I]"
-	_skill_key_label.size = Vector2(30, 18)
-	_skill_key_label.position = Vector2(-2, SKILL_ICON_SIZE - 16)
+	_skill_key_label.text = ""
+	_skill_key_label.size = Vector2(SKILL_ICON_SIZE, 20)
+	_skill_key_label.position = Vector2(0, SKILL_ICON_SIZE - 18)
+	_skill_key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_skill_key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_skill_key_label.add_theme_font_size_override("font_size", 20)
 	_skill_key_label.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
 	_skill_key_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
@@ -268,6 +259,7 @@ func _build_skill_icon() -> void:
 	_skill_key_label.add_theme_constant_override("shadow_offset_y", 1)
 	_skill_key_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_skill_icon_container.add_child(_skill_key_label)
+	_update_skill_key_hint()
 
 func _process(_delta: float) -> void:
 	_update_skill_cooldown()
@@ -275,6 +267,7 @@ func _process(_delta: float) -> void:
 ## 每帧更新技能冷却UI
 func _update_skill_cooldown() -> void:
 	if not _skill_icon_container: return
+	_update_skill_key_hint()
 	if _skill_icon_suppressed:
 		_skill_icon_container.visible = false
 		return
@@ -310,6 +303,28 @@ func _update_skill_cooldown() -> void:
 		_skill_cd_label.text = ""
 		var t = Time.get_ticks_msec() * 0.004
 		_skill_ready_glow.color.a = 0.15 + 0.2 * abs(sin(t))
+
+func _update_skill_key_hint() -> void:
+	if not _skill_key_label:
+		return
+	var text := "[%s]" % _get_first_action_event_display(&"player_skill")
+	if _skill_key_label.text == text:
+		return
+	_skill_key_label.text = text
+	var font_size := 20
+	if text.length() > 5:
+		font_size = 16
+	if text.length() > 8:
+		font_size = 13
+	_skill_key_label.add_theme_font_size_override("font_size", font_size)
+	_skill_key_label.size = Vector2(maxf(SKILL_ICON_SIZE, float(text.length() * font_size) * 0.58), 20)
+	_skill_key_label.position = Vector2((SKILL_ICON_SIZE - _skill_key_label.size.x) * 0.5, SKILL_ICON_SIZE - 18)
+
+func _get_first_action_event_display(action: StringName) -> String:
+	var events: Array[InputEvent] = InputMap.action_get_events(action)
+	if events.is_empty():
+		return "?"
+	return KeybindManager.get_event_display_text(events[0])
 
 func _connect_events() -> void:
 	EventBus.subscribe(GlobalDefine.EventName.HEALTH_CHANGED, self, "_on_health_changed")

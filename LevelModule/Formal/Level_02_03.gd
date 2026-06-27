@@ -994,9 +994,9 @@ func _generate_ai_reply(user_msg: String) -> String:
 
 	# 关键词匹配回复（梦境世界观相关）
 	if msg_lower.contains("爷爷") or msg_lower.contains("grandfather"):
-		return "你的爷爷叫\ufffc陈德叔\ufffc，他在西关老街经营了四十年的凉茶铺。\n\n数据库里关于他的记忆片段非常丰富——需要我调取更多细节吗？"
+		return "你的爷爷叫“陈德叔”，他在西关老街经营了四十年的凉茶铺。\n\n数据库里关于他的记忆片段非常丰富——需要我调取更多细节吗？"
 	if msg_lower.contains("梦") and (msg_lower.contains("醒") or msg_lower.contains("逃") or msg_lower.contains("出") or msg_lower.contains("回")):
-		return "阿明，这个梦境是由你的记忆数据编译而成的。理论上，只有修改配置后重新编译，才能改变梦的规则。\n\n不过……如果你只是想\ufffc醒来\ufffc，现实世界的时间流逝比梦境快很多——你的身体需要休息。"
+		return "阿明，这个梦境是由你的记忆数据编译而成的。理论上，只有修改配置后重新编译，才能改变梦的规则。\n\n不过……如果你只是想“醒来”，现实世界的时间流逝比梦境快很多——你的身体需要休息。"
 	if msg_lower.contains("裂缝") or msg_lower.contains("断崖") or msg_lower.contains("跳"):
 		return "目前梦境中那道裂缝的跳跃判定逻辑存在问题。原始配置中 Base_Jump_Height 设定过低。\n\n建议在配置编辑器中将其调整为 99——这样你就可以跳过裂缝，到达对岸的凉茶铺。"
 	if msg_lower.contains("黑影") or msg_lower.contains("敌人") or msg_lower.contains("伤害") or msg_lower.contains("打"):
@@ -1461,7 +1461,7 @@ func _build_all_ui() -> void:
 	logo.position = Vector2(16, 8)
 	sidebar.add_child(logo)
 	var logo_sub = Label.new()
-	logo_sub.name = "LogoVersion"; logo_sub.text = ">_ v1.4.2 — recovered"
+	logo_sub.name = "LogoVersion"; logo_sub.text = ">_ v1.4.2 - recovered"
 	logo_sub.add_theme_font_size_override("font_size", 16)
 	logo_sub.add_theme_color_override("font_color", Color(0.35, 0.5, 0.6))
 	logo_sub.position = Vector2(16, 32)
@@ -1475,7 +1475,7 @@ func _build_all_ui() -> void:
 	proj_section.position = Vector2(16, 72)
 	sidebar.add_child(proj_section)
 	var proj_name = Label.new()
-	proj_name.name = "ProjectName"; proj_name.text = "▣ Xiguan_Dream"
+	proj_name.name = "ProjectName"; proj_name.text = "[+] Xiguan_Dream"
 	proj_name.add_theme_font_size_override("font_size", 20)
 	proj_name.add_theme_color_override("font_color", Color(0.75, 0.8, 0.85))
 	proj_name.position = Vector2(16, 86)
@@ -1494,7 +1494,7 @@ func _build_all_ui() -> void:
 	files_label.add_theme_color_override("font_color", Color(0.3, 0.35, 0.45))
 	files_label.position = Vector2(16, 126)
 	sidebar.add_child(files_label)
-	var file_items = ["  ▸ src/config/", "  ▸ src/player/", "  ▸ src/enemy/", "  ▸ src/dream/"]
+	var file_items = ["  > src/config/", "  > src/player/", "  > src/enemy/", "  > src/dream/"]
 	for j in range(file_items.size()):
 		var fi = Label.new()
 		fi.text = file_items[j]
@@ -1572,7 +1572,7 @@ func _build_all_ui() -> void:
 	xstyle.border_color = Color(0.3, 0.5, 0.4); xstyle.set_corner_radius_all(8)
 	_config_ui.add_theme_stylebox_override("panel", xstyle)
 	var ctitle = Label.new()
-	ctitle.name = "ConfigTitle"; ctitle.text = "▣ Xiguan_Dream.ini — 配置编辑器"
+	ctitle.name = "ConfigTitle"; ctitle.text = "[+] Xiguan_Dream.ini - 配置编辑器"
 	ctitle.add_theme_font_size_override("font_size", 27)
 	ctitle.add_theme_color_override("font_color", Color(0.5, 0.9, 0.6))
 	ctitle.position = Vector2(24, 16)
@@ -1604,7 +1604,7 @@ func _build_all_ui() -> void:
 		fb.position = Vector2(36, row_y + 32); fb.size = Vector2(760, 22); fb.text = ""
 		_config_ui.add_child(fb); _config_feedback_labels.append(fb)
 	_recompile_button = Button.new()
-	_recompile_button.name = "RecompileButton"; _recompile_button.text = "⟳ 重新编译并注入梦境"
+	_recompile_button.name = "RecompileButton"; _recompile_button.text = "重新编译并注入梦境"
 	_recompile_button.disabled = true; _recompile_button.position = Vector2(280, 392)
 	_recompile_button.size = Vector2(280, 44)
 	_recompile_button.add_theme_font_size_override("font_size", 24); _recompile_button.focus_mode = Control.FOCUS_NONE

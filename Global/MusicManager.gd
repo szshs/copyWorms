@@ -48,7 +48,7 @@ func play_bgm(stream_path: String, from_position: float = 0.0) -> void:
 	var stream := _load_stream(stream_path)
 	if not stream:
 		return
-	if _is_current(stream_path):
+	if _is_current_or_loaded(stream_path):
 		return
 	_transition_id += 1
 	_kill_tween()
@@ -81,7 +81,7 @@ func play_bgm_from_stream(stream: Resource, from_position: float = 0.0) -> void:
 	if not audio_stream:
 		return
 	var key := audio_stream.resource_path
-	if key != "" and _is_current(key):
+	if key != "" and _is_current_or_loaded(key):
 		return
 	_transition_id += 1
 	_kill_tween()
@@ -189,6 +189,13 @@ func _load_stream(stream_path: String) -> AudioStream:
 
 func _is_current(stream_path: String) -> bool:
 	return stream_path != "" and stream_path == _current_bgm_path and is_playing()
+
+
+func _is_current_or_loaded(stream_path: String) -> bool:
+	return stream_path != "" \
+		and stream_path == _current_bgm_path \
+		and _primary_player != null \
+		and is_instance_valid(_primary_player)
 
 
 func _make_player(stream: AudioStream, volume_db: float) -> AudioStreamPlayer:

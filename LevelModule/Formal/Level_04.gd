@@ -635,7 +635,7 @@ func _start_stage2_warning() -> void:
 
 	# ---- 音效：程序化警报 ----
 	_start_stage2_alarm()
-	print("[Level_04] ⚠ 阶段2 世界切换预警启动！")
+	print("[Level_04] [WARN] 阶段2 世界切换预警启动！")
 
 func _stop_stage2_warning() -> void:
 	# 停止 glitch

@@ -45,7 +45,14 @@ func _apply_global_font() -> void:
 	# 设置项目默认主题字体，所有 Control 节点自动继承
 	var default_theme := ThemeDB.get_default_theme()
 	default_theme.set_default_font(font)
+	_apply_font_to_theme_variants(default_theme, font)
 	print("[GameManager] 全局字体已设为像素Silver")
+
+func _apply_font_to_theme_variants(theme: Theme, font: FontFile) -> void:
+	for theme_type in ["Label", "Button", "LineEdit", "TextEdit", "CodeEdit"]:
+		theme.set_font("font", theme_type, font)
+	for font_name in ["normal_font", "bold_font", "italics_font", "bold_italics_font", "mono_font"]:
+		theme.set_font(font_name, "RichTextLabel", font)
 
 ## 自动检测运行模式
 func _detect_run_mode() -> void:

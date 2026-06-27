@@ -345,7 +345,12 @@ func _show_combat_hint() -> void:
 		cv = self
 	_combat_hint_label = Label.new()
 	_combat_hint_label.name = "CombatHintLabel"
-	_combat_hint_label.text = "[空格] 跳跃    [J] 攻击    [Shift] 冲刺    [I] 技能"
+	_combat_hint_label.text = "[%s] 跳跃    [%s] 攻击    [%s] 冲刺    [%s] 技能" % [
+		_get_first_action_event_display(&"player_jump"),
+		_get_first_action_event_display(&"player_attack"),
+		_get_first_action_event_display(&"player_dash"),
+		_get_first_action_event_display(&"player_skill"),
+	]
 	_combat_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_combat_hint_label.add_theme_font_size_override("font_size", 27)
 	_combat_hint_label.add_theme_color_override("font_color", Color(1, 0.95, 0.7, 0.9))
@@ -375,6 +380,13 @@ func _on_enemy_died_combat_hint(_data: Dictionary) -> void:
 	tw.tween_callback(label.queue_free)
 	# 取消订阅（只触发一次）
 	EventBus.unsubscribe(GlobalDefine.EventName.ENEMY_DIED, self)
+
+
+func _get_first_action_event_display(action: StringName) -> String:
+	var events: Array[InputEvent] = InputMap.action_get_events(action)
+	if events.is_empty():
+		return "?"
+	return KeybindManager.get_event_display_text(events[0])
 
 
 func _show_narrative(text: String, callback: Callable = Callable()) -> void:
