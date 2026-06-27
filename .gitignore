@@ -1,8 +1,8 @@
 # ============================================
-# .gitignore — 本地保留 Godot 源码，远程只推送 web 导出 + 部署配置
+# .gitignore
 # ============================================
 
-# --- Godot 源码目录（本地保留，不推送到远程） ---
+# --- Godot 源码目录 ---
 Assets/
 DataConfig/
 EnemyModule/
@@ -25,22 +25,6 @@ export_presets.cfg
 *.uid
 .godot/
 
-# --- 根目录重复的 web 导出文件（正式的在 build/web/） ---
-/index.html
-/index.js
-/index.wasm
-/index.pck
-/index.side.wasm
-/index.audio.worklet.js
-/index.audio.position.worklet.js
-/index.icon.png
-/index.apple-touch-icon.png
-/index.png
-
-# --- 构建产物（只保留 build/web/） ---
-/build/export.log
-/build/tmpl_install.log
-
 # --- 其他不需要的文件 ---
 push.log
 generated/
@@ -51,76 +35,8 @@ godot-editor/
 # --- IDE / 系统 ---
 .idea/
 .vscode/
-<<<<<<< HEAD
 .codebuddy/
 .godot-mcp/
 .DS_Store
 __MACOSX/
-=======
-
-# Godot 编辑器二进制文件（体积过大，不纳入版本控制）
-godot-editor/
-
-# CloudBase 规则（自动生成，与 Godot 项目无关）
-.codebuddy/rules/tcb/
-
-.godot-mcp/
-
-.codebuddy/
-
-
-addons/
-
-generated/
-AI资源库/.DS_Store
-AI资源库/README.md
-AI资源库/RPGMAKER/klee/NPC.json
-AI资源库/RPGMAKER/klee/sprite.png
-AI资源库/_schema/npc.schema.v1.json
-AI资源库/_schema/spritesheet.schema.v1.json
-AI资源库/_templates/AI量产_npc_json_提示模板.md
-AI资源库/_templates/dialogue/npc.base.dialogue.json
-AI资源库/一图全动作/.DS_Store
-AI资源库/一图全动作/故障机器人/npc.json
-AI资源库/一图全动作/故障机器人/npc.json.bak
-AI资源库/一图全动作/故障机器人/sprite.png
-AI资源库/一图全动作/故障机器人/thumb.png
-AI资源库/一图全动作/爷爷/爷爷.png
-AI资源库/一图全动作/爷爷/npc.json
-AI资源库/一图全动作/雅典娜/chinese1.mp3
-AI资源库/一图全动作/雅典娜/chinese2.mp3
-AI资源库/一图全动作/雅典娜/chinese3.mp3
-AI资源库/一图全动作/雅典娜/english1.mp3
-AI资源库/一图全动作/雅典娜/english2.mp3
-AI资源库/一图全动作/雅典娜/english3.mp3
-AI资源库/一图全动作/雅典娜/NPC.json
-AI资源库/一图全动作/雅典娜/NPC.json.bak
-AI资源库/一图全动作/雅典娜/sprite.png
-AI资源库/一图全动作/雅典娜/THUMB.png
-AI资源库/全职猎人/刚/npc.json
-AI资源库/全职猎人/刚/npc.json.bak
-AI资源库/全职猎人/刚/sprite.png
-AI资源库/全职猎人/酷拉皮卡/npc.json
-AI资源库/全职猎人/酷拉皮卡/npc.json.bak
-AI资源库/全职猎人/酷拉皮卡/sprite.png
-AI资源库/火影忍者/.DS_Store
-AI资源库/火影忍者/波风水门/npc.json
-AI资源库/火影忍者/波风水门/npc.json.bak
-AI资源库/火影忍者/波风水门/sprite.png
-AI资源库/火影忍者/自来也/npc.json
-AI资源库/火影忍者/自来也/npc.json.bak
-AI资源库/火影忍者/自来也/sprite.png
-AI资源库/特效库/秋叶飘落/fx.json
-AI资源库/特效库/秋叶飘落/fx.png
-AI资源库/特效库/秋叶飘落/leaf_fx_emitter.gd
-AI资源库/鬼灭之刃/.DS_Store
-AI资源库/鬼灭之刃/Gemini_Generated_Image_w0gzdsw0gzdsw0gz_workflow/npc.json
-AI资源库/鬼灭之刃/Gemini_Generated_Image_w0gzdsw0gzdsw0gz_workflow/npc.json.bak
-AI资源库/鬼灭之刃/Gemini_Generated_Image_w0gzdsw0gzdsw0gz_workflow/sprite.png
-
-# Tencent Cloud EdgeOne
->>>>>>> 7a8957e5414f3ab87f53b40ec69d6ca3be6f0d94
-.env
-.edgeone/*
-.tef_dist/*
 .agents/
