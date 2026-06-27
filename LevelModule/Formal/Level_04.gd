@@ -19,7 +19,9 @@ var _lingnan_intro_done: bool = false
 var _wall_dialog_shown: bool = false
 var _cyber_return_dialog_shown: bool = false
 var _swap_cooldown: float = 0.0
+var _hurt_swap_pending: bool = false
 const CYBER_TELEPORT := Vector2(2298, -75)
+const HURT_SWAP_DELAY: float = 0.28
 const LNGN_POSITIONS: Array[Vector2] = [
 	Vector2(524, 2060), Vector2(3564, 2073), Vector2(1631, 1316)
 ]
@@ -487,15 +489,38 @@ func _show_narrative(text: String, cb: Callable = Callable()) -> void:
 
 # ---- 地图切换 ----
 
-func _on_combat_hit(_d: Dictionary) -> void:
+func _on_combat_hit(data: Dictionary) -> void:
 	if current_state != LevelState.HOMOMORPHIC_COMBAT: return
 	if _stage2_entered: return
 	if _narrative_open or _is_interacting: return
+	if _hurt_swap_pending: return
 	if _swap_cooldown > 0.0: return
 	_swap_cooldown = 0.8
+	if data.has("current_health"):
+		if int(data.get("current_health", 1)) <= 0:
+			return
+		var hurt_player = data.get("player", GameManager.player_ref)
+		if hurt_player and is_instance_valid(hurt_player):
+			_prime_hurt_feedback_before_swap(hurt_player)
+		_hurt_swap_pending = true
+		await get_tree().create_timer(HURT_SWAP_DELAY).timeout
+		_hurt_swap_pending = false
+		if current_state != LevelState.HOMOMORPHIC_COMBAT: return
+		if _stage2_entered: return
+		if _narrative_open or _is_interacting: return
+		if GameManager.is_game_over: return
+		var p = GameManager.player_ref
+		if not p or not is_instance_valid(p): return
 	_is_interacting = true
 	_swap_world()
 	_is_interacting = false
+
+
+func _prime_hurt_feedback_before_swap(player: Node) -> void:
+	if player.has_method("_change_state"):
+		player.call("_change_state", GlobalDefine.PlayerState.HURT)
+	if player.has_method("_update_animation"):
+		player.call("_update_animation")
 
 
 func _on_wall_trigger(_body: Node2D) -> void:
