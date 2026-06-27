@@ -2,10 +2,10 @@
 # Player_Warrior_Lingnan.gd - 岭南风皮肤 + 专属技能
 # 继承 Player_Warrior，覆盖动画映射字典 + 技能系统
 #
-# 技能设计:
-#   短按 (<0.2s) → 突进攻击：向前冲刺一段距离，对路径上敌人造成伤害
-#   短蓄力 (0.2s~0.6s) → 小回旋斩：半径80px，1段伤害
-#   长蓄力 (>0.6s) → 大回旋斩：半径130px，2段伤害，蓄力超0.6s后霸体
+# 操作设计:
+#   长按普攻 → 突进攻击（独立CD，CD中不影响正常普攻）
+#   技能短按 (<0.2s) → 小回旋斩：半径80px，1段伤害
+#   技能长按 (>0.6s) → 大回旋斩：半径130px，2段伤害，蓄力超0.6s后霸体
 # ============================================================
 extends Player_Warrior
 class_name Player_Warrior_Lingnan
@@ -13,11 +13,20 @@ class_name Player_Warrior_Lingnan
 # ---- 蓄力技能状态 ----
 var _is_charging: bool = false
 var _charge_time: float = 0.0
-const LINGNAN_SKILL_CD := 5.0  # 岭南技能CD（覆盖父类 SKILL_COOLDOWN = 3.0）
+const LINGNAN_SKILL_CD := 5.0  # 岭南技能CD
 const CHARGE_THRESHOLD_SHORT := 0.2    # 短按判定
 const CHARGE_THRESHOLD_BIG := 0.6     # 大回旋斩蓄力阈值
 const CHARGE_MAX_TIME := 1.1          # 超过此时间自动释放大回旋斩 (0.6 + 0.5)
 const CHARGE_FREEZE_FRAME := 2        # 蓄力期间冻结在 attack 第几帧 (0-indexed)
+
+# ---- 长按普攻：突进攻击（独立CD不影响普攻） ----
+var _attack_hold_time: float = 0.0
+const ATTACK_HOLD_THRESHOLD := 0.25   # 长按阈值
+var _dash_attack_cd_timer: float = 0.0 # 突进独立CD
+const DASH_ATTACK_CD := 5.0           # 突进CD（原LINGNAN_SKILL_CD）
+const DASH_WINDUP_TIME := 0.2         # 突进前摇蓄力时长
+var _dash_windup: bool = false        # 突进蓄力中
+var _dash_windup_timer: float = 0.0   # 蓄力计时
 
 # ---- 突进攻击状态 ----
 var _is_dashing_attack: bool = false
@@ -58,7 +67,50 @@ func _on_ready():
 
 func _on_physics_process(delta: float) -> void:
 	super._on_physics_process(delta)
-	
+
+	# 突进CD递减
+	if _dash_attack_cd_timer > 0:
+		_dash_attack_cd_timer -= delta
+
+	# 长按普攻检测：按下时计时，超过阈值触发突进蓄力
+	if not _is_charging and not _is_dashing_attack and not _is_spinning and not _dash_windup and not is_attacking and not is_dashing:
+		if Input.is_action_pressed("player_attack") and _dash_attack_cd_timer <= 0:
+			_attack_hold_time += delta
+			if _attack_hold_time >= ATTACK_HOLD_THRESHOLD:
+				_attack_hold_time = 0.0
+				_start_dash_windup()
+		else:
+			_attack_hold_time = 0.0
+	else:
+		_attack_hold_time = 0.0
+
+	# 突进蓄力帧逻辑
+	if _dash_windup:
+		_dash_windup_timer -= delta
+		# 蓄力视觉：震动效果
+		if _anim_sprite:
+			var shake_amp = 1.0 + (1.0 - _dash_windup_timer / DASH_WINDUP_TIME) * 3.0
+			var shake_x = sin(_dash_windup_timer * 40.0) * shake_amp
+			var shake_y = cos(_dash_windup_timer * 52.0) * shake_amp * 0.6
+			_anim_sprite.position = Vector2(shake_x, shake_y)
+		# 冻结 attack 动画在第3帧
+		if _anim_sprite and _anim_sprite.sprite_frames:
+			if _anim_sprite.sprite_frames.has_animation("attack"):
+				if _anim_sprite.animation != "attack":
+					_anim_sprite.play("attack")
+				var max_frame = _anim_sprite.sprite_frames.get_frame_count("attack") - 1
+				_anim_sprite.frame = mini(CHARGE_FREEZE_FRAME, max(0, max_frame))
+				_anim_sprite.pause()
+		# 蓄力期间减速
+		velocity.x = move_toward(velocity.x, 0, 600.0)
+		# 蓄力结束 → 突进
+		if _dash_windup_timer <= 0:
+			_dash_windup = false
+			if _anim_sprite:
+				_anim_sprite.position = Vector2.ZERO
+			_do_dash_attack()
+		return
+
 	# 蓄力帧逻辑
 	if _is_charging:
 		_charge_time += delta
@@ -84,7 +136,7 @@ func _on_physics_process(delta: float) -> void:
 				_anim_sprite.modulate = Color(2, 2, 2, 1)
 		if _anim_sprite and _anim_sprite.modulate != Color.WHITE:
 			_anim_sprite.modulate = _anim_sprite.modulate.lerp(Color.WHITE, delta * 10)
-		
+
 		# 超过最大蓄力时间自动释放大回旋斩
 		if _charge_time >= CHARGE_MAX_TIME:
 			_release_skill()
@@ -93,7 +145,7 @@ func _on_physics_process(delta: float) -> void:
 		if not Input.is_action_pressed("player_skill"):
 			_release_skill()
 		return
-	
+
 	# 突进攻击帧逻辑
 	if _is_dashing_attack:
 		_dash_attack_timer -= delta
@@ -107,7 +159,7 @@ func _on_physics_process(delta: float) -> void:
 		if _dash_attack_timer <= 0:
 			_end_dash_attack()
 		return
-	
+
 	# 回旋斩帧逻辑
 	if _is_spinning:
 		_spin_timer -= delta
@@ -147,10 +199,10 @@ func _release_skill() -> void:
 		_anim_sprite.scale = Vector2.ONE
 		_anim_sprite.modulate = Color.WHITE
 		_anim_sprite.position = Vector2.ZERO  # 恢复震动偏移
-	
+
 	if _charge_time < CHARGE_THRESHOLD_SHORT:
-		# 短按 → 突进攻击
-		_do_dash_attack()
+		# 短按 → 小回旋斩
+		_do_spin_slash(false)
 	elif _charge_time < CHARGE_THRESHOLD_BIG:
 		# 短蓄力 → 小回旋斩
 		_do_spin_slash(false)
@@ -158,19 +210,27 @@ func _release_skill() -> void:
 		# 长蓄力 → 大回旋斩
 		_do_spin_slash(true)
 
-# ---- 突进攻击 ----
+# ---- 突进蓄力 ----
+
+func _start_dash_windup() -> void:
+	_dash_windup = true
+	_dash_windup_timer = DASH_WINDUP_TIME
+	_change_state(GlobalDefine.PlayerState.ATTACK)
+
+# ---- 突进攻击（长按普攻触发） ----
 func _do_dash_attack() -> void:
 	_is_dashing_attack = true
 	_dash_attack_timer = _dash_attack_duration
 	_dash_attack_dir = 1.0 if is_facing_right else -1.0
 	_dash_attack_start_pos = global_position
 	_dash_attack_hit_enemies.clear()
+	_dash_attack_cd_timer = DASH_ATTACK_CD  # 突进独立CD
 	is_attacking = true
 	attack_timer = _dash_attack_duration + 0.1
 	# 突进期间无敌
 	_dash_was_invincible = is_invincible
 	is_invincible = true
-	_change_state(GlobalDefine.PlayerState.SKILL)
+	_change_state(GlobalDefine.PlayerState.ATTACK)
 
 func _end_dash_attack() -> void:
 	_is_dashing_attack = false
@@ -238,7 +298,7 @@ func _do_spin_slash(is_big: bool) -> void:
 	_spin_hit_count = 0
 	_spin_hit_enemies.clear()
 	is_attacking = true
-	
+
 	if is_big:
 		_spin_timer = 0.3
 		_spin_max_hits = 2
@@ -249,16 +309,16 @@ func _do_spin_slash(is_big: bool) -> void:
 		_spin_max_hits = 1
 		_spin_range = 80.0
 		_spin_damage = 20
-	
+
 	attack_timer = _spin_timer + 0.05
 	_change_state(GlobalDefine.PlayerState.SKILL)
-	
+
 	# 第一段立即判定
 	_do_spin_hit()
-	
+
 	# 生成环形刀光视觉
 	_spawn_ring_slash_effect(is_big)
-	
+
 	# 震屏
 	var cam = get_node_or_null("SmoothCamera")
 	if cam and cam.has_method("shake"):
@@ -310,19 +370,18 @@ func _spawn_ring_slash_effect(is_big: bool) -> void:
 
 # ---- 覆盖：蓄力期间冻结动画 ----
 func _update_animation() -> void:
-	if _is_charging and _anim_sprite:
-		# 蓄力期间不更新动画，保持 attack 第3帧冻结
-		return
+	if _is_charging or _dash_windup:
+		return  # 蓄力期间不更新动画
 	super._update_animation()
 func _handle_attack_state(delta: float) -> void:
-	if _is_dashing_attack or _is_spinning:
-		# 突进和回旋斩有自己的速度控制，不做通用攻击减速
+	if _is_dashing_attack or _is_spinning or _dash_windup:
+		# 突进/回旋斩/蓄力有自己的速度控制，不做通用攻击减速
 		return
 	super._handle_attack_state(delta)
 
 # ---- 覆盖：防止蓄力中被其他操作取消 ----
 func _on_game_action(action: StringName, _event: InputEvent) -> void:
-	if _is_charging or _is_dashing_attack or _is_spinning:
+	if _is_charging or _is_dashing_attack or _is_spinning or _dash_windup:
 		return  # 技能执行中不接受其他操作
 	super._on_game_action(action, _event)
 
@@ -331,6 +390,8 @@ func _on_die() -> void:
 	_is_charging = false
 	_is_dashing_attack = false
 	_is_spinning = false
+	_dash_windup = false
+	_attack_hold_time = 0.0
 	_is_super_armor = false
 	if _anim_sprite:
 		_anim_sprite.scale = Vector2.ONE

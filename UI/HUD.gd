@@ -25,6 +25,13 @@ var _skill_icon_suppressed: bool = false     # 关卡可禁用技能图标显示
 const SKILL_ICON_SIZE: float = 64.0
 const SKILL_ICON_PATH: String = "res://Assets/UI/skill_icon.png"  # 后续替换图片用
 
+# ---- 蓄力攻击冷却UI ----
+var _dash_icon_container: Control = null     # 蓄力攻击图标容器
+var _dash_cooldown_overlay: ColorRect = null
+var _dash_cd_label: Label = null
+var _dash_key_label: Label = null
+var _dash_ready_glow: ColorRect = null
+
 ## 关卡调用以禁用/启用技能图标显示（禁用时完全隐藏，不受 _process 影响）
 func suppress_skill_icon(suppress: bool) -> void:
 	_skill_icon_suppressed = suppress
@@ -169,6 +176,8 @@ func _build_ui() -> void:
 
 	# === 右下角：技能冷却图标 ===
 	_build_skill_icon()
+	# === 右下角：蓄力攻击冷却图标 ===
+	_build_dash_icon()
 
 ## 构建技能冷却图标（右下角，便于后续替换图片）
 func _build_skill_icon() -> void:
@@ -261,8 +270,100 @@ func _build_skill_icon() -> void:
 	_skill_icon_container.add_child(_skill_key_label)
 	_update_skill_key_hint()
 
+## 从 InputMap 读取动作绑定的按键并返回显示文本
+func _get_action_key_label(action: StringName) -> String:
+	var events = InputMap.action_get_events(action)
+	for e in events:
+		if e is InputEventKey:
+			return OS.get_keycode_string(e.keycode)
+		if e is InputEventMouseButton:
+			return "M%d" % e.button_index
+	return "?"
+
+## 构建蓄力攻击冷却图标（右下角，技能图标左侧）
+func _build_dash_icon() -> void:
+	_dash_icon_container = Control.new()
+	_dash_icon_container.name = "DashIcon"
+	_dash_icon_container.position = Vector2(1130, 620)
+	_dash_icon_container.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	_dash_icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_dash_icon_container)
+
+	# 就绪高亮
+	_dash_ready_glow = ColorRect.new()
+	_dash_ready_glow.name = "ReadyGlow"
+	_dash_ready_glow.color = Color(0.9, 0.3, 1.0, 0.0)
+	_dash_ready_glow.size = Vector2(SKILL_ICON_SIZE + 6, SKILL_ICON_SIZE + 6)
+	_dash_ready_glow.position = Vector2(-3, -3)
+	_dash_ready_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_icon_container.add_child(_dash_ready_glow)
+
+	# 底框背景
+	var bg = ColorRect.new()
+	bg.name = "Bg"
+	bg.color = Color(0.12, 0.12, 0.18, 0.85)
+	bg.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_icon_container.add_child(bg)
+
+	# 文字图标（蓄）
+	var placeholder = Label.new()
+	placeholder.name = "Placeholder"
+	placeholder.text = "蓄"
+	placeholder.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	placeholder.add_theme_font_size_override("font_size", 42)
+	placeholder.add_theme_color_override("font_color", Color(0.85, 0.7, 1.0))
+	placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_icon_container.add_child(placeholder)
+
+	# 冷却遮罩
+	_dash_cooldown_overlay = ColorRect.new()
+	_dash_cooldown_overlay.name = "CdOverlay"
+	_dash_cooldown_overlay.color = Color(0, 0, 0, 0.7)
+	_dash_cooldown_overlay.size = Vector2(SKILL_ICON_SIZE, 0)
+	_dash_cooldown_overlay.position = Vector2(0, 0)
+	_dash_cooldown_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_icon_container.add_child(_dash_cooldown_overlay)
+
+	# 冷却秒数
+	_dash_cd_label = Label.new()
+	_dash_cd_label.name = "CdLabel"
+	_dash_cd_label.text = ""
+	_dash_cd_label.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	_dash_cd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dash_cd_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_dash_cd_label.add_theme_font_size_override("font_size", 36)
+	_dash_cd_label.add_theme_color_override("font_color", Color.WHITE)
+	_dash_cd_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_dash_cd_label.add_theme_constant_override("shadow_offset_x", 1)
+	_dash_cd_label.add_theme_constant_override("shadow_offset_y", 1)
+	_dash_cd_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_icon_container.add_child(_dash_cd_label)
+
+	# 按键提示（攻击键）
+	_dash_key_label = Label.new()
+	_dash_key_label.name = "KeyHint"
+	_dash_key_label.text = "[%s]" % _get_action_key_label(&"player_attack")
+	_dash_key_label.size = Vector2(40, 18)
+	_dash_key_label.position = Vector2(-2, SKILL_ICON_SIZE - 16)
+	_dash_key_label.add_theme_font_size_override("font_size", 20)
+	_dash_key_label.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
+	_dash_key_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_dash_key_label.add_theme_constant_override("shadow_offset_x", 1)
+	_dash_key_label.add_theme_constant_override("shadow_offset_y", 1)
+	_dash_key_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_icon_container.add_child(_dash_key_label)
+
 func _process(_delta: float) -> void:
 	_update_skill_cooldown()
+	_update_dash_cooldown()
+	# 动态更新按键提示（跟随玩家自定义按键）
+	if _skill_key_label:
+		_skill_key_label.text = "[%s]" % _get_action_key_label(&"player_skill")
+	if _dash_key_label:
+		_dash_key_label.text = "[%s]" % _get_action_key_label(&"player_attack")
 
 ## 每帧更新技能冷却UI
 func _update_skill_cooldown() -> void:

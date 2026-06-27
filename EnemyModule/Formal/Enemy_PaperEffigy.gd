@@ -217,6 +217,11 @@ func _do_attack_hit() -> void:
 	_attack_anim_timer = ATTACK_ANIM_DURATION
 	if not target or not is_instance_valid(target):
 		return
+	# 攻击命中前检查距离：玩家闪避/突进拉开距离则攻击落空
+	var dist = global_position.distance_to(target.global_position)
+	var attack_range = config.attack_range if config else 40.0
+	if dist > attack_range + 30.0:
+		return
 	if target.has_method("take_damage"):
 		var atk = config.attack_damage if config else 8
 		var result = DamageCalculator.calculate(atk, 0, GlobalDefine.DamageType.PHYSICAL)
