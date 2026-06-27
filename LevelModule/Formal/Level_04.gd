@@ -206,7 +206,11 @@ func _on_ready() -> void:
 
 
 func _setup_stage_test_panel() -> void:
-	var panel = load("res://Tools/StageTestPanel.gd").new(self, [
+	var script = load("res://Tools/StageTestPanel.gd")
+	if not script:
+		push_error("[Level_04] 无法加载 StageTestPanel.gd")
+		return
+	var panel = script.new(self, [
 		{"name": "阶段1: 同构战斗", "action": func(): _goto_stage1_test()},
 		{"name": "阶段2: 世界切换", "action": func(): _goto_stage2_test()},
 		{"name": "阶段3: 出口交互", "action": func(): _goto_stage3_test()},

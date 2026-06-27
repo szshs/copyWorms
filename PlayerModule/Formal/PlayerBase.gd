@@ -147,7 +147,8 @@ func _update_timers(delta: float) -> void:
 				else:
 					_change_state(GlobalDefine.PlayerState.IDLE)
 			else:
-				_change_state(GlobalDefine.PlayerState.FALL)
+				# 空中攻击结束后回到跳跃状态
+				_change_state(GlobalDefine.PlayerState.JUMP)
 
 func _handle_input() -> void:
 	# attack/dash/skill 已迁移到 InputManager.game_action 信号

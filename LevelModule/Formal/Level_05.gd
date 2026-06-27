@@ -323,7 +323,11 @@ func _on_ready() -> void:
 
 
 func _setup_stage_test_panel() -> void:
-	var panel = load("res://Tools/StageTestPanel.gd").new(self, [
+	var script = load("res://Tools/StageTestPanel.gd")
+	if not script:
+		push_error("[Level_05] 无法加载 StageTestPanel.gd")
+		return
+	var panel = script.new(self, [
 		{"name": "bg3: 双世界侵蚀", "action": func(): _goto_bg3_test()},
 		{"name": "bg4: Boss战", "action": func(): _goto_bg4_test()},
 		{"name": "bg5: 灯笼结局", "action": func(): _goto_bg5_test()},
