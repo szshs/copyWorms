@@ -41,7 +41,7 @@ func _ready() -> void:
 	add_child(vis)
 
 	_label_w = Label.new()
-	_label_w.text = "W ↑"
+	_label_w.text = "W 上"
 	_label_w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_w.add_theme_font_size_override("font_size", 20)
 	_label_w.add_theme_color_override("font_color", Color(0, 1, 0.3))
@@ -51,7 +51,7 @@ func _ready() -> void:
 	add_child(_label_w)
 
 	_label_s = Label.new()
-	_label_s.text = "S ↓"
+	_label_s.text = "S 下"
 	_label_s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_s.add_theme_font_size_override("font_size", 20)
 	_label_s.add_theme_color_override("font_color", Color(0, 1, 0.3))
@@ -110,7 +110,10 @@ func _start_climb(from_y: float, to_y: float, dir: float) -> void:
 	_climb_progress = 0.0
 	_label_w.visible = false
 	_label_s.visible = false
-	_player.set_physics_process(false)
+	if _player.has_method("begin_ladder_climb"):
+		_player.call("begin_ladder_climb")
+	else:
+		_player.set_physics_process(false)
 	print("[Ladder] climb start: %.1f → %.1f, dir=%d" % [from_y, to_y, dir])
 
 
@@ -147,6 +150,9 @@ func _finish_climb() -> void:
 			_player.global_position.y = ladder_bottom_y - 15.0
 		elif landing_dir < 0:  # 向上爬完，落在顶端平台上方
 			_player.global_position.y = ladder_top_y - 15.0
-		_player.set_physics_process(true)
-		_player.velocity = Vector2.ZERO
+		if _player.has_method("end_ladder_climb"):
+			_player.call("end_ladder_climb")
+		else:
+			_player.set_physics_process(true)
+			_player.velocity = Vector2.ZERO
 	print("[Ladder] climb finished, player at y=%.1f" % _player.global_position.y if _player and is_instance_valid(_player) else -999.0)

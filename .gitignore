@@ -31,6 +31,7 @@ generated/
 addons/
 AI资源库/
 godot-editor/
+.edgeone
 
 # --- IDE / 系统 ---
 .idea/

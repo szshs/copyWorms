@@ -327,6 +327,35 @@ func set_frozen(freeze: bool) -> void:
 		set_physics_process(true)
 		set_process_input(true)
 
+## 梯子会临时禁用玩家 physics_process。进入前必须把闪避/受击无敌闪烁
+## 归一化，否则可能冻结在 _sprite_node.visible=false 的一帧。
+func begin_ladder_climb() -> void:
+	velocity = Vector2.ZERO
+	is_dashing = false
+	dash_timer = 0.0
+	dash_velocity = Vector2.ZERO
+	is_attacking = false
+	attack_timer = 0.0
+	has_hit_this_attack = false
+	_attack_started_in_air = false
+	_attack_windup_pending = false
+	_blink_visible = true
+	_blink_timer = 0.0
+	_restore_visibility()
+	_change_state(GlobalDefine.PlayerState.IDLE)
+	if has_method("_update_animation"):
+		call("_update_animation")
+	set_physics_process(false)
+
+func end_ladder_climb() -> void:
+	_blink_visible = true
+	_blink_timer = 0.0
+	_restore_visibility()
+	velocity = Vector2.ZERO
+	set_physics_process(true)
+	if has_method("_update_animation"):
+		call("_update_animation")
+
 # ---- 状态处理 ----
 
 func _handle_idle(delta: float) -> void:

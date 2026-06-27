@@ -18,7 +18,7 @@ class_name WarningBarrier
 @export var detect_range: float = 220.0
 
 ## 警戒文字内容
-@export var warning_text: String = "⚠ RESTRICTED AREA ⚠ ACCESS DENIED ⚠ UNAUTHORIZED ENTRY ⚠"
+@export var warning_text: String = "[!] RESTRICTED AREA [!] ACCESS DENIED [!] UNAUTHORIZED ENTRY [!]"
 
 ## 滚动速度（像素/秒）
 @export var scroll_speed: float = 140.0

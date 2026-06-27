@@ -19,7 +19,9 @@ var _lingnan_intro_done: bool = false
 var _wall_dialog_shown: bool = false
 var _cyber_return_dialog_shown: bool = false
 var _swap_cooldown: float = 0.0
+var _hurt_swap_pending: bool = false
 const CYBER_TELEPORT := Vector2(2298, -75)
+const HURT_SWAP_DELAY: float = 0.28
 const LNGN_POSITIONS: Array[Vector2] = [
 	Vector2(524, 2060), Vector2(3564, 2073), Vector2(1631, 1316)
 ]
@@ -54,7 +56,7 @@ var _erosion_bar_fill: ColorRect = null
 var _erosion_label: Label = null
 var _erosion_vignette: ColorRect = null
 const EROSION_MAX: float = 100.0
-const EROSION_RATE: float = 0.35
+const EROSION_RATE: float = 0.7
 const EROSION_KILL_REDUCE: float = 15.0
 
 # ---- 阶段2敌人 + 阶段3 ----
@@ -498,15 +500,38 @@ func _show_narrative(text: String, cb: Callable = Callable()) -> void:
 
 # ---- 地图切换 ----
 
-func _on_combat_hit(_d: Dictionary) -> void:
+func _on_combat_hit(data: Dictionary) -> void:
 	if current_state != LevelState.HOMOMORPHIC_COMBAT: return
 	if _stage2_entered: return
 	if _narrative_open or _is_interacting: return
+	if _hurt_swap_pending: return
 	if _swap_cooldown > 0.0: return
 	_swap_cooldown = 0.8
+	if data.has("current_health"):
+		if int(data.get("current_health", 1)) <= 0:
+			return
+		var hurt_player = data.get("player", GameManager.player_ref)
+		if hurt_player and is_instance_valid(hurt_player):
+			_prime_hurt_feedback_before_swap(hurt_player)
+		_hurt_swap_pending = true
+		await get_tree().create_timer(HURT_SWAP_DELAY).timeout
+		_hurt_swap_pending = false
+		if current_state != LevelState.HOMOMORPHIC_COMBAT: return
+		if _stage2_entered: return
+		if _narrative_open or _is_interacting: return
+		if GameManager.is_game_over: return
+		var p = GameManager.player_ref
+		if not p or not is_instance_valid(p): return
 	_is_interacting = true
 	_swap_world()
 	_is_interacting = false
+
+
+func _prime_hurt_feedback_before_swap(player: Node) -> void:
+	if player.has_method("_change_state"):
+		player.call("_change_state", GlobalDefine.PlayerState.HURT)
+	if player.has_method("_update_animation"):
+		player.call("_update_animation")
 
 
 func _on_wall_trigger(_body: Node2D) -> void:
@@ -646,7 +671,7 @@ func _start_stage2_warning() -> void:
 
 	# ---- 音效：程序化警报 ----
 	_start_stage2_alarm()
-	print("[Level_04] ⚠ 阶段2 世界切换预警启动！")
+	print("[Level_04] [WARN] 阶段2 世界切换预警启动！")
 
 func _stop_stage2_warning() -> void:
 	# 停止 glitch
@@ -791,7 +816,7 @@ func _build_erosion_ui() -> void:
 	_erosion_vignette.name = "ErosionVignette"
 	_erosion_vignette.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_erosion_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_erosion_vignette.z_index = 120
+	_erosion_vignette.z_index = 140
 	var shader = load("res://LevelModule/Formal/erosion_vignette.gdshader")
 	if shader:
 		var mat = ShaderMaterial.new()
@@ -813,14 +838,8 @@ func _update_erosion_ui() -> void:
 	else:
 		_erosion_bar_fill.color = Color(0.65, 0.15, 0.8, 0.95)
 
-	# 边缘扭曲强度：25/50/75 三档平滑渐变
-	var vignette_intensity: float = 0.0
-	if _erosion_value >= 75.0:
-		vignette_intensity = 0.7 + 0.3 * (_erosion_value - 75.0) / 25.0  # 0.7→1.0
-	elif _erosion_value >= 50.0:
-		vignette_intensity = 0.35 + 0.35 * (_erosion_value - 50.0) / 25.0  # 0.35→0.7
-	elif _erosion_value >= 25.0:
-		vignette_intensity = 0.35 * (_erosion_value - 25.0) / 25.0  # 0→0.35
+	# 侵蚀视觉强度跟随 0%→100% 连续增强，shader 内部仍保留阶段感。
+	var vignette_intensity: float = pow(ratio, 0.85)
 	if _erosion_vignette and _erosion_vignette.material:
 		_erosion_vignette.material.set_shader_parameter("intensity", vignette_intensity)
 
