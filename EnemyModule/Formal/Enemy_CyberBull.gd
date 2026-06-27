@@ -74,6 +74,11 @@ func _init_anim_sprite() -> void:
 func _is_charge_active() -> bool:
 	return _is_winding_up or _is_charging or _is_recovering
 
+# ---- 攻击锁定：前摇/后摇期间禁止移动与转向（冲撞冲刺期间允许移动，方向已锁定） ----
+
+func _is_attack_locked() -> bool:
+	return super._is_attack_locked() or _is_winding_up or _is_recovering
+
 # ---- 接触伤害：仅冲撞期间 ----
 
 func deals_contact_damage() -> bool:
@@ -105,8 +110,8 @@ func _ai_chase(delta: float) -> void:
 		_unreachable_timer = 0.0
 		return
 
-	if _post_attack_pause > 0:
-		velocity.x = move_toward(velocity.x, 0, 400 * delta)
+	if _is_attack_locked():
+		velocity.x = 0.0
 		return
 
 	var x_diff: float = target.global_position.x - global_position.x

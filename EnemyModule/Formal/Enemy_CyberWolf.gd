@@ -81,6 +81,11 @@ func _handle_ai(delta: float) -> void:
 func _is_combo_active() -> bool:
 	return _windup_timer > 0 or _combo_timer > 0 or _rest_timer > 0
 
+# ---- 攻击锁定：前摇/连击/休息期间禁止移动与转向 ----
+
+func _is_attack_locked() -> bool:
+	return super._is_attack_locked() or _is_combo_active()
+
 # ---- 追踪检测覆写：脱离期间不追踪 ----
 
 func _can_detect_target() -> bool:
@@ -97,8 +102,8 @@ func _ai_chase(delta: float) -> void:
 		_unreachable_timer = 0.0
 		return
 
-	if _post_attack_pause > 0:
-		velocity.x = move_toward(velocity.x, 0, 400 * delta)
+	if _is_attack_locked():
+		velocity.x = 0.0
 		return
 
 	var x_diff: float = target.global_position.x - global_position.x
@@ -239,6 +244,8 @@ func deals_contact_damage() -> bool:
 
 func _update_facing() -> void:
 	if stun_timer > 0:
+		return
+	if _is_attack_locked():
 		return
 	var should_face_right: bool = is_facing_right
 	if target and is_instance_valid(target):
