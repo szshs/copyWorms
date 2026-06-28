@@ -56,6 +56,7 @@ var _dialog_callback: Callable = Callable()
 var _dialog_lines: Array[String] = []
 var _dialog_index: int = 0
 var _dialog_close_cooldown: float = 0.0   # 对话关闭后的输入冷却，防Enter串扰
+var _grandpa_video_started: bool = false
 
 # ---- 侵蚀值 ----
 var _erosion_value: float = 0.0
@@ -372,6 +373,8 @@ func _goto_bg4_test() -> void:
 func _goto_bg5_test() -> void:
 	_in_boss_arena = false
 	_in_bg5 = true
+	if _current_player_skin != "Cyber":
+		_swap_player_skin("Cyber")
 	_set_boss_area_active(false)
 	_set_map_sprites_visible(false)
 	_set_bg5_area_active(true)
@@ -482,6 +485,7 @@ func _process(delta: float) -> void:
 			if pp.can_attack: pp.can_attack = false
 			if pp.can_skill: pp.can_skill = false
 			if pp.can_dash: pp.can_dash = false
+			if pp.can_attack_hold_dash: pp.can_attack_hold_dash = false
 
 func _input(event: InputEvent) -> void:
 	# 鼠标左键等价于Enter（对话推进/交互触发）
@@ -658,15 +662,29 @@ func _find_nearby_interactive() -> InteractiveObject:
 			return obj
 	return null
 
+func _get_interactive_by_id(object_id: String) -> InteractiveObject:
+	for obj in _all_interactives:
+		if is_instance_valid(obj) and obj.object_id == object_id:
+			return obj
+	return null
+
 func _on_object_interacted(data: Dictionary) -> void:
 	var oid: String = data.get("object_id", "")
 	if oid == "enter_boss":
 		_enter_boss_arena()
 	elif oid == "grandpa":
+		if _grandpa_video_started:
+			return
+		_grandpa_video_started = true
+		var grandpa := _get_interactive_by_id("grandpa")
+		if grandpa:
+			grandpa.mark_completed()
 		_show_dialog(["爷爷？"], _play_grandpa_video)
 
 ## 播放视频演出（爷爷交互后）：先淡入黑屏，再播放视频
 func _play_grandpa_video() -> void:
+	if not _grandpa_video_started:
+		_grandpa_video_started = true
 	var stream := load("res://Assets/视频演出.ogv") as VideoStream
 	if stream == null:
 		push_error("[Level_05] 视频演出.ogv 加载失败")
@@ -832,6 +850,8 @@ func _update_lantern_prompt() -> void:
 func _teleport_to_bg5() -> void:
 	_in_boss_arena = false
 	_in_bg5 = true
+	if _current_player_skin != "Cyber":
+		_swap_player_skin("Cyber")
 	_set_boss_area_active(false)
 	_set_map_sprites_visible(false)
 	_set_bg5_area_active(true)
@@ -847,6 +867,7 @@ func _teleport_to_bg5() -> void:
 		p.can_dash = false
 		p.can_skill = false
 		p.can_attack = false
+		p.can_attack_hold_dash = false
 	print("[Level_05] 已进入 bg5 区域")
 
 ## 每帧持续隐藏所有战斗UI（_in_bg5 时调用，防止 HUD _process 恢复可见性）

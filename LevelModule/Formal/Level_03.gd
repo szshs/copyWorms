@@ -183,7 +183,6 @@ func _on_ready() -> void:
 
 	_load_hud()
 	set_process(true)
-	MusicManager.restart_bgm("res://Assets/Music/lv3.ogg")
 	print("[Level_03] 初始化完成 — 当前: TEA_SHOP_FRONT")
 	# 初始化完成，淡出黑屏呈现关卡
 	_finish_intro_fade_in()

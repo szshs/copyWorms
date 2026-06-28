@@ -13,6 +13,7 @@ var can_jump: bool = true
 var can_dash: bool = true
 var can_attack: bool = true
 var can_skill: bool = true
+var can_attack_hold_dash: bool = true
 
 # 运行时移速倍率（关卡可临时调节，如"沉重化"; 默认1.0零影响）
 # 不直接修改共享 PlayerConfig.tres
