@@ -192,7 +192,7 @@ func _do_lightning_dash() -> void:
 	# 全程无敌
 	_was_invincible = is_invincible
 	is_invincible = true
-	invincible_timer = _dash_duration + 0.1
+	invincible_timer = _dash_duration + 0.1 + 0.3
 	_change_state(GlobalDefine.PlayerState.ATTACK)
 	# 起手闪电爆发
 	_spawn_lightning_burst()

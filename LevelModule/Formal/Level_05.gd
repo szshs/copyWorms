@@ -74,6 +74,10 @@ var _enemy_paper_scene: PackedScene = null
 var _enemy_wolf_scene: PackedScene = null
 var _enemy_bull_scene: PackedScene = null
 
+# ---- 双世界独立敌人组（切换世界时切换显示，各自血量独立保存） ----
+var _lingnan_enemies: Array[Node2D] = []   # 岭南世界怪物（纸人+灯笼）
+var _cyber_enemies: Array[Node2D] = []     # 赛博世界怪物（狼人+冲撞兽）
+
 
 func _setup_player() -> void:
 	# 清除 lv4 遗留的旧玩家引用
@@ -125,7 +129,7 @@ func _swap_player_skin(skin: String) -> void:
 		saved_limits = [old_cam.limit_left, old_cam.limit_right, old_cam.limit_top, old_cam.limit_bottom]
 	if InputManager.game_action.is_connected(old._on_game_action):
 		InputManager.game_action.disconnect(old._on_game_action)
-	GameManager.player_ref = null; old.queue_free()
+	# 先创建新玩家，再释放旧的
 	var path = "res://PlayerModule/Formal/Player_Warrior_" + skin + ".tscn"
 	if not ResourceLoader.exists(path): return
 	var p = load(path).instantiate()
@@ -134,7 +138,12 @@ func _swap_player_skin(skin: String) -> void:
 	p.max_health = DUAL_CHAR_MAX_HP
 	p.current_health = _cyber_health if skin == "Cyber" else _lingnan_health
 	p.is_facing_right = f; p.velocity = Vector2.ZERO
+	GameManager.player_ref = null
 	add_child(p); GameManager.register_player(p)
+	# 释放旧玩家（先禁用处理，再释放）
+	old.set_physics_process(false)
+	old.set_process(false)
+	old.queue_free()
 	# _ready 中 _apply_config 会重置血量为 max_health，需在此之后恢复独立血量
 	p.max_health = DUAL_CHAR_MAX_HP
 	p.current_health = _cyber_health if skin == "Cyber" else _lingnan_health
@@ -248,8 +257,8 @@ func _on_ready() -> void:
 	# bg5 碰撞体初始禁用（tscn 已设 visible=false，碰撞体需脚本关闭）
 	_set_bg5_area_active(false)
 
-	# 岭南在上 → 纸人 + 灯笼
-	_spawn_all_enemies(true)
+	# 岭南在上 → 生成双世界怪物（赛博世界怪物隐藏）
+	_spawn_dual_world_enemies()
 
 	var shader = load("res://LevelModule/Formal/PixelTearing.gdshader")
 	if shader:
@@ -465,6 +474,15 @@ func _process(delta: float) -> void:
 		_dialog_enter_pressed = false
 		_advance_dialog()
 
+	# bg5 区域持续隐藏UI + 禁用战斗能力（防止切人后恢复）
+	if _in_bg5:
+		_update_bg5_ui_hide()
+		var pp = GameManager.player_ref
+		if pp and is_instance_valid(pp):
+			if pp.can_attack: pp.can_attack = false
+			if pp.can_skill: pp.can_skill = false
+			if pp.can_dash: pp.can_dash = false
+
 func _input(event: InputEvent) -> void:
 	# 鼠标左键等价于Enter（对话推进/交互触发）
 	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
@@ -513,7 +531,8 @@ func _swap_world_layer() -> void:
 		_top_mat.set_shader_parameter("glitch_color", Color(0.8, 0.1, 0.6, 1.0))
 		_set_collision_group_active(_lingnan_collisions, false)
 		_set_collision_group_active(_cyber_collisions, true)
-		_spawn_all_enemies(true)
+		_show_enemy_group(_lingnan_enemies, true)
+		_show_enemy_group(_cyber_enemies, false)
 	else:
 		_top_sprite.texture = load("res://LevelModule/Scenes/PixelworkMapStitch/Level05_Cyber/bg 3-1.png")
 		_top_sprite.scale = Vector2(0.8, 0.8)
@@ -522,10 +541,53 @@ func _swap_world_layer() -> void:
 		_top_mat.set_shader_parameter("glitch_color", Color(0.1, 0.8, 0.9, 1.0))
 		_set_collision_group_active(_lingnan_collisions, true)
 		_set_collision_group_active(_cyber_collisions, false)
-		_spawn_all_enemies(false)
+		_show_enemy_group(_cyber_enemies, true)
+		_show_enemy_group(_lingnan_enemies, false)
 	_update_label()
 	# 抖屏效果：世界撕裂感
 	_trigger_screen_shake(8.0, 0.25)
+
+## 生成双世界怪物（岭南+赛博各一组，各自独立血量，赛博组初始隐藏）
+func _spawn_dual_world_enemies() -> void:
+	_clear_all_enemies()
+	_lingnan_enemies.clear()
+	_cyber_enemies.clear()
+	var ground_spots = [Vector2(-1000, 420), Vector2(0, 415), Vector2(800, 425)]
+	var special_spots = [Vector2(200, 380), Vector2(600, 370)]
+	# 岭南世界：纸人 + 灯笼（初始显示）
+	for sp in ground_spots:
+		var e = _spawn_one(_enemy_paper_scene, sp)
+		if e: _lingnan_enemies.append(e)
+	for sp in special_spots:
+		var e = _spawn_one(_enemy_lantern_scene, sp)
+		if e: _lingnan_enemies.append(e)
+	# 赛博世界：狼人 + 冲撞兽（初始隐藏）
+	for sp in ground_spots:
+		var e = _spawn_one(_enemy_wolf_scene, sp)
+		if e: _cyber_enemies.append(e)
+	for sp in special_spots:
+		var e = _spawn_one(_enemy_bull_scene, sp)
+		if e: _cyber_enemies.append(e)
+	# 隐藏赛博世界怪物
+	_show_enemy_group(_cyber_enemies, false)
+
+## 显示/隐藏一组敌人（隐藏时暂停AI并禁用碰撞，显示时恢复）
+func _show_enemy_group(group: Array, visible_flag: bool) -> void:
+	for e in group:
+		if is_instance_valid(e):
+			e.visible = visible_flag
+			e.set_physics_process(visible_flag)
+			# 禁用/启用碰撞
+			if e is CollisionObject2D:
+				if visible_flag:
+					(e as CollisionObject2D).collision_layer = GlobalDefine.Collision.ENEMY
+				else:
+					(e as CollisionObject2D).collision_layer = 0
+			# 隐藏时暂停移动
+			if not visible_flag:
+				e.velocity = Vector2.ZERO
+				if e is EnemyBase:
+					(e as EnemyBase).current_state = GlobalDefine.EnemyState.IDLE
 
 
 ## 触发抖屏（通过玩家相机的 shake 方法）
@@ -778,12 +840,22 @@ func _teleport_to_bg5() -> void:
 	_hide_boss_bar()
 	# 进入 bg5：播放 lv6（不打断，从 bossfight 自然过渡）
 	MusicManager.fade_to("res://Assets/Music/lv6.ogg", 1.5)
-	# bg5 区域玩家移速降为 0.5 倍，并禁用闪避（避免闪避速度不变导致的视觉突兀快移）
+	# bg5 区域玩家移速降为 0.5 倍，禁用闪避/技能/攻击，隐藏所有战斗UI
 	var p = GameManager.player_ref
 	if p and is_instance_valid(p):
 		p.runtime_move_speed_multiplier = 0.5
 		p.can_dash = false
+		p.can_skill = false
+		p.can_attack = false
 	print("[Level_05] 已进入 bg5 区域")
+
+## 每帧持续隐藏所有战斗UI（_in_bg5 时调用，防止 HUD _process 恢复可见性）
+func _update_bg5_ui_hide() -> void:
+	if not _in_bg5: return
+	# 隐藏 HUD（血条+技能+蓄力图标+侵蚀进度条都在 HUD 下）
+	var hud = get_node_or_null("HUD")
+	if hud and hud.visible:
+		hud.visible = false
 
 ## 激活/禁用bg5区域节点（背景显隐 + 碰撞体开关 + 爷爷交互物开关）
 func _set_bg5_area_active(active: bool) -> void:
@@ -866,20 +938,23 @@ func _spawn_all_enemies(lingnan_on_top: bool) -> void:
 		for sp in special_spots:
 			_spawn_one(_enemy_bull_scene, sp)
 
-func _spawn_one(scene: PackedScene, pos: Vector2) -> void:
-	if not scene: return
+func _spawn_one(scene: PackedScene, pos: Vector2) -> Node2D:
+	if not scene: return null
 	var e = scene.instantiate()
 	e.global_position = pos
 	add_child(e)
 	GameManager.register_enemy(e)
 	_all_enemies.append(e)
+	return e
 
 func _clear_all_enemies() -> void:
-	for e in _all_enemies:
+	for e in _all_enemies + _lingnan_enemies + _cyber_enemies:
 		if is_instance_valid(e):
 			GameManager.unregister_enemy(e)
 			e.queue_free()
 	_all_enemies.clear()
+	_lingnan_enemies.clear()
+	_cyber_enemies.clear()
 
 
 # ============================================================
@@ -887,14 +962,18 @@ func _clear_all_enemies() -> void:
 # ============================================================
 
 func _build_erosion_bar() -> void:
-	var cv = get_node_or_null("CanvasLayer")
-	if not cv: return
+	# 侵蚀进度条加到 HUD 下，与血条/技能图标统一管理（隐藏 HUD 时一起隐藏）
+	var hud = get_node_or_null("HUD")
+	if not hud:
+		# HUD 还没加载，延迟创建到下一帧
+		call_deferred("_build_erosion_bar")
+		return
 	var bar = Control.new()
 	bar.name = "ErosionBar"
 	bar.position = Vector2(20, 105); bar.size = Vector2(280, 28)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.z_index = 130
-	cv.add_child(bar)
+	hud.add_child(bar)
 
 	_erosion_bar_bg = ColorRect.new()
 	_erosion_bar_bg.size = Vector2(280, 24); _erosion_bar_bg.position = Vector2(0, 4)
@@ -937,8 +1016,11 @@ func _modify_erosion(delta: float) -> void:
 func _on_enemy_died(data: Dictionary) -> void:
 	var e = data.get("enemy")
 	if not e or not is_instance_valid(e): return
-	if e in _all_enemies:
+	if e in _all_enemies or e in _lingnan_enemies or e in _cyber_enemies:
 		_modify_erosion(-EROSION_KILL_REDUCE)
+		_all_enemies.erase(e)
+		_lingnan_enemies.erase(e)
+		_cyber_enemies.erase(e)
 	# Boss 死亡处理
 	if e == _boss_instance:
 		var death_pos: Vector2 = e.global_position

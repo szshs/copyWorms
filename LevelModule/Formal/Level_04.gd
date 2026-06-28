@@ -122,15 +122,26 @@ func _swap_player_skin(skin: String) -> void:
 	if not old or not is_instance_valid(old): return
 	var h = old.current_health; var m = old.max_health
 	var f = old.is_facing_right; var pos = old.global_position
+	# 先断开旧玩家信号
 	if InputManager.game_action.is_connected(old._on_game_action):
 		InputManager.game_action.disconnect(old._on_game_action)
-	GameManager.player_ref = null; old.queue_free()
+	# 先创建新玩家，再释放旧的（避免 player_ref=null 的空窗期）
 	var path = "res://PlayerModule/Formal/Player_Warrior_" + skin + ".tscn"
 	if not ResourceLoader.exists(path): return
 	var p = load(path).instantiate()
 	p.global_position = pos; p.current_health = h
 	p.max_health = m; p.is_facing_right = f; p.velocity = Vector2.ZERO
-	add_child(p); GameManager.register_player(p)
+	# 暂时移除旧玩家引用，避免 add_child 触发 _ready 时 register_player 冲突
+	GameManager.player_ref = null
+	add_child(p)
+	GameManager.register_player(p)
+	# 释放旧玩家（先禁用处理，再释放，避免释放前被访问）
+	old.set_physics_process(false)
+	old.set_process(false)
+	old.queue_free()
+	# _ready 中 _apply_config 会重置血量为 max_health，需在此之后恢复
+	p.current_health = h
+	p.max_health = m
 	# 推送血量到 HUD（修复换皮肤后血条不更新）
 	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
 		"target": p,
@@ -296,6 +307,8 @@ func _on_game_action(action: StringName, _event: InputEvent) -> void:
 	if _narrative_open: _narrative_enter_pressed = true; return
 
 func _input(event: InputEvent) -> void:
+	# 游戏结束后禁止所有输入
+	if GameManager.is_game_over: return
 	# 鼠标左键等价于Enter（对话推进/交互触发）
 	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	if not event.is_action_pressed("ui_accept") and not is_left_click: return
@@ -595,7 +608,7 @@ func _enter_stage2() -> void:
 	var blk = _create_black_overlay()
 	if not blk: _freeze_player(false); _is_interacting = false; return
 	await get_tree().create_tween().tween_property(blk, "color", Color.BLACK, 0.3).finished
-	# 传送
+	# 传送（await 后重新获取玩家引用，避免旧引用已释放）
 	var p = GameManager.player_ref
 	if not p or not is_instance_valid(p):
 		blk.queue_free(); _freeze_player(false); _is_interacting = false; return
@@ -603,6 +616,8 @@ func _enter_stage2() -> void:
 	_snap_camera(p)
 	_swap_player_skin("Lingnan")
 	p = GameManager.player_ref
+	if not p or not is_instance_valid(p):
+		blk.queue_free(); _freeze_player(false); _is_interacting = false; return
 	_set_camera_limits(0, 7472, 4000, 5032)
 	current_state = LevelState.STAGE2
 	for e in _stage1_enemies:
@@ -1026,6 +1041,18 @@ func _pan_camera_to(target: Vector2, cb: Callable = Callable()) -> void:
 	t.tween_interval(2.5)
 	t.tween_property(cam, "global_position", p.global_position, 0.5).set_trans(Tween.TRANS_SINE)
 	await t.finished
+	# await 后重新获取玩家引用（避免旧玩家在 await 期间被切皮肤释放）
+	p = GameManager.player_ref
+	if not p or not is_instance_valid(p):
+		_is_interacting = false
+		if cb.is_valid(): cb.call()
+		return
+	cam = p.get_node_or_null("SmoothCamera") as SmoothCamera
+	if not cam:
+		_freeze_player(false)
+		_is_interacting = false
+		if cb.is_valid(): cb.call()
+		return
 	cam.global_position = p.global_position
 	cam.follow_enabled = true
 	_freeze_player(false)

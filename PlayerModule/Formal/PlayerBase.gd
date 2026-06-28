@@ -108,6 +108,8 @@ func _setup_collision() -> void:
 	add_child(col)
 
 func _physics_process(delta: float) -> void:
+	if GameManager.is_game_over:
+		return
 	_update_timers(delta)
 	_handle_input()
 	_apply_gravity(delta)
@@ -522,7 +524,7 @@ func perform_dash() -> void:
 	var dir = 1.0 if is_facing_right else -1.0
 	dash_velocity = Vector2(dir * _get_dash_speed(), 0)
 	is_invincible = true
-	invincible_timer = dash_timer
+	invincible_timer = dash_timer + 0.3
 	_on_dash()
 
 func perform_skill() -> void:

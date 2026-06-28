@@ -230,6 +230,7 @@ func _do_dash_attack() -> void:
 	# 突进期间无敌
 	_dash_was_invincible = is_invincible
 	is_invincible = true
+	invincible_timer = _dash_attack_duration + 0.1 + 0.3
 	_change_state(GlobalDefine.PlayerState.ATTACK)
 
 func _end_dash_attack() -> void:
