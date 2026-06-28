@@ -10,7 +10,7 @@ var health_bar_max_width: float = 280.0
 var pause_panel: Panel
 var game_over_panel: Panel
 var _keybind_dim: Panel = null
-var _btn_tex: Texture2D = null
+var _pause_code_rain_overlay: CodeRain = null
 var _health_frame: TextureRect = null   # 血条外框
 var _health_frame_lingnan: Texture2D = null
 var _health_frame_cyber: Texture2D = null
@@ -41,7 +41,6 @@ func suppress_skill_icon(suppress: bool) -> void:
 func _ready() -> void:
 	# 关键：暂停时 HUD 必须继续运行，否则按钮无法响应
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_btn_tex = load("res://Assets/UI/btn.png") as Texture2D
 	_health_frame_lingnan = load("res://Assets/UI/血条岭南.png") as Texture2D
 	_health_frame_cyber = load("res://Assets/UI/血条赛博.png") as Texture2D
 	_build_ui()
@@ -108,30 +107,29 @@ func _build_ui() -> void:
 	pause_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pause_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_panel.hide()
-	var pause_style = StyleBoxFlat.new()
-	pause_style.bg_color = Color(0, 0, 0, 0.6)
-	pause_panel.add_theme_stylebox_override("panel", pause_style)
+	GameUIStyle.apply_panel(pause_panel, 0.72)
 	add_child(pause_panel)
+	_build_pause_code_rain()
 
 	var pause_label = Label.new()
 	pause_label.text = "游戏已暂停"
 	pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pause_label.add_theme_font_size_override("font_size", 42)
+	pause_label.add_theme_font_size_override("font_size", 56)
 	pause_label.add_theme_color_override("font_color", Color.WHITE)
 	pause_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pause_label.position = Vector2(440, 270)
-	pause_label.size = Vector2(400, 50)
+	pause_label.position = Vector2(390, 150)
+	pause_label.size = Vector2(500, 70)
 	pause_panel.add_child(pause_label)
 
-	var resume_btn = _make_panel_btn("继续游戏", Vector2(540, 340), Vector2(200, 56))
+	var resume_btn = _make_panel_btn("继续游戏", Vector2(530, 233), Vector2(220, 110), 24)
 	resume_btn.pressed.connect(_on_resume_pressed)
 	pause_panel.add_child(resume_btn)
 
-	var keybind_btn = _make_panel_btn("按键设置", Vector2(540, 410), Vector2(200, 56))
+	var keybind_btn = _make_panel_btn("按键设置", Vector2(530, 363), Vector2(220, 110), 24)
 	keybind_btn.pressed.connect(_on_keybind_settings_pressed)
 	pause_panel.add_child(keybind_btn)
 
-	var back_btn2 = _make_panel_btn("返回主界面", Vector2(540, 480), Vector2(200, 56))
+	var back_btn2 = _make_panel_btn("返回主界面", Vector2(530, 493), Vector2(220, 110), 24)
 	back_btn2.pressed.connect(_on_back_pressed)
 	pause_panel.add_child(back_btn2)
 
@@ -141,36 +139,24 @@ func _build_ui() -> void:
 	game_over_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	game_over_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	game_over_panel.hide()
-	var go_style = StyleBoxFlat.new()
-	go_style.bg_color = Color(0, 0, 0, 0.7)
-	game_over_panel.add_theme_stylebox_override("panel", go_style)
+	GameUIStyle.apply_panel(game_over_panel, 0.78)
 	add_child(game_over_panel)
 
 	var go_label = Label.new()
 	go_label.text = "游戏结束"
 	go_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	go_label.add_theme_font_size_override("font_size", 60)
+	go_label.add_theme_font_size_override("font_size", 68)
 	go_label.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
 	go_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	go_label.position = Vector2(390, 240)
-	go_label.size = Vector2(500, 60)
+	go_label.position = Vector2(390, 180)
+	go_label.size = Vector2(500, 78)
 	game_over_panel.add_child(go_label)
 
-	var restart_btn = Button.new()
-	restart_btn.text = "重新开始"
-	restart_btn.position = Vector2(540, 340)
-	restart_btn.size = Vector2(200, 44)
-	restart_btn.add_theme_font_size_override("font_size", 24)
-	restart_btn.focus_mode = Control.FOCUS_NONE
+	var restart_btn = _make_panel_btn("重新开始", Vector2(530, 283), Vector2(220, 110), 24)
 	restart_btn.pressed.connect(_on_restart_pressed)
 	game_over_panel.add_child(restart_btn)
 
-	var back_btn3 = Button.new()
-	back_btn3.text = "返回主界面"
-	back_btn3.position = Vector2(540, 400)
-	back_btn3.size = Vector2(200, 44)
-	back_btn3.add_theme_font_size_override("font_size", 24)
-	back_btn3.focus_mode = Control.FOCUS_NONE
+	var back_btn3 = _make_panel_btn("返回主界面", Vector2(530, 413), Vector2(220, 110), 24)
 	back_btn3.pressed.connect(_on_back_pressed)
 	game_over_panel.add_child(back_btn3)
 
@@ -492,8 +478,10 @@ func _update_health_frame() -> void:
 
 func _on_game_pause(_data: Dictionary = {}) -> void:
 	pause_panel.show()
+	_start_pause_code_rain_if_needed()
 
 func _on_game_resume(_data: Dictionary = {}) -> void:
+	_stop_pause_code_rain(true)
 	pause_panel.hide()
 
 func _on_game_over(_data: Dictionary = {}) -> void:
@@ -515,15 +503,14 @@ func _on_back_pressed() -> void:
 	SceneTransitionManager.request_scene_change("res://UI/TitleScreen.tscn", self)
 
 func _on_keybind_settings_pressed() -> void:
+	_stop_pause_code_rain(true)
 	pause_panel.hide()
 	# 用和暂停面板完全一样的方式创建变暗遮罩（Panel.new + StyleBoxFlat）
 	_keybind_dim = Panel.new()
 	_keybind_dim.name = "KeybindDimPanel"
 	_keybind_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_keybind_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var dim_style := StyleBoxFlat.new()
-	dim_style.bg_color = Color(0, 0, 0, 0.6)
-	_keybind_dim.add_theme_stylebox_override("panel", dim_style)
+	GameUIStyle.apply_panel(_keybind_dim, 0.68)
 	add_child(_keybind_dim)
 	# 创建按键设置界面
 	var scene: PackedScene = load("res://UI/KeybindSettingsScreen.tscn")
@@ -542,35 +529,43 @@ func _on_keybind_screen_closed() -> void:
 		_keybind_dim.queue_free()
 		_keybind_dim = null
 	pause_panel.show()
+	_start_pause_code_rain_if_needed()
 
-## 创建带 btn.png 底板的纹理按钮（暂停面板等局内UI共用）
-func _make_panel_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton:
+func _build_pause_code_rain() -> void:
+	_pause_code_rain_overlay = CodeRain.new()
+	_pause_code_rain_overlay.name = "PauseCodeRainOverlay"
+	_pause_code_rain_overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	_pause_code_rain_overlay.z_index = 0
+	_pause_code_rain_overlay.fade_duration = 0.35
+	pause_panel.add_child(_pause_code_rain_overlay)
+
+func _start_pause_code_rain_if_needed() -> void:
+	if not _pause_code_rain_overlay or not _is_code_rain_pause_scene():
+		return
+	_pause_code_rain_overlay.start_rain()
+
+func _stop_pause_code_rain(immediate: bool = false) -> void:
+	if _pause_code_rain_overlay and is_instance_valid(_pause_code_rain_overlay):
+		_pause_code_rain_overlay.stop_rain(immediate)
+
+func _is_code_rain_pause_scene() -> bool:
+	var scene = get_tree().current_scene
+	if not scene:
+		return false
+	return scene is Level_03 or scene is Level_04 or scene is Level_05
+
+## 创建统一梦境赛博皮肤按钮（暂停面板等局内UI共用）
+func _make_panel_btn(text: String, pos: Vector2, size: Vector2, font_size: int = 24) -> TextureButton:
 	var btn := TextureButton.new()
 	btn.position = pos
 	btn.custom_minimum_size = size
 	btn.size = size
 	btn.focus_mode = Control.FOCUS_NONE
-	if _btn_tex:
-		btn.texture_normal = _btn_tex
-		btn.texture_hover = _btn_tex
-		btn.texture_pressed = _btn_tex
-	btn.ignore_texture_size = true
-	btn.stretch_mode = TextureButton.STRETCH_SCALE
 	var lbl := Label.new()
+	lbl.name = "Label"
 	lbl.text = text
-	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.add_theme_color_override("font_color", Color.WHITE)
-	lbl.add_theme_font_size_override("font_size", 24)
 	btn.add_child(lbl)
-	# hover/pressed 动效：modulate 染底板淡蓝色，lbl self_modulate 反抵消保持白字
-	btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
-	lbl.self_modulate = Color(2.5, 1.54, 1.0)
-	btn.mouse_entered.connect(func() -> void: btn.modulate = Color(0.55, 0.78, 1.0, 1.0); lbl.self_modulate = Color(1.82, 1.28, 1.0))
-	btn.mouse_exited.connect(func() -> void: btn.modulate = Color(0.4, 0.65, 1.0, 1.0); lbl.self_modulate = Color(2.5, 1.54, 1.0))
-	btn.button_down.connect(func() -> void: btn.modulate = Color(0.25, 0.48, 0.85, 1.0); lbl.self_modulate = Color(4.0, 2.08, 1.18))
-	btn.button_up.connect(func() -> void: btn.modulate = Color(0.55, 0.78, 1.0, 1.0); lbl.self_modulate = Color(1.82, 1.28, 1.0))
+	GameUIStyle.apply_texture_button(btn, font_size)
 	btn.pressed.connect(func() -> void: SFXManager.play(SFXManager.SFX.UI_CLICK))
 	return btn

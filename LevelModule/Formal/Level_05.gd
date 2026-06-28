@@ -63,6 +63,7 @@ var _erosion_value: float = 0.0
 var _erosion_bar_bg: ColorRect = null
 var _erosion_bar_fill: ColorRect = null
 var _erosion_label: Label = null
+var _code_rain_overlay: CodeRain = null
 const EROSION_MAX: float = 100.0
 const EROSION_RATE: float = 0.7
 const EROSION_KILL_REDUCE: float = 15.0
@@ -257,6 +258,7 @@ func _on_ready() -> void:
 	_set_collision_group_active(_lingnan_collisions, false)
 	# bg5 碰撞体初始禁用（tscn 已设 visible=false，碰撞体需脚本关闭）
 	_set_bg5_area_active(false)
+	_build_code_rain_overlay()
 
 	# 岭南在上 → 生成双世界怪物（赛博世界怪物隐藏）
 	_spawn_dual_world_enemies()
@@ -357,6 +359,7 @@ func _goto_bg3_test() -> void:
 	_despawn_boss()
 	_hide_boss_bar()
 	_spawn_all_enemies(true)
+	_sync_code_rain_for_bg5()
 
 func _goto_bg4_test() -> void:
 	_in_boss_arena = true
@@ -369,6 +372,7 @@ func _goto_bg4_test() -> void:
 	_spawn_boss()
 	_show_boss_bar()
 	_show_skin_hint()
+	_sync_code_rain_for_bg5()
 
 func _goto_bg5_test() -> void:
 	_in_boss_arena = false
@@ -382,6 +386,7 @@ func _goto_bg5_test() -> void:
 	_set_cam_from_group($Bg5Collisions, 7448)
 	_hide_boss_bar()
 	_despawn_boss()
+	_sync_code_rain_for_bg5()
 
 
 func _exit_tree() -> void:
@@ -868,6 +873,7 @@ func _teleport_to_bg5() -> void:
 		p.can_skill = false
 		p.can_attack = false
 		p.can_attack_hold_dash = false
+	_sync_code_rain_for_bg5()
 	print("[Level_05] 已进入 bg5 区域")
 
 ## 每帧持续隐藏所有战斗UI（_in_bg5 时调用，防止 HUD _process 恢复可见性）
@@ -890,6 +896,24 @@ func _set_bg5_area_active(active: bool) -> void:
 	if grandpa is InteractiveObject:
 		(grandpa as InteractiveObject).is_active = active
 		(grandpa as Area2D).monitoring = active
+	_sync_code_rain_for_bg5()
+
+func _build_code_rain_overlay() -> void:
+	var cv = get_node_or_null("CanvasLayer")
+	if not cv:
+		return
+	_code_rain_overlay = CodeRain.new()
+	_code_rain_overlay.name = "CodeRainOverlay"
+	cv.add_child(_code_rain_overlay)
+	_sync_code_rain_for_bg5()
+
+func _sync_code_rain_for_bg5() -> void:
+	if not _code_rain_overlay or not is_instance_valid(_code_rain_overlay):
+		return
+	if _in_bg5:
+		_code_rain_overlay.stop_rain(true)
+	else:
+		_code_rain_overlay.start_rain()
 
 func _enter_boss_arena() -> void:
 	if _in_boss_arena: return

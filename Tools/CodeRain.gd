@@ -79,6 +79,7 @@ var _fn_mutation_timer: float = 0.0
 
 var _active: bool = false
 var _font: Font = null
+var _fade_tween: Tween = null
 
 
 # ============================================================
@@ -324,6 +325,9 @@ func _draw() -> void:
 func start_rain() -> void:
 	if _active:
 		return
+	if _fade_tween:
+		_fade_tween.kill()
+		_fade_tween = null
 	_active = true
 	_init_columns()
 	_mutation_timer = 0.0
@@ -331,20 +335,34 @@ func start_rain() -> void:
 	visible = true
 	modulate.a = 0.0
 	set_process(true)
-	var tween = create_tween()
-	tween.tween_property(self, "modulate:a", 1.0, fade_duration)
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(self, "modulate:a", 1.0, fade_duration)
+	_fade_tween.tween_callback(func():
+		_fade_tween = null
+	)
 
 
 ## 停止代码雨（淡出）
-func stop_rain() -> void:
+func stop_rain(immediate: bool = false) -> void:
 	if not _active:
 		return
+	if _fade_tween:
+		_fade_tween.kill()
+		_fade_tween = null
 	_active = false
-	var tween = create_tween()
-	tween.tween_property(self, "modulate:a", 0.0, fade_duration)
-	tween.tween_callback(func():
+	if immediate:
+		modulate.a = 0.0
 		set_process(false)
 		visible = false
 		_columns.clear()
 		_fn_columns.clear()
+		return
+	_fade_tween = create_tween()
+	_fade_tween.tween_property(self, "modulate:a", 0.0, fade_duration)
+	_fade_tween.tween_callback(func():
+		set_process(false)
+		visible = false
+		_columns.clear()
+		_fn_columns.clear()
+		_fade_tween = null
 	)

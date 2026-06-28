@@ -76,6 +76,7 @@ var _dynamic_actors: Node2D = null
 # ---- UI ----
 var _narrative_panel: Panel = null
 var _narrative_text: RichTextLabel = null
+var _code_rain_overlay: CodeRain = null
 var _glitch_overlay: ColorRect = null
 var _ending_prompt: Control = null
 var _ending_label: Label = null
@@ -169,6 +170,7 @@ func _on_ready() -> void:
 	_setup_camera_limits()
 	_set_cam_from_group($Stage1Collisions, -696)
 	_cache_ui_refs()
+	_start_code_rain()
 	# 收集交互物引用 + 启动闪烁动画
 	for c in get_node_or_null("Interactives").get_children():
 		if c is InteractiveObject:
@@ -289,9 +291,18 @@ func _cache_ui_refs() -> void:
 	if not c: return
 	_narrative_panel = c.get_node_or_null("NarrativePanel")
 	if _narrative_panel: _narrative_text = _narrative_panel.get_node_or_null("RichTextLabel")
+	_code_rain_overlay = c.get_node_or_null("CodeRainOverlay")
 	_glitch_overlay = c.get_node_or_null("GlitchOverlay")
 	_ending_prompt = c.get_node_or_null("EndingPrompt")
 	if _ending_prompt: _ending_label = _ending_prompt.get_node_or_null("EndingLabel")
+
+func _start_code_rain() -> void:
+	if _code_rain_overlay and is_instance_valid(_code_rain_overlay):
+		_code_rain_overlay.start_rain()
+
+func _stop_code_rain(immediate: bool = false) -> void:
+	if _code_rain_overlay and is_instance_valid(_code_rain_overlay):
+		_code_rain_overlay.stop_rain(immediate)
 
 
 

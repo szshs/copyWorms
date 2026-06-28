@@ -30,6 +30,8 @@ signal player_exited
 @export var prompt_text: String = "按 Enter 交互"
 ## 是否允许重复交互（如床可多次睡眠）
 @export var allow_repeat: bool = false
+## 距离轮询判定的额外容差。小物件可调低，避免与附近交互物范围重叠。
+@export var interaction_tolerance: float = 16.0
 
 ## 幂等性核心: 交互完成标志，完成后再触发直接拒绝
 var completed: bool = false
@@ -149,13 +151,19 @@ func check_player_in_range(player: Node2D) -> void:
 
 ## 距离判定：玩家中心与交互物中心的距离是否在触发半径内
 ## 修复: 原 AABB 矩形检测在物理阻挡紧贴交互触发区时永远 false（玩家贴边差 0.02 像素）
-## 改用更稳健的距离判定，半径 = 物体 size 最大边 + 32 像素容差
+## 改用更稳健的距离判定，半径 = 物体半径 + 玩家半径 + 可配置容差
 func _rect_overlaps_player(player: Node2D) -> bool:
+	return get_interaction_distance_to(player) <= get_interaction_radius(player)
+
+func get_interaction_distance_to(player: Node2D) -> float:
+	if not player or not is_instance_valid(player):
+		return INF
+	return player.global_position.distance_to(global_position)
+
+func get_interaction_radius(player: Node2D) -> float:
 	var col_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
 	if not col_shape or not col_shape.shape:
-		return false
-	# 玩家中心到交互物中心的距离
-	var dist: float = player.global_position.distance_to(global_position)
+		return 0.0
 	# 触发半径 = 物体碰撞尺寸最大边的一半 + 玩家半宽 + 容差
 	var half_max_dim: float = 0.0
 	if col_shape.shape is RectangleShape2D:
@@ -166,9 +174,7 @@ func _rect_overlaps_player(player: Node2D) -> bool:
 	if player.has_method("_get_collision_size"):
 		p_size = player._get_collision_size()
 	var half_p: float = max(p_size.x, p_size.y) / 2.0
-	# 触发半径 = 物体半径 + 玩家半径 + 16 像素容差
-	const TOLERANCE: float = 16.0
-	return dist <= (half_max_dim + half_p + TOLERANCE)
+	return max(0.0, half_max_dim + half_p + interaction_tolerance)
 
 
 ## 标记交互为已完成（幂等性：调用后该物体不可再触发的交互）

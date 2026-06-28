@@ -13,6 +13,7 @@ func _init(parent: Level_04, canvas_layer: CanvasLayer) -> void:
 
 func build_all() -> void:
 	_build_narrative_panel()
+	_build_code_rain_overlay()
 	_build_glitch_overlay()
 	_build_right_edge_flash()
 	_build_ending_prompt()
@@ -55,6 +56,13 @@ func _build_narrative_panel() -> void:
 	level._narrative_text = label
 	canvas.add_child(panel)
 	level._narrative_panel = panel
+
+
+func _build_code_rain_overlay() -> void:
+	var rain = CodeRain.new()
+	rain.name = "CodeRainOverlay"
+	canvas.add_child(rain)
+	level._code_rain_overlay = rain
 
 
 func _build_glitch_overlay() -> void:

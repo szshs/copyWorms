@@ -7,13 +7,12 @@ class_name Ladder
 @export var ladder_top_y: float = -344.0     # 顶端 Y（小值=上方）
 @export var ladder_bottom_y: float = 15.0    # 底端 Y（大值=下方）
 @export var climb_speed: float = 250.0
+@export var ladder_width: float = 40.0
+@export var ladder_vertical_pad: float = 30.0
 
 var _player: CharacterBody2D = null
 var _climbing: bool = false
-var _climb_start_y: float = 0.0
-var _climb_target: float = 0.0
-var _climb_dir_sign: float = 0.0
-var _climb_progress: float = 0.0
+var _last_climb_dir: float = 0.0
 
 var _label_w: Label = null
 var _label_s: Label = null
@@ -26,17 +25,16 @@ func _ready() -> void:
 	monitorable = false
 
 	var h = abs(ladder_top_y - ladder_bottom_y)
-	const PAD := 30.0
 	var col = CollisionShape2D.new()
 	var rect = RectangleShape2D.new()
-	rect.size = Vector2(40, h + PAD * 2)
+	rect.size = Vector2(ladder_width, h + ladder_vertical_pad * 2)
 	col.shape = rect
 	add_child(col)
 
 	var vis = ColorRect.new()
 	vis.color = Color(1.0, 0.95, 0.6, 0.35)  # 很淡的黄色
-	vis.size = Vector2(40, h)
-	vis.position = Vector2(-20, -h / 2.0)
+	vis.size = Vector2(ladder_width, h)
+	vis.position = Vector2(-ladder_width / 2.0, -h / 2.0)
 	vis.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(vis)
 
@@ -76,7 +74,7 @@ func _on_exit(body: Node2D) -> void:
 	if body != _player: return
 	print("[Ladder] player exited (climbing=%s)" % _climbing)
 	if _climbing:
-		_finish_climb()
+		_finish_climb(false)
 	_player = null
 	_label_w.visible = false
 	_label_s.visible = false
@@ -90,65 +88,74 @@ func _process(delta: float) -> void:
 		return
 
 	var py = _player.global_position.y
-	_label_w.visible = abs(py - ladder_bottom_y) < 60.0
-	_label_s.visible = abs(py - ladder_top_y) < 60.0
+	_label_w.visible = py > ladder_top_y
+	_label_s.visible = py < ladder_bottom_y
 
-	# 双向：底部按W向上，顶部按S向下
+	# 双向：在梯子宽度区域内任意高度，W 向上，S 向下。
 	if _label_w.visible and Input.is_action_just_pressed("player_up"):
-		print("[Ladder] W pressed at bottom, climbing UP")
-		_start_climb(ladder_bottom_y, ladder_top_y, -1)
+		print("[Ladder] W pressed, climbing UP")
+		_start_climb(-1)
 	elif _label_s.visible and Input.is_action_just_pressed("player_down"):
-		print("[Ladder] S pressed at top (py=%.1f, top=%.1f), climbing DOWN" % [py, ladder_top_y])
-		_start_climb(ladder_top_y, ladder_bottom_y, 1)
+		print("[Ladder] S pressed, climbing DOWN")
+		_start_climb(1)
 
 
-func _start_climb(from_y: float, to_y: float, dir: float) -> void:
+func _start_climb(dir: float) -> void:
 	_climbing = true
-	_climb_start_y = from_y
-	_climb_target = to_y
-	_climb_dir_sign = dir
-	_climb_progress = 0.0
+	_last_climb_dir = dir
 	_label_w.visible = false
 	_label_s.visible = false
+	if dir > 0.0 and _player.global_position.y < ladder_top_y:
+		_player.global_position.y = ladder_top_y
+	elif dir < 0.0 and _player.global_position.y > ladder_bottom_y:
+		_player.global_position.y = ladder_bottom_y
 	if _player.has_method("begin_ladder_climb"):
 		_player.call("begin_ladder_climb")
 	else:
 		_player.set_physics_process(false)
-	print("[Ladder] climb start: %.1f → %.1f, dir=%d" % [from_y, to_y, dir])
+	print("[Ladder] climb start at y=%.1f, dir=%.0f" % [_player.global_position.y, dir])
 
 
 func _climb_tick(delta: float) -> void:
 	if not _player or not is_instance_valid(_player):
-		_finish_climb(); return
+		_finish_climb(false); return
 
-	var dist = abs(_climb_target - _climb_start_y)
-	var step = climb_speed * delta
-	_climb_progress += step / dist if dist > 0 else 1.0
-
-	var y: float
-	if _climb_progress >= 1.0:
-		y = _climb_target
-	else:
-		y = _climb_start_y + _climb_dir_sign * _climb_progress * dist
-
-	_player.global_position.y = y
-
-	if _climb_progress >= 1.0:
-		print("[Ladder] climb complete at y=%.1f" % y)
-		_finish_climb()
-	elif Input.is_action_just_pressed("player_jump"):
+	if Input.is_action_just_pressed("player_jump"):
 		print("[Ladder] climb cancelled by jump")
-		_finish_climb()
+		_finish_climb(false)
+		return
+
+	var input_dir := 0.0
+	if Input.is_action_pressed("player_up") and _player.global_position.y > ladder_top_y:
+		input_dir -= 1.0
+	if Input.is_action_pressed("player_down") and _player.global_position.y < ladder_bottom_y:
+		input_dir += 1.0
+	if input_dir != 0.0:
+		_last_climb_dir = input_dir
+		_player.global_position.y = clampf(
+			_player.global_position.y + input_dir * climb_speed * delta,
+			ladder_top_y,
+			ladder_bottom_y
+		)
+
+	if _last_climb_dir < 0.0 and _player.global_position.y <= ladder_top_y:
+		print("[Ladder] climb complete at top y=%.1f" % _player.global_position.y)
+		_last_climb_dir = -1.0
+		_finish_climb(true)
+	elif _last_climb_dir > 0.0 and _player.global_position.y >= ladder_bottom_y:
+		print("[Ladder] climb complete at bottom y=%.1f" % _player.global_position.y)
+		_last_climb_dir = 1.0
+		_finish_climb(true)
 
 
-func _finish_climb() -> void:
-	var landing_dir = _climb_dir_sign
+func _finish_climb(snap_to_endpoint: bool = true) -> void:
+	var landing_dir = _last_climb_dir
 	_climbing = false
-	_climb_dir_sign = 0.0
+	_last_climb_dir = 0.0
 	if _player and is_instance_valid(_player):
-		if landing_dir > 0:  # 向下爬完，落在底端平台上方
+		if snap_to_endpoint and landing_dir > 0:  # 向下爬完，落在底端平台上方
 			_player.global_position.y = ladder_bottom_y - 15.0
-		elif landing_dir < 0:  # 向上爬完，落在顶端平台上方
+		elif snap_to_endpoint and landing_dir < 0:  # 向上爬完，落在顶端平台上方
 			_player.global_position.y = ladder_top_y - 15.0
 		if _player.has_method("end_ladder_climb"):
 			_player.call("end_ladder_climb")

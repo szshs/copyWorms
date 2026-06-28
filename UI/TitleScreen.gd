@@ -81,34 +81,15 @@ func _connect_signals() -> void:
 	$MenuCenter/ButtonGroup/SettingsButton.pressed.connect(_on_open_settings)
 	$MenuCenter/ButtonGroup/QuitButton.pressed.connect(_on_quit)
 
-	# 主菜单按钮加 hover 动效
+	# 主菜单按钮统一 UI 皮肤
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/StartButton)
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/HighlightButton)
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/SettingsButton)
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/QuitButton)
 
-## TextureButton hover/pressed 动效：modulate 染底板淡蓝色，Label self_modulate 反抵消保持白字
+## TextureButton 统一梦境赛博按钮皮肤
 func _connect_btn_hover_modulate(btn: TextureButton) -> void:
-	btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
-	var lbl := btn.get_node_or_null("Label") as Label
-	if lbl: lbl.self_modulate = Color(2.5, 1.54, 1.0)
-	btn.mouse_entered.connect(func() -> void:
-		if not btn.disabled:
-			btn.modulate = Color(0.55, 0.78, 1.0, 1.0)
-			if lbl: lbl.self_modulate = Color(1.82, 1.28, 1.0)
-	)
-	btn.mouse_exited.connect(func() -> void:
-		btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
-		if lbl: lbl.self_modulate = Color(2.5, 1.54, 1.0)
-	)
-	btn.button_down.connect(func() -> void:
-		btn.modulate = Color(0.25, 0.48, 0.85, 1.0)
-		if lbl: lbl.self_modulate = Color(4.0, 2.08, 1.18)
-	)
-	btn.button_up.connect(func() -> void:
-		btn.modulate = Color(0.55, 0.78, 1.0, 1.0)
-		if lbl: lbl.self_modulate = Color(1.82, 1.28, 1.0)
-	)
+	GameUIStyle.apply_texture_button(btn, 26)
 
 # ============================================================
 # 点击热区 → 黑色矩形从点击点放大铺满 + 按钮淡入
