@@ -79,6 +79,7 @@ var _sleep_fading: bool = false
 # 床交互空闲提示：电脑解锁前，每次睡完 2s 内未再找床则弹提示
 const IDLE_BED_PROMPT_TEXT := "没什么事做，还是继续睡觉吧"
 const IDLE_BED_PROMPT_DELAY: float = 2.0
+const COMPUTER_UNLOCK_SLEEP_COUNT: int = 3
 var _idle_bed_prompt_armed: bool = false
 
 # IDE 预览超时崩溃（8 秒）
@@ -484,23 +485,30 @@ func _input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 func _find_nearby_interactive() -> InteractiveObject:
-	# 优先用 is_player_in_range (由 body_entered 或 _poll 维护)
-	for obj in _all_interactives:
-		if is_instance_valid(obj) and obj.is_active and not obj.completed and obj.is_player_in_range:
-			return obj
-	# Fallback: 距离检测 — 解决 body_entered 信号永远不触发的情况
-	# 触发半径 = 物体 size 最大边 + 40 像素容差
 	var player = GameManager.player_ref
 	if not player or not is_instance_valid(player):
 		return null
 	var best: InteractiveObject = null
 	var best_dist: float = INF
-	const FALLBACK_RADIUS: float = 120.0  # 距离 fallback 触发半径
+
+	# 优先用 is_player_in_range (由 body_entered 或 _poll 维护)，重叠时取最近交互物。
+	for obj in _all_interactives:
+		if not is_instance_valid(obj) or not obj.is_active or obj.completed or not obj.is_player_in_range:
+			continue
+		var d: float = obj.get_interaction_distance_to(player)
+		if d < best_dist:
+			best_dist = d
+			best = obj
+	if best:
+		return best
+
+	# Fallback: 距离检测 — 解决 body_entered 信号永远不触发的情况。
+	# 使用每个交互物自己的半径，避免小物件被全局大半径误命中。
 	for obj in _all_interactives:
 		if not is_instance_valid(obj) or not obj.is_active or obj.completed:
 			continue
-		var d: float = player.global_position.distance_to(obj.global_position)
-		if d < FALLBACK_RADIUS and d < best_dist:
+		var d: float = obj.get_interaction_distance_to(player)
+		if d <= obj.get_interaction_radius(player) and d < best_dist:
 			best_dist = d
 			best = obj
 	if best:
@@ -667,7 +675,7 @@ func _trigger_sleep_cycle() -> void:
 	# 睡眠叙事：不传 callback，直接在 _show_narrative 返回后继续睡眠流程
 	await _show_narrative(sleep_text)
 
-	# 解锁检测：与床交互满4次后解锁电脑
+	# 解锁检测：与床交互满指定次数后解锁电脑
 	_try_unlock_computer()
 	# _show_narrative 返回后玩家已解冻、交互已清空
 	# 但睡眠渐变动画期间需要保持冻结
@@ -723,10 +731,10 @@ func _disarm_idle_bed_prompt() -> void:
 	_idle_bed_prompt_armed = false
 
 
-## 检查是否满足解锁电脑的前置条件（与床交互≥4次）
+## 检查是否满足解锁电脑的前置条件
 ## 解锁后电脑变为可交互，并弹出提示叙事
 func _try_unlock_computer() -> void:
-	if sleep_count < 4:
+	if sleep_count < COMPUTER_UNLOCK_SLEEP_COUNT:
 		return
 	if not _computer_node or not is_instance_valid(_computer_node):
 		return

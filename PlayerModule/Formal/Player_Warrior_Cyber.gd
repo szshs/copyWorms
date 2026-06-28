@@ -99,7 +99,7 @@ func _on_physics_process(delta: float) -> void:
 		_dash_cd_timer -= delta
 
 	# 长按普攻检测：按下时计时，超过阈值触发突进蓄力
-	if not _is_lightning_dash and not _dash_windup and not is_attacking and not is_dashing:
+	if can_attack_hold_dash and not _is_lightning_dash and not _dash_windup and not is_attacking and not is_dashing:
 		if Input.is_action_pressed("player_attack") and _dash_cd_timer <= 0:
 			_attack_hold_time += delta
 			if _attack_hold_time >= ATTACK_HOLD_THRESHOLD:

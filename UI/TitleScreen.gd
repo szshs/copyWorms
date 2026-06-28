@@ -20,6 +20,7 @@ const FADE_IN_DURATION := 0.45      # 按钮组淡入时长
 const HIGHLIGHT_SCENE := "res://LevelModule/Formal/Level_02_03.tscn"
 
 var _transitioned: bool = false
+var _web_quit_hint: Label = null
 
 func _ready() -> void:
 	print("[TitleScreen] 标题画面加载")
@@ -80,34 +81,15 @@ func _connect_signals() -> void:
 	$MenuCenter/ButtonGroup/SettingsButton.pressed.connect(_on_open_settings)
 	$MenuCenter/ButtonGroup/QuitButton.pressed.connect(_on_quit)
 
-	# 主菜单按钮加 hover 动效
+	# 主菜单按钮统一 UI 皮肤
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/StartButton)
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/HighlightButton)
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/SettingsButton)
 	_connect_btn_hover_modulate($MenuCenter/ButtonGroup/QuitButton)
 
-## TextureButton hover/pressed 动效：modulate 染底板淡蓝色，Label self_modulate 反抵消保持白字
+## TextureButton 统一梦境赛博按钮皮肤
 func _connect_btn_hover_modulate(btn: TextureButton) -> void:
-	btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
-	var lbl := btn.get_node_or_null("Label") as Label
-	if lbl: lbl.self_modulate = Color(2.5, 1.54, 1.0)
-	btn.mouse_entered.connect(func() -> void:
-		if not btn.disabled:
-			btn.modulate = Color(0.55, 0.78, 1.0, 1.0)
-			if lbl: lbl.self_modulate = Color(1.82, 1.28, 1.0)
-	)
-	btn.mouse_exited.connect(func() -> void:
-		btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
-		if lbl: lbl.self_modulate = Color(2.5, 1.54, 1.0)
-	)
-	btn.button_down.connect(func() -> void:
-		btn.modulate = Color(0.25, 0.48, 0.85, 1.0)
-		if lbl: lbl.self_modulate = Color(4.0, 2.08, 1.18)
-	)
-	btn.button_up.connect(func() -> void:
-		btn.modulate = Color(0.55, 0.78, 1.0, 1.0)
-		if lbl: lbl.self_modulate = Color(1.82, 1.28, 1.0)
-	)
+	GameUIStyle.apply_texture_button(btn, 26)
 
 # ============================================================
 # 点击热区 → 黑色矩形从点击点放大铺满 + 按钮淡入
@@ -174,7 +156,31 @@ func _on_highlight_start() -> void:
 func _on_quit() -> void:
 	SFXManager.play(SFXManager.SFX.UI_CLICK)
 	print("[TitleScreen] >>> 退出按钮被点击 <<<")
+	if OS.has_feature("web"):
+		_show_web_quit_hint()
+		return
 	get_tree().quit()
+
+func _show_web_quit_hint() -> void:
+	if not _web_quit_hint:
+		_web_quit_hint = Label.new()
+		_web_quit_hint.name = "WebQuitHint"
+		_web_quit_hint.text = "网页版请直接关闭当前浏览器标签页"
+		_web_quit_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_web_quit_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_web_quit_hint.add_theme_font_size_override("font_size", 24)
+		_web_quit_hint.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+		_web_quit_hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		_web_quit_hint.add_theme_constant_override("outline_size", 4)
+		_web_quit_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_web_quit_hint.size = Vector2(520, 36)
+		_web_quit_hint.position = Vector2(380, 670)
+		add_child(_web_quit_hint)
+	_web_quit_hint.visible = true
+	_web_quit_hint.modulate.a = 1.0
+	var tween := _web_quit_hint.create_tween()
+	tween.tween_interval(2.0)
+	tween.tween_property(_web_quit_hint, "modulate:a", 0.0, 0.5)
 
 func _on_open_settings() -> void:
 	SFXManager.play(SFXManager.SFX.UI_CLICK)

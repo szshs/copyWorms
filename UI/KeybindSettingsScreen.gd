@@ -12,11 +12,9 @@ signal closed()
 var _listening_action: StringName = &""
 var _action_rows: Dictionary = {}
 var _list_vbox: VBoxContainer
-var _btn_tex: Texture2D
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_btn_tex = load("res://Assets/UI/btn.png") as Texture2D
 	_build_ui()
 	# 阻止 ESC 在此界面触发暂停切换
 	InputManager.set_pause_allowed(false)
@@ -36,14 +34,22 @@ func _build_ui() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
+	var main_panel := Panel.new()
+	main_panel.name = "DreamSettingsPanel"
+	main_panel.position = Vector2(260, 36)
+	main_panel.size = Vector2(900, 626)
+	main_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	GameUIStyle.apply_pressed_button_panel(main_panel)
+	add_child(main_panel)
+
 	# 标题
 	var title := Label.new()
 	title.text = "按键设置"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 42)
 	title.add_theme_color_override("font_color", Color.WHITE)
-	title.position = Vector2(460, 55)
-	title.size = Vector2(500, 44)
+	title.position = Vector2(460, 102)
+	title.size = Vector2(500, 46)
 	add_child(title)
 
 	# 提示文字
@@ -52,14 +58,14 @@ func _build_ui() -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size", 21)
 	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
-	hint.position = Vector2(460, 97)
-	hint.size = Vector2(500, 24)
+	hint.position = Vector2(420, 146)
+	hint.size = Vector2(580, 26)
 	add_child(hint)
 
 	# 滚动区域
 	var scroll := ScrollContainer.new()
-	scroll.position = Vector2(320, 130)
-	scroll.size = Vector2(780, 420)
+	scroll.position = Vector2(330, 194)
+	scroll.size = Vector2(780, 320)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
@@ -73,66 +79,50 @@ func _build_ui() -> void:
 		_add_action_row(action)
 
 	# 底部按钮
-	var reset_btn := _make_btn("恢复默认", Vector2(440, 575), Vector2(220, 56))
+	var reset_btn := _make_btn("恢复默认", Vector2(510, 540), Vector2(180, 54), true, 31)
 	reset_btn.pressed.connect(_on_reset_pressed)
 	add_child(reset_btn)
 
-	var back_btn := _make_btn("返回", Vector2(700, 575), Vector2(220, 56))
+	var back_btn := _make_btn("返回", Vector2(730, 540), Vector2(180, 54), true, 31)
 	back_btn.pressed.connect(_on_back_pressed)
 	add_child(back_btn)
 
-## 创建带 btn.png 底板的纹理按钮
-func _make_btn(text: String, pos: Vector2, size: Vector2) -> TextureButton:
+## 创建统一梦境赛博皮肤按钮
+func _make_btn(text: String, pos: Vector2, size: Vector2, force_simple: bool = false, font_size: int = 24) -> TextureButton:
 	var btn := TextureButton.new()
 	btn.position = pos
 	btn.custom_minimum_size = size
 	btn.size = size
-	if _btn_tex:
-		btn.texture_normal = _btn_tex
-		btn.texture_hover = _btn_tex
-		btn.texture_pressed = _btn_tex
-	btn.ignore_texture_size = true
-	btn.stretch_mode = TextureButton.STRETCH_SCALE
 	# 文字标签
 	var lbl := Label.new()
+	lbl.name = "Label"
 	lbl.text = text
-	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.add_theme_color_override("font_color", Color.WHITE)
-	lbl.add_theme_font_size_override("font_size", 24)
 	btn.add_child(lbl)
-	# hover/pressed 动效：modulate 染底板淡蓝色，lbl self_modulate 反抵消保持白字
-	btn.modulate = Color(0.4, 0.65, 1.0, 1.0)
-	lbl.self_modulate = Color(2.5, 1.54, 1.0)
-	btn.mouse_entered.connect(func() -> void: btn.modulate = Color(0.55, 0.78, 1.0, 1.0); lbl.self_modulate = Color(1.82, 1.28, 1.0))
-	btn.mouse_exited.connect(func() -> void: btn.modulate = Color(0.4, 0.65, 1.0, 1.0); lbl.self_modulate = Color(2.5, 1.54, 1.0))
-	btn.button_down.connect(func() -> void: btn.modulate = Color(0.25, 0.48, 0.85, 1.0); lbl.self_modulate = Color(4.0, 2.08, 1.18))
-	btn.button_up.connect(func() -> void: btn.modulate = Color(0.55, 0.78, 1.0, 1.0); lbl.self_modulate = Color(1.82, 1.28, 1.0))
+	GameUIStyle.apply_texture_button(btn, font_size, force_simple)
 	return btn
 
 func _add_action_row(action: StringName) -> void:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
+	row.add_theme_constant_override("separation", 20)
 
 	# 动作名称
 	var name_label := Label.new()
 	name_label.text = KeybindManager.get_action_display_name(action)
-	name_label.custom_minimum_size = Vector2(80, 36)
+	name_label.custom_minimum_size = Vector2(100, 38)
 	name_label.add_theme_font_size_override("font_size", 24)
 	name_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	row.add_child(name_label)
 
 	# 当前绑定显示
 	var bind_label := Label.new()
-	bind_label.custom_minimum_size = Vector2(400, 36)
+	bind_label.custom_minimum_size = Vector2(400, 38)
 	bind_label.add_theme_font_size_override("font_size", 22)
 	bind_label.add_theme_color_override("font_color", Color(0.65, 0.82, 1.0))
 	row.add_child(bind_label)
 
 	# 修改按钮
-	var rebind_btn := _make_btn("修改", Vector2.ZERO, Vector2(100, 44))
+	var rebind_btn := _make_btn("修改", Vector2.ZERO, Vector2(118, 44), true, 29)
 	rebind_btn.pressed.connect(_on_rebind_pressed.bind(action))
 	row.add_child(rebind_btn)
 
@@ -148,6 +138,8 @@ func _update_binding_display(action: StringName) -> void:
 	var events: Array[InputEvent] = InputMap.action_get_events(action)
 	var texts: Array = []
 	for ev: InputEvent in events:
+		if ev is InputEventJoypadButton or ev is InputEventJoypadMotion:
+			continue
 		texts.append(KeybindManager.get_event_display_text(ev))
 	bind_label.text = ", ".join(texts) if texts.size() > 0 else "未绑定"
 
@@ -166,7 +158,7 @@ func _on_rebind_pressed(action: StringName) -> void:
 		bind_label.text = "< 请按键... (ESC取消) >"
 		bind_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
 		var rebind_btn: TextureButton = row_data["button"]
-		rebind_btn.disabled = true
+		GameUIStyle.set_texture_button_disabled(rebind_btn, true)
 	# 屏蔽游戏输入，防止按键被游戏消费
 	InputManager.block_input("按键设置-监听中", self)
 
@@ -232,7 +224,7 @@ func _finish_listening() -> void:
 		var bind_label: Label = row_data["label"]
 		bind_label.add_theme_color_override("font_color", Color(0.65, 0.82, 1.0))
 		var rebind_btn: TextureButton = row_data["button"]
-		rebind_btn.disabled = false
+		GameUIStyle.set_texture_button_disabled(rebind_btn, false)
 	_listening_action = &""
 	InputManager.unblock_input("按键设置-监听结束")
 

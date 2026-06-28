@@ -1565,12 +1565,7 @@ func _build_all_ui() -> void:
 	_config_ui = Panel.new()
 	_config_ui.name = "ConfigEditorUI"; _config_ui.visible = false
 	_config_ui.size = Vector2(840, 460); _config_ui.position = Vector2(220, 130)
-	var xstyle = StyleBoxFlat.new()
-	xstyle.bg_color = Color(0.07, 0.09, 0.12, 0.98)
-	xstyle.border_width_left = 2; xstyle.border_width_right = 2
-	xstyle.border_width_top = 2; xstyle.border_width_bottom = 2
-	xstyle.border_color = Color(0.3, 0.5, 0.4); xstyle.set_corner_radius_all(8)
-	_config_ui.add_theme_stylebox_override("panel", xstyle)
+	GameUIStyle.apply_panel(_config_ui, 0.94)
 	var ctitle = Label.new()
 	ctitle.name = "ConfigTitle"; ctitle.text = "[+] Xiguan_Dream.ini - 配置编辑器"
 	ctitle.add_theme_font_size_override("font_size", 27)
@@ -1594,8 +1589,8 @@ func _build_all_ui() -> void:
 		_config_ui.add_child(vl); _config_value_labels.append(vl)
 		var btn = Button.new()
 		btn.name = "ModifyButton_%d" % i; btn.text = "修改"
-		btn.position = Vector2(700, row_y - 4); btn.size = Vector2(100, 34)
-		btn.add_theme_font_size_override("font_size", 22); btn.focus_mode = Control.FOCUS_NONE
+		btn.position = Vector2(694, row_y - 8); btn.size = Vector2(112, 42)
+		GameUIStyle.apply_button(btn, 22)
 		_config_ui.add_child(btn); _config_buttons.append(btn)
 		var fb = Label.new()
 		fb.name = "Feedback_%d" % i
@@ -1605,9 +1600,9 @@ func _build_all_ui() -> void:
 		_config_ui.add_child(fb); _config_feedback_labels.append(fb)
 	_recompile_button = Button.new()
 	_recompile_button.name = "RecompileButton"; _recompile_button.text = "重新编译并注入梦境"
-	_recompile_button.disabled = true; _recompile_button.position = Vector2(280, 392)
-	_recompile_button.size = Vector2(280, 44)
-	_recompile_button.add_theme_font_size_override("font_size", 24); _recompile_button.focus_mode = Control.FOCUS_NONE
+	_recompile_button.disabled = true; _recompile_button.position = Vector2(270, 358)
+	_recompile_button.size = Vector2(300, 90)
+	GameUIStyle.apply_button(_recompile_button, 24)
 	_config_ui.add_child(_recompile_button)
 	canvas.add_child(_config_ui)
 
@@ -1615,12 +1610,7 @@ func _build_all_ui() -> void:
 	_recompile_panel = Panel.new()
 	_recompile_panel.name = "RecompileLogPanel"; _recompile_panel.visible = false
 	_recompile_panel.size = Vector2(840, 420); _recompile_panel.position = Vector2(220, 150)
-	var rstyle = StyleBoxFlat.new()
-	rstyle.bg_color = Color(0.03, 0.05, 0.04, 0.98)
-	rstyle.border_width_left = 2; rstyle.border_width_right = 2
-	rstyle.border_width_top = 2; rstyle.border_width_bottom = 2
-	rstyle.border_color = Color(0.2, 0.6, 0.3); rstyle.set_corner_radius_all(8)
-	_recompile_panel.add_theme_stylebox_override("panel", rstyle)
+	GameUIStyle.apply_panel(_recompile_panel, 0.94)
 	_recompile_log = RichTextLabel.new()
 	_recompile_log.name = "LogText"
 	_recompile_log.size = Vector2(792, 380); _recompile_log.position = Vector2(24, 20)

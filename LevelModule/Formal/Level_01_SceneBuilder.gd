@@ -49,7 +49,8 @@ func _build_interactives() -> void:
 	container.add_child(level._notice_node)
 
 	# 4. 旧保温杯
-	level._thermos_node = level._create_interactive("Thermos", "thermos", Vector2(1104, 584), Vector2(30, 40))
+	level._thermos_node = level._create_interactive("Thermos", "thermos", Vector2(1112, 584), Vector2(18, 24))
+	level._thermos_node.interaction_tolerance = -4.0
 	container.add_child(level._thermos_node)
 
 	# 5. 电脑（初始禁用，需与床交互4次后解锁）
