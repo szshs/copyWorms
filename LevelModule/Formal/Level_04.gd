@@ -904,10 +904,13 @@ func _modify_erosion(delta: float) -> void:
 	_erosion_value = clampf(_erosion_value + delta, 0.0, EROSION_MAX)
 	_update_erosion_ui()
 	if _erosion_value >= EROSION_MAX:
-		# 侵蚀满 → 直接失败
+		# 侵蚀满 → 播放死亡动画后再触发失败
 		_stage2_auto_swap = false
 		_stop_stage2_warning()
 		print("[Level_04] 侵蚀值已满！世界崩溃……")
+		var p = GameManager.player_ref
+		if p and is_instance_valid(p) and p.current_state != GlobalDefine.PlayerState.DEAD:
+			p.die()
 		GameManager.trigger_game_over()
 
 

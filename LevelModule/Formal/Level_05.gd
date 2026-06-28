@@ -1087,6 +1087,9 @@ func _modify_erosion(delta: float) -> void:
 	_update_erosion_bar()
 	if _erosion_value >= EROSION_MAX:
 		print("[Level_05] 侵蚀值已满！")
+		var p = GameManager.player_ref
+		if p and is_instance_valid(p) and p.current_state != GlobalDefine.PlayerState.DEAD:
+			p.die()
 		GameManager.trigger_game_over()
 
 func _on_enemy_died(data: Dictionary) -> void:
