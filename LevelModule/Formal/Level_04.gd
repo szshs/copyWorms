@@ -555,24 +555,25 @@ func _on_combat_hit(data: Dictionary) -> void:
 	if _hurt_swap_pending: return
 	if _swap_cooldown > 0.0: return
 	_swap_cooldown = 0.8
+	# 玩家受击：延迟切换（先播放受击反馈）
 	if data.has("current_health"):
 		if int(data.get("current_health", 1)) <= 0:
-			return
+			return  # 玩家死亡不切换
 		var hurt_player = data.get("player", GameManager.player_ref)
 		if hurt_player and is_instance_valid(hurt_player):
 			_prime_hurt_feedback_before_swap(hurt_player)
 		_hurt_swap_pending = true
 		await get_tree().create_timer(HURT_SWAP_DELAY).timeout
 		_hurt_swap_pending = false
+		# await 后重新检查状态（期间可能进入stage2/对话/死亡）
 		if current_state != LevelState.HOMOMORPHIC_COMBAT: return
 		if _stage2_entered: return
-		if _narrative_open or _is_interacting: return
+		if _narrative_open: return
 		if GameManager.is_game_over: return
 		var p = GameManager.player_ref
 		if not p or not is_instance_valid(p): return
-	_is_interacting = true
+	# 执行世界切换
 	_swap_world()
-	_is_interacting = false
 
 
 func _prime_hurt_feedback_before_swap(player: Node) -> void:

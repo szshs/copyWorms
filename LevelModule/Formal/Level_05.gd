@@ -1102,7 +1102,11 @@ func _on_enemy_died(data: Dictionary) -> void:
 		_cyber_enemies.erase(e)
 	# Boss 死亡处理
 	if e == _boss_instance:
+		# 灯笼生成位置：X用Boss位置，Y用玩家位置（地面高度），防止Boss空中死亡时灯笼卡在天上
 		var death_pos: Vector2 = e.global_position
+		var player = GameManager.player_ref
+		if player and is_instance_valid(player):
+			death_pos.y = player.global_position.y
 		_hide_boss_bar()
 		GameManager.boss_target = null
 		_boss_instance = null
