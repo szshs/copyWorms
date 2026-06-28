@@ -670,6 +670,7 @@ func _show_narrative(text: String, callback: Callable = Callable()) -> void:
 		_narrative_open = false
 	_is_interacting = true
 	_narrative_open = true
+	GameManager.is_dialog_active = true
 	_freeze_player(true)
 	var pages := GameUIStyle.paginate_interaction_text(text)
 	var page_index := 0
@@ -696,6 +697,7 @@ func _show_narrative(text: String, callback: Callable = Callable()) -> void:
 	if _narrative_panel: _narrative_panel.hide()
 	_freeze_player(false)
 	_narrative_open = false
+	GameManager.is_dialog_active = false
 	_is_interacting = false
 	_interact_cooldown = 0.0
 	InputManager.unblock_input("叙事面板")

@@ -502,6 +502,8 @@ func _process(delta: float) -> void:
 			if pp.can_attack_hold_dash: pp.can_attack_hold_dash = false
 
 func _input(event: InputEvent) -> void:
+	# 玩家死亡后禁止所有交互输入
+	if GameManager.is_game_over: return
 	# 鼠标左键等价于Enter（对话推进/交互触发）
 	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	# 对话框打开时，Enter或左键推进对话
@@ -1001,6 +1003,21 @@ func _check_low_hp_hint(skin: String, hp: int) -> void:
 		return
 	_show_skin_hint()
 
+## 双血条各回血（Boss召唤小怪全灭奖励）
+func _heal_dual_char(amount: int) -> void:
+	_cyber_health = mini(_cyber_health + amount, DUAL_CHAR_MAX_HP)
+	_lingnan_health = mini(_lingnan_health + amount, DUAL_CHAR_MAX_HP)
+	# 当前角色实时回血
+	var p = GameManager.player_ref
+	if p and is_instance_valid(p):
+		p.current_health = _cyber_health if _current_player_skin == "Cyber" else _lingnan_health
+		EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+			"target": p,
+			"current_health": p.current_health,
+			"max_health": p.max_health
+		})
+	print("[Level_05] 双血条各回血 %d (Cyber=%d, Lingnan=%d)" % [amount, _cyber_health, _lingnan_health])
+
 func _spawn_all_enemies(lingnan_on_top: bool) -> void:
 	_clear_all_enemies()
 
@@ -1092,6 +1109,9 @@ func _modify_erosion(delta: float) -> void:
 	_update_erosion_bar()
 	if _erosion_value >= EROSION_MAX:
 		print("[Level_05] 侵蚀值已满！")
+		var p = GameManager.player_ref
+		if p and is_instance_valid(p) and p.current_state != GlobalDefine.PlayerState.DEAD:
+			p.die()
 		GameManager.trigger_game_over()
 
 func _on_enemy_died(data: Dictionary) -> void:
@@ -1104,7 +1124,8 @@ func _on_enemy_died(data: Dictionary) -> void:
 		_cyber_enemies.erase(e)
 	# Boss 死亡处理
 	if e == _boss_instance:
-		var death_pos: Vector2 = e.global_position
+		# 灯笼生成位置：X用Boss位置，Y在5000~5077之间随机（地面高度区间）
+		var death_pos: Vector2 = Vector2(e.global_position.x, randf_range(5000.0, 5077.0))
 		_hide_boss_bar()
 		GameManager.boss_target = null
 		_boss_instance = null
@@ -1178,6 +1199,7 @@ func _show_dialog(lines: Array[String], callback: Callable = Callable()) -> void
 	_dialog_index = 0
 	_dialog_callback = callback
 	_dialog_open = true
+	GameManager.is_dialog_active = true
 	InputManager.block_input("对话", self)
 	if not _dialog_panel:
 		_create_dialog_panel()
@@ -1222,6 +1244,7 @@ func _advance_dialog() -> void:
 
 func _close_dialog() -> void:
 	_dialog_open = false
+	GameManager.is_dialog_active = false
 	_dialog_panel.visible = false
 	_dialog_close_cooldown = 0.4  # 关闭后0.4秒内不检测交互，防Enter串扰
 	InputManager.unblock_input("对话")
