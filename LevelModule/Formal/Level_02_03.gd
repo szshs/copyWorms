@@ -723,6 +723,8 @@ func _load_reality_room() -> void:
 		_start_phone_vibration()
 		_start_left_edge_flash()
 	current_state = LevelState.REALITY_PHONE_LOCKED
+	if _narrative_panel:
+		_narrative_panel.set_meta("dialog_visual_style", "default")
 
 	_apply_reality_space_settings()
 
