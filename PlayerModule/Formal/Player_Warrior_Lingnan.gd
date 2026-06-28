@@ -84,12 +84,13 @@ func _on_physics_process(delta: float) -> void:
 	else:
 		_attack_hold_time = 0.0
 
-	# 突进蓄力帧逻辑
+	# 突进蓄力帧逻辑：最少蓄力 DASH_WINDUP_TIME，之后由玩家松开普攻键释放
 	if _dash_windup:
 		_dash_windup_timer -= delta
-		# 蓄力视觉：震动效果
+		# 蓄力视觉：震动效果（随蓄力时长增强）
 		if _anim_sprite:
-			var shake_amp = 1.0 + (1.0 - _dash_windup_timer / DASH_WINDUP_TIME) * 3.0
+			var charge_ratio = clampf(1.0 - _dash_windup_timer / DASH_WINDUP_TIME, 0.0, 1.0)
+			var shake_amp = 1.0 + charge_ratio * 3.0
 			var shake_x = sin(_dash_windup_timer * 40.0) * shake_amp
 			var shake_y = cos(_dash_windup_timer * 52.0) * shake_amp * 0.6
 			_anim_sprite.position = Vector2(shake_x, shake_y)
@@ -103,12 +104,14 @@ func _on_physics_process(delta: float) -> void:
 				_anim_sprite.pause()
 		# 蓄力期间减速
 		velocity.x = move_toward(velocity.x, 0, 600.0)
-		# 蓄力结束 → 突进
+		# 最少蓄力时间过后，玩家松开普攻键 → 突进
 		if _dash_windup_timer <= 0:
-			_dash_windup = false
-			if _anim_sprite:
-				_anim_sprite.position = Vector2.ZERO
-			_do_dash_attack()
+			if not Input.is_action_pressed("player_attack"):
+				_dash_windup = false
+				if _anim_sprite:
+					_anim_sprite.position = Vector2.ZERO
+				_do_dash_attack()
+			# 否则继续蓄力，等待玩家释放
 		return
 
 	# 蓄力帧逻辑
@@ -180,7 +183,7 @@ func _on_skill() -> void:
 	_is_charging = true
 	_charge_time = 0.0
 	attack_cooldown_timer = 0.0  # 不占用普攻CD
-	_skill_cooldown_timer = LINGNAN_SKILL_CD  # 岭南技能独立CD
+	# 技能CD在释放时才开始
 	_change_state(GlobalDefine.PlayerState.SKILL)
 	# 减速，蓄力中缓慢移动
 	velocity.x = move_toward(velocity.x, 0, 600.0)
@@ -199,6 +202,8 @@ func _release_skill() -> void:
 		_anim_sprite.scale = Vector2.ONE
 		_anim_sprite.modulate = Color.WHITE
 		_anim_sprite.position = Vector2.ZERO  # 恢复震动偏移
+	# 释放时才开始技能CD
+	_skill_cooldown_timer = LINGNAN_SKILL_CD
 
 	if _charge_time < CHARGE_THRESHOLD_SHORT:
 		# 短按 → 小回旋斩
@@ -303,12 +308,12 @@ func _do_spin_slash(is_big: bool) -> void:
 	if is_big:
 		_spin_timer = 0.3
 		_spin_max_hits = 2
-		_spin_range = 130.0
+		_spin_range = 160.0
 		_spin_damage = 15
 	else:
 		_spin_timer = 0.2
 		_spin_max_hits = 1
-		_spin_range = 80.0
+		_spin_range = 100.0
 		_spin_damage = 20
 
 	attack_timer = _spin_timer + 0.05

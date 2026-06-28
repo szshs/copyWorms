@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://Assets/Effects/剑气.png" id="tex"]
 
 [sub_resource type="RectangleShape2D" id="hitbox"]
-size = Vector2(60, 25)
+size = Vector2(68, 30)
 
 [node name="SwordEnergy" type="Area2D"]
 script = ExtResource("scr")
@@ -17,4 +17,4 @@ shape = SubResource("hitbox")
 [node name="Sprite" type="Sprite2D" parent="."]
 position = Vector2(30, 0)
 texture = ExtResource("tex")
-scale = Vector2(0.045, 0.045)
+scale = Vector2(0.038, 0.038)
