@@ -134,6 +134,11 @@ static func _apply_interaction_text_panel_style(panel: Panel) -> void:
 		style = _make_code_interaction_text_style()
 	elif _is_lingnan_interaction_panel(panel):
 		style = _make_lingnan_interaction_text_style()
+	elif _is_default_interaction_panel(panel):
+		var texture_state := "disabled"
+		if panel.has_meta("dialog_texture_state"):
+			texture_state = str(panel.get_meta("dialog_texture_state"))
+		style = _make_default_interaction_text_style(texture_state)
 	else:
 		var texture_state := "disabled"
 		if panel.has_meta("dialog_texture_state"):
@@ -665,6 +670,26 @@ static func _make_interaction_text_style(state: String = "disabled") -> StyleBox
 	style.draw_center = true
 	return style
 
+static func _make_default_interaction_text_style(state: String = "disabled") -> StyleBoxTexture:
+	var path := _default_button_texture_path(state)
+	if path == "":
+		return null
+	var tex := _load_ui_texture(path)
+	if tex == null:
+		return null
+	var style := StyleBoxTexture.new()
+	style.texture = tex
+	style.texture_margin_left = 46
+	style.texture_margin_top = 40
+	style.texture_margin_right = 46
+	style.texture_margin_bottom = 40
+	style.content_margin_left = INTERACTION_TEXT_PANEL_MARGIN_X
+	style.content_margin_right = INTERACTION_TEXT_PANEL_MARGIN_X
+	style.content_margin_top = INTERACTION_TEXT_PANEL_MARGIN_TOP
+	style.content_margin_bottom = INTERACTION_TEXT_PANEL_MARGIN_BOTTOM
+	style.draw_center = true
+	return style
+
 static func _make_code_interaction_text_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.015, 0.025, 0.045, 0.92)
@@ -734,6 +759,9 @@ static func _is_code_interaction_panel(panel: Panel) -> bool:
 static func _is_lingnan_interaction_panel(panel: Panel) -> bool:
 	return _interaction_panel_style_key(panel) == "lingnan"
 
+static func _is_default_interaction_panel(panel: Panel) -> bool:
+	return _interaction_panel_style_key(panel) == "default"
+
 static func _interaction_panel_style_key(panel: Panel) -> String:
 	var visual_style := ""
 	if panel and panel.has_meta("dialog_visual_style"):
@@ -743,6 +771,8 @@ static func _interaction_panel_style_key(panel: Panel) -> String:
 			return "code"
 		"lingnan":
 			return "lingnan"
+		"default", "texture":
+			return "default"
 		"theme":
 			return "lingnan" if is_lingnan_theme() else "code"
 		_:
@@ -762,6 +792,17 @@ static func _button_texture_path(state: String) -> String:
 				return "res://Assets/UI/Lingnan/lingnan_button_disabled.png"
 			_:
 				return "res://Assets/UI/Lingnan/lingnan_button_normal.png"
+	match state:
+		"hover":
+			return "res://Assets/UI/button_hover.png"
+		"pressed":
+			return "res://Assets/UI/button_pressed.png"
+		"disabled":
+			return "res://Assets/UI/button_disabled.png"
+		_:
+			return "res://Assets/UI/button_normal.png"
+
+static func _default_button_texture_path(state: String) -> String:
 	match state:
 		"hover":
 			return "res://Assets/UI/button_hover.png"
