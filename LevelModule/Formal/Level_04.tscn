@@ -215,7 +215,7 @@ size = Vector2(36.5, 412.75)
 size = Vector2(30.5, 686.5)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ei20x"]
-size = Vector2(24, 100)
+size = Vector2(24, 107)
 
 [node name="Level_04" type="Node2D" unique_id=81654247]
 script = ExtResource("1_script")
@@ -377,6 +377,10 @@ position = Vector2(1866.5, 2190)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LnC_Y2260" unique_id=507473198]
 position = Vector2(21.5, 0)
+shape = SubResource("ln1")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LnC_Y2260/CollisionShape2D" unique_id=601279163]
+position = Vector2(159, -1303)
 shape = SubResource("ln1")
 
 [node name="LnC_Y1666" type="StaticBody2D" parent="LingnanCollisions" unique_id=1452986707]
@@ -946,6 +950,10 @@ shape = SubResource("RectangleShape2D_y2mcw")
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="StaticBody2D2" unique_id=845496823]
 position = Vector2(1848, 1411)
+shape = SubResource("RectangleShape2D_ei20x")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="StaticBody2D2/CollisionShape2D2" unique_id=2135456959]
+position = Vector2(659, -120.5)
 shape = SubResource("RectangleShape2D_ei20x")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=435195675]
