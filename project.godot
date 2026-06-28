@@ -12,7 +12,7 @@ config_version=5
 
 config/name="HackathonGame"
 config/description="2D横版动作游戏 - 黑客松项目"
-config/version="0.1.0"
+config/version="0.12.1"
 run/main_scene="res://UI/TitleScreen.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://Assets/Sprites/icon.svg"
