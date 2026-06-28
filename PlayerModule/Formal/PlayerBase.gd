@@ -109,6 +109,12 @@ func _setup_collision() -> void:
 	add_child(col)
 
 func _physics_process(delta: float) -> void:
+	# 死亡状态下仍允许动画更新（播放死亡动画），但不处理其他逻辑
+	if current_state == GlobalDefine.PlayerState.DEAD:
+		velocity.x = move_toward(velocity.x, 0, 500 * delta)
+		if has_method("_update_animation"):
+			call("_update_animation")
+		return
 	if GameManager.is_game_over:
 		return
 	_update_timers(delta)
