@@ -997,6 +997,21 @@ func _check_low_hp_hint(skin: String, hp: int) -> void:
 		return
 	_show_skin_hint()
 
+## 双血条各回血（Boss召唤小怪全灭奖励）
+func _heal_dual_char(amount: int) -> void:
+	_cyber_health = mini(_cyber_health + amount, DUAL_CHAR_MAX_HP)
+	_lingnan_health = mini(_lingnan_health + amount, DUAL_CHAR_MAX_HP)
+	# 当前角色实时回血
+	var p = GameManager.player_ref
+	if p and is_instance_valid(p):
+		p.current_health = _cyber_health if _current_player_skin == "Cyber" else _lingnan_health
+		EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+			"target": p,
+			"current_health": p.current_health,
+			"max_health": p.max_health
+		})
+	print("[Level_05] 双血条各回血 %d (Cyber=%d, Lingnan=%d)" % [amount, _cyber_health, _lingnan_health])
+
 func _spawn_all_enemies(lingnan_on_top: bool) -> void:
 	_clear_all_enemies()
 
@@ -1177,6 +1192,7 @@ func _show_dialog(lines: Array[String], callback: Callable = Callable()) -> void
 	_dialog_index = 0
 	_dialog_callback = callback
 	_dialog_open = true
+	GameManager.is_dialog_active = true
 	InputManager.block_input("对话", self)
 	if not _dialog_panel:
 		_create_dialog_panel()
@@ -1236,6 +1252,7 @@ func _advance_dialog() -> void:
 
 func _close_dialog() -> void:
 	_dialog_open = false
+	GameManager.is_dialog_active = false
 	_dialog_panel.visible = false
 	_dialog_close_cooldown = 0.4  # 关闭后0.4秒内不检测交互，防Enter串扰
 	InputManager.unblock_input("对话")

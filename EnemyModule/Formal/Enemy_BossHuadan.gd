@@ -107,6 +107,7 @@ var _sword_pool: Array[Node2D] = []
 # ---- 召唤小怪场景（悬空时随机召唤1-6只） ----
 var _minion_scenes: Array[PackedScene] = []
 var _spawned_minions: Array[Node2D] = []  # 已召唤的小怪（Boss死亡时清除）
+var _minion_reward_given: bool = false    # 是否已发放全灭小怪奖励
 
 
 func _on_ready() -> void:
@@ -140,6 +141,8 @@ func _on_ready() -> void:
 		if ResourceLoader.exists(path):
 			_minion_scenes.append(load(path))
 	is_facing_right = false
+	# 订阅敌人死亡事件（检测召唤小怪全灭）
+	EventBus.subscribe(GlobalDefine.EventName.ENEMY_DIED, self, "_on_minion_died")
 
 ## 覆写基类：跳过 PlaceholderSprite（使用场景中的 AnimatedSprite2D）
 func _setup_visual() -> void:
@@ -540,6 +543,31 @@ func _on_die() -> void:
 			GameManager.unregister_enemy(minion)
 			minion.queue_free()
 	_spawned_minions.clear()
+
+## 召唤小怪死亡回调：全灭后给玩家双血条各回35血
+func _on_minion_died(data: Dictionary) -> void:
+	if is_dead: return
+	if _minion_reward_given: return
+	var e = data.get("enemy")
+	if not e or not is_instance_valid(e): return
+	if e not in _spawned_minions: return
+	_spawned_minions.erase(e)
+	# 全部小怪被击杀 → 玩家双血条各回35血
+	if _spawned_minions.is_empty():
+		_minion_reward_given = true
+		var player = GameManager.player_ref
+		if player and is_instance_valid(player):
+			player.heal(35)
+			EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
+				"target": player,
+				"current_health": player.current_health,
+				"max_health": player.max_health
+			})
+		# 通知关卡补充岭南人物血量（Level_05 双血条系统）
+		var level = GameManager.current_level
+		if level and level.has_method("_heal_dual_char"):
+			level._heal_dual_char(35)
+		print("[BossHuadan] 召唤小怪全灭！玩家双血条各回35血")
 
 
 # ============================================================
