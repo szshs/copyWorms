@@ -525,17 +525,47 @@ func _on_player_died(_data: Dictionary) -> void:
 	else:
 		return  # 非战斗状态不处理
 
+	# 延迟2秒重生，让死亡动画播放完
+	# 期间冻结玩家输入
+	if player.has_method("set_frozen"):
+		player.set_frozen(true)
+	# 本关有独立重生逻辑，不触发 Game Over 面板
+	# call_deferred 确保在 _on_die 的 trigger_game_over 之后执行
+	# trigger_game_over() 会同步 emit GAME_OVER → HUD 显示面板
+	# call_deferred 在帧末执行，此时面板已显示，需要同时隐藏面板
+	call_deferred("_cancel_game_over")
+	await get_tree().create_timer(2.0).timeout
+
+	# 2秒后重生
+	if not is_instance_valid(player):
+		_cancel_game_over()  # 确保清理状态
+		return
+	# 再次确保 Game Over 面板已隐藏（防止用户在2秒内点击了按钮）
+	_cancel_game_over()
 	player.global_position = respawn_pos
 	player.velocity = Vector2.ZERO
 	player.current_health = player.max_health
 	player._change_state(GlobalDefine.PlayerState.IDLE)
+	if player.has_method("set_frozen"):
+		player.set_frozen(false)
 	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
 		"target": player,
 		"current_health": player.current_health,
 		"max_health": player.max_health
 	})
 	print("[Level_03] 玩家重生至 ", respawn_pos)
-# 输入处理
+
+func _cancel_game_over() -> void:
+	GameManager.is_game_over = false
+	# 隐藏 HUD 的游戏结束面板
+	# trigger_game_over() 同步 emit GAME_OVER → HUD._on_game_over 显示面板
+	# 此处必须隐藏面板，否则用户可点击"重新开始"按钮触发场景重载 → 传送回出生点
+	var hud = get_node_or_null("HUD")
+	if hud and is_instance_valid(hud):
+		var panel = hud.get_node_or_null("GameOverPanel")
+		if panel:
+			panel.hide()
+
 # ============================================================
 
 func _on_game_action(action: StringName, _event: InputEvent) -> void:
