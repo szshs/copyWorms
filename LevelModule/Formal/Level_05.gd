@@ -499,6 +499,8 @@ func _process(delta: float) -> void:
 			if pp.can_attack_hold_dash: pp.can_attack_hold_dash = false
 
 func _input(event: InputEvent) -> void:
+	# 玩家死亡后禁止所有交互输入
+	if GameManager.is_game_over: return
 	# 鼠标左键等价于Enter（对话推进/交互触发）
 	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	# 对话框打开时，Enter或左键推进对话
@@ -1102,11 +1104,8 @@ func _on_enemy_died(data: Dictionary) -> void:
 		_cyber_enemies.erase(e)
 	# Boss 死亡处理
 	if e == _boss_instance:
-		# 灯笼生成位置：X用Boss位置，Y用玩家位置（地面高度），防止Boss空中死亡时灯笼卡在天上
-		var death_pos: Vector2 = e.global_position
-		var player = GameManager.player_ref
-		if player and is_instance_valid(player):
-			death_pos.y = player.global_position.y
+		# 灯笼生成位置：X用Boss位置，Y在5000~5077之间随机（地面高度区间）
+		var death_pos: Vector2 = Vector2(e.global_position.x, randf_range(5000.0, 5077.0))
 		_hide_boss_bar()
 		GameManager.boss_target = null
 		_boss_instance = null

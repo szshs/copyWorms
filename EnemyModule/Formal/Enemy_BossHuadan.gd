@@ -87,7 +87,7 @@ const PHASE_SPEED: Array[float] = [0, 200.0, 220.0, 250.0, 350.0]
 const PHASE_JUMP: Array[float] = [0, -700.0, -720.0, -800.0, -950.0]
 const PHASE_RANGED_DMG: Array[int] = [0, 5, 6, 8, 10]
 const PHASE_MELEE_DMG: Array[int] = [0, 10, 12, 15, 18]
-const PHASE_CD_MULT: Array[float] = [0, 1.0, 0.8, 0.6, 0.4]
+const PHASE_CD_MULT: Array[float] = [0, 1.0, 0.8, 0.6, 0.6]
 const PHASE_BEST_DIST: Array[float] = [0, 300.0, 250.0, 200.0, 150.0]
 const PHASE_EVADE_CHANCE: Array[float] = [0, 0.7, 0.55, 0.3, 0.15]  # 越后期越少闪避，更激进
 
@@ -558,15 +558,17 @@ func _check_reactive_overrides() -> void:
 		# --- Phase 3-4 反应式剑气：玩家跑/跳/冲刺就挥砍剑气 ---
 		if is_phase34 and _ranged_cd <= 0:
 			var should_fire = false
+			# Phase 4 反应式剑气概率降低（避免全程剑气轰炸）
+			var reactive_chance = 0.5 if _current_phase >= 4 else 1.0
 			# 玩家跳跃 → 挥剑气（追踪空中目标）
 			if st != _last_player_state and (st == GlobalDefine.PlayerState.JUMP or st == GlobalDefine.PlayerState.FALL):
-				should_fire = true
+				should_fire = randf() < reactive_chance
 			# 玩家冲刺/技能 → 挥剑气（惩罚闪现）
 			elif st != _last_player_state and (st == GlobalDefine.PlayerState.DASH or st == GlobalDefine.PlayerState.SKILL):
-				should_fire = randf() < 0.8
+				should_fire = randf() < 0.8 * reactive_chance
 			# 玩家跑路（距离拉大且玩家有水平速度） → 挥剑气追击
 			elif cur_dist > _last_player_dist + 30 and abs(target.velocity.x) > 50:
-				should_fire = randf() < 0.5
+				should_fire = randf() < 0.5 * reactive_chance
 
 			if should_fire:
 				_fire_sword()
