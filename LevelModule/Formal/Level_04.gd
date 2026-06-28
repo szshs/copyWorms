@@ -877,6 +877,13 @@ func _build_erosion_ui() -> void:
 
 func _update_erosion_ui() -> void:
 	if not _erosion_bar_fill or not _erosion_label: return
+	# 确保侵蚀条始终可见（防止世界切换等操作意外隐藏）
+	var container = _erosion_bar_fill.get_parent()
+	if container and is_instance_valid(container):
+		container.visible = true
+	if _erosion_bar_bg: _erosion_bar_bg.visible = true
+	_erosion_bar_fill.visible = true
+	_erosion_label.visible = true
 	var ratio: float = _erosion_value / EROSION_MAX
 	_erosion_bar_fill.size.x = 280.0 * ratio
 	_erosion_label.text = "侵蚀 %.0f%%" % _erosion_value
@@ -1148,7 +1155,10 @@ func _flash_screen() -> void:
 		_glitch_overlay.show()
 		var m = _glitch_overlay.material as ShaderMaterial
 		m.set_shader_parameter("intensity", strength)
-		create_tween().tween_property(m, "shader_parameter/intensity", 0.0, duration)
+		var gt = create_tween()
+		gt.tween_property(m, "shader_parameter/intensity", 0.0, duration)
+		# glitch淡出后隐藏覆盖层，防止全屏覆盖层遮挡侵蚀条等UI
+		gt.tween_callback(func(): if _glitch_overlay: _glitch_overlay.hide())
 
 	var f = ColorRect.new()
 	f.name = "SwapFlash"; f.set_anchors_preset(Control.PRESET_FULL_RECT)
