@@ -32,6 +32,10 @@ const STAGE2_SPAWN := Vector2(242, 4333)
 var _stage1_enemies: Array[Node2D] = []
 var _stage2_entered: bool = false
 
+# ---- 坠落死亡延迟（仅限死亡区域，让玩家掉出视野后再显示失败面板） ----
+var _fall_death_pending: bool = false
+var _fall_death_timer: float = 0.0
+
 # ---- 阶段2 自动世界切换 ----
 var _stage2_auto_swap: bool = false
 var _stage2_swap_timer: float = 0.0
@@ -374,6 +378,22 @@ func _on_object_interacted(data: Dictionary) -> void:
 func _process(delta: float) -> void:
 	# 切换冷却计数
 	if _swap_cooldown > 0.0: _swap_cooldown -= delta
+
+	# 坠落死亡延迟倒计时：让玩家掉落出视野后再触发失败
+	# 期间世界的物理过程继续运行（玩家继续下坠），但世界切换/侵蚀停止
+	if _fall_death_pending:
+		_fall_death_timer -= delta
+		if _fall_death_timer <= 0.0:
+			_fall_death_pending = false
+			GameManager.trigger_game_over()
+		# 坠落延迟期间仅更新交互物轮询，跳过世界切换/侵蚀等
+		_poll_interactives_in_range()
+		return
+
+	# 游戏结束后停止世界自动切换、侵蚀增长等（但保留坠落动画播放）
+	if GameManager.is_game_over:
+		_poll_interactives_in_range()
+		return
 
 	# 阶段2 自动世界切换计时
 	if _stage2_auto_swap and current_state == LevelState.STAGE2 and not _narrative_open:
@@ -899,18 +919,22 @@ func _connect_kill_zones() -> void:
 func _on_fall_zone_entered(body: Node2D) -> void:
 	if body != GameManager.player_ref: return
 	if GameManager.is_game_over: return
-	print("[Level_04] 玩家掉入维度裂隙！")
-	GameManager.trigger_game_over()
+	if _fall_death_pending: return  # 已在坠落延迟中
+	print("[Level_04] 玩家掉入维度裂隙！延迟1秒后触发失败（让玩家掉落出视野）")
+	_fall_death_pending = true
+	_fall_death_timer = 1.0
 
 func _check_fall_death() -> void:
 	# Y轴兜底检测：当玩家在赛博地图(bg 2-2)且掉到Y>=7550时触发失败
 	if GameManager.is_game_over: return
+	if _fall_death_pending: return  # 已在坠落延迟中
 	var p = GameManager.player_ref
 	if not p or not is_instance_valid(p): return
 	# 判断是否在赛博地图范围内（通过摄像机Y上限）
 	if p.global_position.y > 6800 and p.global_position.y > 7540:
 		print("[Level_04] 玩家坠落出界（Y=%.0f）" % p.global_position.y)
-		GameManager.trigger_game_over()
+		_fall_death_pending = true
+		_fall_death_timer = 1.0
 
 func _check_enemy_vertical_reachability() -> void:
 	# 当敌人追踪玩家但与玩家垂直距离超过阈值时，强制退出追逐状态

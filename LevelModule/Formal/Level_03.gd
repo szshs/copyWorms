@@ -513,57 +513,16 @@ func _freeze_player(freeze: bool) -> void:
 
 
 func _on_player_died(_data: Dictionary) -> void:
-	var player = GameManager.player_ref
-	if not player or not is_instance_valid(player): return
+	# 参照 Level_04/Level_05 的统一做法：玩家死亡 → 显示游戏结束面板 → 玩家点击"重新开始"重载关卡
+	# 不做原地重生（避免与场景重载逻辑冲突导致传送回出生点）。
+	# Player_Warrior._on_die() 会调用 GameManager.trigger_game_over()，
+	# 同步 emit GAME_OVER → HUD 显示游戏结束面板。
+	# 此处无需额外处理，仅作为监听占位（如未来需做死亡动画延迟可在此扩展）。
+	pass
 
-	var respawn_pos: Vector2
-	if current_state in [LevelState.LINGNAN_COMBAT]:
-		respawn_pos = Vector2(120, 512)   # 岭南区域重生点
-	elif current_state in [LevelState.CYBER_CITY, LevelState.MEMORY_COLLECTION]:
-		respawn_pos = Vector2(2048, 544)  # 赛博区域重生点
-	else:
-		return  # 非战斗状态不处理
-
-	# 延迟2秒重生，让死亡动画播放完
-	# 期间冻结玩家输入
-	if player.has_method("set_frozen"):
-		player.set_frozen(true)
-	# 本关有独立重生逻辑，不触发 Game Over 面板
-	# call_deferred 确保在 _on_die 的 trigger_game_over 之后执行
-	# trigger_game_over() 会同步 emit GAME_OVER → HUD 显示面板
-	# call_deferred 在帧末执行，此时面板已显示，需要同时隐藏面板
-	call_deferred("_cancel_game_over")
-	await get_tree().create_timer(2.0).timeout
-
-	# 2秒后重生
-	if not is_instance_valid(player):
-		_cancel_game_over()  # 确保清理状态
-		return
-	# 再次确保 Game Over 面板已隐藏（防止用户在2秒内点击了按钮）
-	_cancel_game_over()
-	player.global_position = respawn_pos
-	player.velocity = Vector2.ZERO
-	player.current_health = player.max_health
-	player._change_state(GlobalDefine.PlayerState.IDLE)
-	if player.has_method("set_frozen"):
-		player.set_frozen(false)
-	EventBus.emit(GlobalDefine.EventName.HEALTH_CHANGED, {
-		"target": player,
-		"current_health": player.current_health,
-		"max_health": player.max_health
-	})
-	print("[Level_03] 玩家重生至 ", respawn_pos)
-
-func _cancel_game_over() -> void:
-	GameManager.is_game_over = false
-	# 隐藏 HUD 的游戏结束面板
-	# trigger_game_over() 同步 emit GAME_OVER → HUD._on_game_over 显示面板
-	# 此处必须隐藏面板，否则用户可点击"重新开始"按钮触发场景重载 → 传送回出生点
-	var hud = get_node_or_null("HUD")
-	if hud and is_instance_valid(hud):
-		var panel = hud.get_node_or_null("GameOverPanel")
-		if panel:
-			panel.hide()
+# ---- 失败提示遮罩（已弃用，保留方法避免外部调用报错） ----
+func _show_failure_overlay() -> void: pass
+func _hide_failure_overlay() -> void: pass
 
 # ============================================================
 
@@ -590,6 +549,8 @@ func _handle_accept_input() -> void:
 		EventBus.emit(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, {"object_id": obj.object_id})
 
 func _input(event: InputEvent) -> void:
+	# 游戏结束后禁止所有输入（参照 Level_04 做法）
+	if GameManager.is_game_over: return
 	# 鼠标左键等价于Enter（对话推进/交互触发）
 	var is_left_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	if not event.is_action_pressed("ui_accept") and not is_left_click: return

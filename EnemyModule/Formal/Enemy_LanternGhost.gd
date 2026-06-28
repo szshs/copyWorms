@@ -57,6 +57,12 @@ func _init_anim_sprite() -> void:
 	if _anim_sprite:
 		_anim_sprite.play("idle")
 		_anim_sprite.offset = Vector2(0, -16)
+		# 提高对比度：使用 shader material 增强图片明暗对比
+		var shader_res = load("res://EnemyModule/Formal/lantern_contrast.gdshader")
+		if shader_res:
+			var mat = ShaderMaterial.new()
+			mat.shader = shader_res
+			_anim_sprite.material = mat
 	var old = get_node_or_null("PlaceholderSprite")
 	if old:
 		old.queue_free()

@@ -24,6 +24,8 @@ var _layer_swap_cd: float = 0.0              # 双世界切换冷却（防战斗
 const DUAL_CHAR_MAX_HP: int = 100
 var _cyber_health: int = DUAL_CHAR_MAX_HP
 var _lingnan_health: int = DUAL_CHAR_MAX_HP
+var _cyber_hint_shown: bool = false   # 赛博人物首次扣血到50时是否已显示提示
+var _lingnan_hint_shown: bool = false # 岭南人物首次扣血到50时是否已显示提示
 const LAYER_SWAP_COOLDOWN: float = 1.2       # 切换冷却时长
 
 # ---- bg5 区域（Boss击杀后灯笼对话跳转） ----
@@ -121,8 +123,10 @@ func _swap_player_skin(skin: String) -> void:
 	# 保存旧角色的血量到对应变量（双角色独立血量，切人不回满）
 	if _current_player_skin == "Cyber":
 		_cyber_health = old.current_health
+		_check_low_hp_hint("Cyber", _cyber_health)
 	else:
 		_lingnan_health = old.current_health
+		_check_low_hp_hint("Lingnan", _lingnan_health)
 	var f = old.is_facing_right; var pos = old.global_position
 	# 保存旧摄像机限制
 	var old_cam = old.get_node_or_null("SmoothCamera")
@@ -238,6 +242,8 @@ func _on_ready() -> void:
 	# 订阅战斗事件：击中敌人/被击中 → 触发双世界切换
 	EventBus.subscribe(GlobalDefine.EventName.PLAYER_ATTACK_HIT, self, "_on_combat_swap_layer")
 	EventBus.subscribe(GlobalDefine.EventName.PLAYER_HURT, self, "_on_combat_swap_layer")
+	# 订阅血量变化：Boss战角色首次扣血到50时再次显示换人提示
+	EventBus.subscribe(GlobalDefine.EventName.HEALTH_CHANGED, self, "_on_health_changed")
 	# 订阅交互事件
 	EventBus.subscribe(GlobalDefine.EventName.INTERACTIVE_OBJECT_TRIGGERED, self, "_on_object_interacted")
 
@@ -945,16 +951,19 @@ func _teleport_to_boss() -> void:
 func _show_skin_hint() -> void:
 	var cv = get_node_or_null("CanvasLayer")
 	if not cv: return
+	# 移除已有提示避免重叠
+	var existing = cv.get_node_or_null("SkinHintLabel")
+	if existing: existing.queue_free()
 	var hint = Label.new()
 	hint.name = "SkinHintLabel"
 	hint.text = "按 G 切换人物外观"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 27)
+	hint.add_theme_font_size_override("font_size", 40)
 	hint.add_theme_color_override("font_color", Color(1, 0.9, 0.3, 0.95))
 	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-	hint.add_theme_constant_override("outline_size", 4)
-	hint.position = Vector2(440, 650)
-	hint.size = Vector2(400, 30)
+	hint.add_theme_constant_override("outline_size", 6)
+	hint.position = Vector2(380, 640)
+	hint.size = Vector2(520, 50)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hint.z_index = 150
 	cv.add_child(hint)
@@ -963,6 +972,28 @@ func _show_skin_hint() -> void:
 	tw.tween_interval(3.0)
 	tw.tween_property(hint, "modulate:a", 0.0, 1.0)
 	tw.tween_callback(hint.queue_free)
+
+## 血量变化回调：Boss战当前角色首次扣血到50时显示换人提示
+func _on_health_changed(data: Dictionary) -> void:
+	if not _in_boss_arena: return
+	var target = data.get("target")
+	if target != GameManager.player_ref: return
+	var hp = int(data.get("current_health", 100))
+	_check_low_hp_hint(_current_player_skin, hp)
+
+## 检查角色血量是否首次降到50，是则再次显示换人提示
+func _check_low_hp_hint(skin: String, hp: int) -> void:
+	if not _in_boss_arena: return
+	if hp > 50: return
+	if skin == "Cyber":
+		if _cyber_hint_shown: return
+		_cyber_hint_shown = true
+	elif skin == "Lingnan":
+		if _lingnan_hint_shown: return
+		_lingnan_hint_shown = true
+	else:
+		return
+	_show_skin_hint()
 
 func _spawn_all_enemies(lingnan_on_top: bool) -> void:
 	_clear_all_enemies()

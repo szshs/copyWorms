@@ -1,43 +1,39 @@
 # ============================================
-# .gitignore
+# .gitignore - Godot 4 项目
+# ============================================
+# Godot 4 官方推荐：仅忽略 .godot/ 缓存目录，
+# 源码（.gd/.tscn/.tres）、资源（.png/.ogg/.mp3）、
+# 导入配置（.import）、资源ID（.uid）、project.godot
+# 均应纳入版本控制。
 # ============================================
 
-# --- Godot 源码目录 ---
-Assets/
-DataConfig/
-EnemyModule/
-Global/
-LevelModule/
-PlayerModule/
-Resources/
-Scenes/
-Scripts/
-Tools/
-UI/
-
-# --- Godot 项目文件 ---
-project.godot
-project.godot.txt
-export_presets.cfg
-
-# --- 自动生成 ---
-*.import
-*.uid
+# --- Godot 自动生成（必须忽略） ---
 .godot/
 
-# --- 其他不需要的文件 ---
-push.log
-generated/
+# --- 导出 / 构建产物 ---
+/export/
+*.exe
+*.x86_64
+*.pck
+*.apk
+*.aab
+
+# --- 工具 / 部署产物（非项目源码） ---
 addons/
-AI资源库/
 godot-editor/
 .edgeone
+generated/
+AI资源库/
+push.log
 
-# --- IDE / 系统 ---
+# --- IDE / 编辑器 ---
 .idea/
 .vscode/
 .codebuddy/
 .godot-mcp/
+.agents/
+
+# --- 操作系统 ---
 .DS_Store
 __MACOSX/
-.agents/
+Thumbs.db
