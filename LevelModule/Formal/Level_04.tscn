@@ -379,10 +379,6 @@ position = Vector2(1866.5, 2190)
 position = Vector2(21.5, 0)
 shape = SubResource("ln1")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LingnanCollisions/LnC_Y2260/CollisionShape2D" unique_id=601279163]
-position = Vector2(159, -1303)
-shape = SubResource("ln1")
-
 [node name="LnC_Y1666" type="StaticBody2D" parent="LingnanCollisions" unique_id=1452986707]
 position = Vector2(1189.5, 1596)
 
@@ -952,13 +948,23 @@ shape = SubResource("RectangleShape2D_y2mcw")
 position = Vector2(1848, 1411)
 shape = SubResource("RectangleShape2D_ei20x")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="StaticBody2D2/CollisionShape2D2" unique_id=2135456959]
-position = Vector2(659, -120.5)
-shape = SubResource("RectangleShape2D_ei20x")
-
 [node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=435195675]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" unique_id=124659686]
 position = Vector2(1604, 1537)
 scale = Vector2(1, 2.225)
 shape = SubResource("s2c_block")
+
+[node name="StaticBody2D5" type="StaticBody2D" parent="." unique_id=356402532]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D5" unique_id=124307721]
+position = Vector2(2503, 1295)
+scale = Vector2(1, 2.225)
+shape = SubResource("s2c_block")
+
+[node name="LnC_Y2260" type="StaticBody2D" parent="." unique_id=785558080]
+position = Vector2(1866.5, 2190)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LnC_Y2260" unique_id=1100987176]
+position = Vector2(69.5, -1308)
+shape = SubResource("ln1")
