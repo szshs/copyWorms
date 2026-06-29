@@ -89,6 +89,13 @@ func _on_physics_process(delta: float) -> void:
 			var intensity = clampf(_skill_charge_time / SKILL_CHARGE_TIER2, 0.0, 1.0)
 			var blink = 0.8 + 0.2 * abs(sin(_skill_charge_time * 25.0))
 			_anim_sprite.modulate = Color(blink, blink, 1.0 + 0.3 * intensity, 1.0)
+			# 保持 attack 动画冻结在第2帧（攻击前摇视觉）
+			if _anim_sprite.sprite_frames and _anim_sprite.sprite_frames.has_animation("attack"):
+				if _anim_sprite.animation != "attack":
+					_anim_sprite.play("attack")
+				var max_frame = _anim_sprite.sprite_frames.get_frame_count("attack") - 1
+				_anim_sprite.frame = mini(2, max(0, max_frame))
+				_anim_sprite.pause()
 		# 松开释放
 		if not Input.is_action_pressed("player_skill"):
 			_release_skill()
@@ -165,6 +172,12 @@ func _on_skill() -> void:
 	_change_state(GlobalDefine.PlayerState.SKILL)
 	# 减速蓄力
 	velocity.x = move_toward(velocity.x, 0, 600.0)
+	# 播放 attack 动画并冻结在第2帧（攻击前摇视觉）
+	if _anim_sprite and _anim_sprite.sprite_frames:
+		if _anim_sprite.sprite_frames.has_animation("attack"):
+			_anim_sprite.play("attack")
+			_anim_sprite.frame = 2
+			_anim_sprite.pause()
 
 func _release_skill() -> void:
 	_skill_charging = false
@@ -254,7 +267,7 @@ func _end_lightning_dash() -> void:
 		if eid in _dash_hit_enemies:
 			continue
 		var dist = _point_to_segment_dist(enemy.global_position, _dash_start_pos, end_pos)
-		if dist <= 55.0:
+		if dist <= 75.0:
 			_deal_dash_damage(enemy)
 	# 终点闪电爆发
 	_spawn_lightning_burst()
@@ -270,7 +283,7 @@ func _check_dash_hit() -> void:
 		var eid = enemy.get_instance_id()
 		if eid in _dash_hit_enemies:
 			continue
-		if global_position.distance_to(enemy.global_position) <= 50.0:
+		if global_position.distance_to(enemy.global_position) <= 70.0:
 			_deal_dash_damage(enemy)
 
 func _deal_dash_damage(enemy: Node2D) -> void:
