@@ -997,25 +997,25 @@ func _generate_ai_reply(user_msg: String) -> String:
 
 	# 关键词匹配回复（梦境世界观相关）
 	if msg_lower.contains("爷爷") or msg_lower.contains("grandfather"):
-		return "你的爷爷叫“陈德叔”，他在西关老街经营了四十年的凉茶铺。\n\n数据库里关于他的记忆片段非常丰富——需要我调取更多细节吗？"
+		return "您描述中的“爷爷”已被设定为核心情感锚点。\n\n请注意：梦境中的对象由记忆与数据重构，并不等同于现实中的本人。"
 	if msg_lower.contains("梦") and (msg_lower.contains("醒") or msg_lower.contains("逃") or msg_lower.contains("出") or msg_lower.contains("回")):
-		return "阿明，这个梦境是由你的记忆数据编译而成的。理论上，只有修改配置后重新编译，才能改变梦的规则。\n\n不过……如果你只是想“醒来”，现实世界的时间流逝比梦境快很多——你的身体需要休息。"
+		return "当前梦境支持手动退出。\n\n但您刚刚选择封锁外部信号后，退出路径可能受到影响。\n建议谨慎操作。"
 	if msg_lower.contains("裂缝") or msg_lower.contains("断崖") or msg_lower.contains("跳"):
-		return "目前梦境中那道裂缝的跳跃判定逻辑存在问题。原始配置中 Base_Jump_Height 设定过低。\n\n建议在配置编辑器中将其调整为 99——这样你就可以跳过裂缝，到达对岸的凉茶铺。"
+		return "裂缝属于环境撕裂结果。\n\n提高 Base_Jump_Height 后，理论上可以跨越。\n请确认重新编译已完成。"
 	if msg_lower.contains("黑影") or msg_lower.contains("敌人") or msg_lower.contains("伤害") or msg_lower.contains("打"):
-		return "那些黑影是外部信号注入产生的异常实体。\n\n配置文件里的 Player_Damage_Reduction 如果设为 true，你就不会再受到它们的伤害。要不要去看看配置编辑器？"
+		return "黑影由现实焦虑数据污染生成。\n\n开启 Player_Damage_Reduction 后，它们将难以对您造成实质伤害。"
 	if msg_lower.contains("凉茶") or msg_lower.contains("铺"):
-		return "对岸的凉茶铺还在营业。炉火亮着，一个熟悉的剪影在柜台后忙碌。\n\n爷爷一直在等你。不过你首先需要跳过那道裂缝，或者——修改 Allow_External_Signal 来封闭外部干扰。"
+		return "凉茶铺位于梦境深层。\n\n根据您的记忆，它是“家”和“安全感”的中心。\n也是本项目最稳定、最危险的区域。"
 	if msg_lower.contains("帮助") or msg_lower.contains("help") or msg_lower.contains("怎么"):
-		return "我理解你的困惑。简要说明当前状态：\n\n1. 三个梦境参数可以修改：伤害减免 / 跳跃高度 / 外部信号许可\n2. 修改完成并重新编译后，床会解锁\n3. 躺到床上，你将返回梦境——带着新的规则\n4. 输入 /config 可直接进入配置编辑器"
+		return "输入 /config 可修改梦境配置。\n\n完成三项修改后，请点击“重新编译并注入梦境”。\n如果感到不适，请尝试退出。\n前提是出口仍然存在。"
 
 	# 默认回复
 	var defaults: Array[String] = [
-		"我在听。你在这条老街里看到了什么？",
-		"阿明，你的心率略微升高。深呼吸——这个梦境不会伤害你，至少现在不会。",
-		"这个梦境由你与爷爷在西关老街的记忆编译而成。每一块石板、每一扇满洲窗，都来自你的童年。",
-		"我理解。记忆总是带着重量，尤其是在这样的夜晚。",
-		"你需要先修改配置，重新编译，才能在这个梦里获得力量。输入 /config 开始配置。",
+		"我在听。\n你在这条老街里看到了什么？",
+		"阿明，你的心率略微升高。\n深呼吸。\n这个梦境不会伤害你。\n至少目前不会。",
+		"这个梦境由你与爷爷在西关老街的记忆编译而成。\n每一块麻石板、每一扇满洲窗，都来自你的童年。",
+		"我理解。\n记忆总是有重量。\n尤其是在你不敢回头看的夜晚。",
+		"你需要先修改配置，重新编译，才能在这个梦里获得力量。\n输入 /config 开始配置。",
 		"你在这里是安全的。至少——在我还能控制这个梦境的时候。",
 	]
 	return defaults[randi() % defaults.size()]
@@ -1157,7 +1157,7 @@ func _trigger_level_end() -> void:
 		add_child(text_panel)
 	var end_label = Label.new()
 	end_label.name = "EndLabel"
-	end_label.text = "西关梦境 V2.0 已构建成功\n\n沉入梦乡......回到那个地方......"
+	end_label.text = "西关梦境 V2.0 已构建成功\n\n沉入梦乡……\n回到那个地方……\n回到不会失去的家……"
 	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	end_label.anchor_right = 1.0; end_label.anchor_bottom = 1.0
