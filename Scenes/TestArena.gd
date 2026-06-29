@@ -18,6 +18,11 @@ const DUAL_CHAR_MAX_HP: int = 2000
 var _test_panel: CanvasLayer = null
 var _panel_visible: bool = false
 
+# ---- 掉落物测试 ----
+var _active_drops: Array[DropItem] = []
+const DROP_TYPES = ["月饼", "虾饺", "木棉", "醒狮", "烧卖", "蒲葵扇"]
+const DROP_GROUND_Y: float = 730.0  # 地面表面上方（地面中心800，高度80，顶面760，掉落物中心730）
+
 func _ready() -> void:
 	# 背景
 	var bg = ColorRect.new()
@@ -137,6 +142,8 @@ func _process(_delta: float) -> void:
 	if _current_enemy.current_health < 999999:
 		_current_enemy.current_health = 999999
 		_current_enemy.is_dead = false
+	# 掉落物距离轮询
+	_process_drops()
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
@@ -151,6 +158,27 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			KEY_ESCAPE:
 				SceneTransitionManager.request_scene_change("res://UI/TitleScreen.tscn", self)
+			KEY_2:
+				_spawn_drop(0)
+				get_viewport().set_input_as_handled()
+			KEY_3:
+				_spawn_drop(1)
+				get_viewport().set_input_as_handled()
+			KEY_4:
+				_spawn_drop(2)
+				get_viewport().set_input_as_handled()
+			KEY_5:
+				_spawn_drop(3)
+				get_viewport().set_input_as_handled()
+			KEY_6:
+				_spawn_drop(4)
+				get_viewport().set_input_as_handled()
+			KEY_7:
+				_spawn_drop(5)
+				get_viewport().set_input_as_handled()
+			KEY_ENTER, KEY_KP_ENTER:
+				_try_pickup_drop()
+				get_viewport().set_input_as_handled()
 
 func _toggle_skin() -> void:
 	var old = GameManager.player_ref
@@ -194,7 +222,7 @@ func _build_test_panel() -> void:
 	var panel = Panel.new()
 	panel.name = "Panel"
 	panel.position = Vector2(500, 200)
-	panel.size = Vector2(280, 60 + _enemy_names.size() * 50)
+	panel.size = Vector2(280, 90 + _enemy_names.size() * 50)
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.05, 0.05, 0.08, 0.92)
 	style.set_corner_radius_all(8)
@@ -202,16 +230,16 @@ func _build_test_panel() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_test_panel.add_child(panel)
 	var title = Label.new()
-	title.text = "怪物切换 (按0开关)"
+	title.text = "怪物切换 (按0开关)\n掉落物: 2=月饼 3=虾饺 4=木棉 5=醒狮 6=烧卖 7=蒲葵扇"
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
 	title.position = Vector2(10, 10)
-	title.size = Vector2(260, 30)
+	title.size = Vector2(260, 70)
 	panel.add_child(title)
 	for i in _enemy_names.size():
 		var btn = Button.new()
 		btn.text = _enemy_names[i]
-		btn.position = Vector2(10, 50 + i * 50)
+		btn.position = Vector2(10, 80 + i * 50)
 		btn.size = Vector2(260, 40)
 		btn.add_theme_font_size_override("font_size", 20)
 		btn.focus_mode = Control.FOCUS_NONE
@@ -219,6 +247,52 @@ func _build_test_panel() -> void:
 		btn.pressed.connect(func(): _spawn_enemy(idx))
 		panel.add_child(btn)
 	panel.visible = false
+
+# ---- 掉落物系统 ----
+
+## 生成掉落物（index: 0=月饼 1=虾饺 2=木棉 3=醒狮）
+func _spawn_drop(index: int) -> void:
+	if index < 0 or index >= DROP_TYPES.size(): return
+	var drop_type = DROP_TYPES[index]
+	# 随机X坐标（地面范围内 100~1820）
+	var x = randf_range(100.0, 1820.0)
+	var pos = Vector2(x, DROP_GROUND_Y)
+	var drop = DropItem.new()
+	drop.drop_type = drop_type
+	drop.object_id = "drop_%s" % drop_type
+	drop.global_position = pos
+	drop.collision_layer = 0
+	drop.collision_mask = GlobalDefine.Collision.PLAYER
+	add_child(drop)
+	_active_drops.append(drop)
+	print("[TestArena] 生成掉落物 %s 于 (%.0f, %.0f)" % [drop_type, pos.x, pos.y])
+
+## 每帧轮询掉落物距离（检测玩家是否在拾取范围内）
+func _process_drops() -> void:
+	var pl = GameManager.player_ref
+	if not pl or not is_instance_valid(pl): return
+	for drop in _active_drops:
+		if is_instance_valid(drop):
+			drop.check_player_in_range(pl)
+
+## 尝试拾取附近的掉落物
+func _try_pickup_drop() -> void:
+	for drop in _active_drops:
+		if not is_instance_valid(drop) or drop.completed: continue
+		if drop.is_player_in_range:
+			drop.on_collected()
+			_active_drops.erase(drop)
+			return
+
+## 掉落物拾取展示（DropItem.on_collected 通过 level._show_drop_showcase 调用）
+func _show_drop_showcase(drop_type: String) -> void:
+	var showcase = DropItemShowcase.new()
+	add_child(showcase)
+	showcase.show_item(drop_type)
+
+## 注册掉落物（DropSystem 调用，TestArena 直接用 _active_drops 无需此方法）
+func _register_drop(drop: DropItem) -> void:
+	_active_drops.append(drop)
 
 func _exit_tree() -> void:
 	EventBus.unsubscribe_all(self)
