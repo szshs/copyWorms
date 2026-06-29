@@ -500,6 +500,7 @@ func _process(delta: float) -> void:
 			if pp.can_skill: pp.can_skill = false
 			if pp.can_dash: pp.can_dash = false
 			if pp.can_attack_hold_dash: pp.can_attack_hold_dash = false
+			if pp.can_jump: pp.can_jump = false
 
 func _input(event: InputEvent) -> void:
 	# 玩家死亡后禁止所有交互输入
@@ -887,6 +888,7 @@ func _teleport_to_bg5() -> void:
 		p.can_skill = false
 		p.can_attack = false
 		p.can_attack_hold_dash = false
+		p.can_jump = false
 	_sync_code_rain_for_bg5()
 	print("[Level_05] 已进入 bg5 区域")
 
