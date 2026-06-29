@@ -533,9 +533,19 @@ func _freeze_player(f: bool) -> void:
 
 func _show_narrative(text: String, cb: Callable = Callable()) -> void:
 	InputManager.block_input("叙事面板", self)
-	if _narrative_open: _narrative_panel.hide(); _narrative_open = false
-	_is_interacting = true; _narrative_open = true; GameManager.is_dialog_active = true; _freeze_player(true)
-	if _narrative_panel: _narrative_panel.show(); _narrative_text.text = text
+	if _narrative_open:
+		_narrative_panel.hide()
+		_narrative_open = false
+	_is_interacting = true
+	_narrative_open = true
+	GameManager.is_dialog_active = true
+	_freeze_player(true)
+	var pages := GameUIStyle.paginate_interaction_text(text)
+	var page_index := 0
+	if _narrative_panel:
+		if _narrative_text:
+			GameUIStyle.fit_interaction_text_panel(_narrative_panel, _narrative_text, pages[page_index])
+		_narrative_panel.show()
 	await get_tree().create_timer(0.3).timeout
 	_narrative_enter_pressed = false
 	var w: float = 0.0
@@ -550,8 +560,11 @@ func _show_narrative(text: String, cb: Callable = Callable()) -> void:
 			else:
 				break
 		await get_tree().create_timer(0.05).timeout; w += 0.05
-	_narrative_panel.hide(); _freeze_player(false)
-	_narrative_open = false; GameManager.is_dialog_active = false; _is_interacting = false
+	_narrative_panel.hide()
+	_freeze_player(false)
+	_narrative_open = false
+	GameManager.is_dialog_active = false
+	_is_interacting = false
 	InputManager.unblock_input("叙事面板")
 	if cb.is_valid(): cb.call()
 
