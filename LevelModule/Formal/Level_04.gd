@@ -560,8 +560,11 @@ func _show_narrative(text: String, cb: Callable = Callable()) -> void:
 			else:
 				break
 		await get_tree().create_timer(0.05).timeout; w += 0.05
-	_narrative_panel.hide(); _freeze_player(false)
-	_narrative_open = false; GameManager.is_dialog_active = false; _is_interacting = false
+	_narrative_panel.hide()
+	_freeze_player(false)
+	_narrative_open = false
+	GameManager.is_dialog_active = false
+	_is_interacting = false
 	InputManager.unblock_input("叙事面板")
 	if cb.is_valid(): cb.call()
 
