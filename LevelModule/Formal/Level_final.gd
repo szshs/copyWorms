@@ -1,6 +1,6 @@
 # ============================================================
 # Level_final.gd - 终局关卡（视频演出后进入）
-# 玩家出生 (784,576)，交互点 (472,472)，交互后显示"太阳照常升起"
+# 玩家出生后触发终局互动，分页显示结尾文本
 # ============================================================
 extends Node2D
 
@@ -15,6 +15,7 @@ var _ending_triggered: bool = false
 const PLAYER_SPAWN := Vector2(320, 616)
 const INTERACT_POS := Vector2(192, 592)
 const INTERACT_ID := "final_sun"
+const FINAL_ENDING_TEXT := "太阳照常升起。\n\n房间还是那间房间。\n桌上还有灰，电脑还在发烫。\n但窗帘被拉开了。\n\n外面很吵。\n车声、人声、早点摊的蒸汽声，乱成一团。\n可那才是真的世界。\n\n阿明合上旧项目。\n新建文件夹：\nXiguan_Archive\n\n他背起相机，拿起爷爷的灯笼。\n去记录那些还没来得及消失的门、窗、声音和人。\n\n老街会被拆掉。\n但记忆不该只被关在梦里。\n技术也不该只是逃避的温室。\n\n从今天起，\n它会成为一座通向现实的桥。"
 
 func _ready() -> void:
 	# 清除旧玩家
@@ -106,9 +107,12 @@ func _process(_delta: float) -> void:
 				obj.check_player_in_range(pl)
 
 func _input(event: InputEvent) -> void:
-	if _dialog_open:
-		return
 	var is_left_click = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	if _dialog_open:
+		if event.is_action_pressed("ui_accept") or is_left_click:
+			_advance_dialog()
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("ui_accept") or is_left_click:
 		var obj = _find_nearby_interactive()
 		if obj:
@@ -126,7 +130,7 @@ func _on_object_interacted(data: Dictionary) -> void:
 	if oid == INTERACT_ID:
 		_trigger_ending()
 
-## 交互触发：锁定交互 + 显示文本框5s + 同时渐入黑屏5s → 切回标题界面
+## 交互触发：锁定交互 + 分页显示结尾文本，读完后黑屏返回标题
 func _trigger_ending() -> void:
 	if _ending_triggered:
 		return
@@ -141,9 +145,28 @@ func _trigger_ending() -> void:
 	# 显示文本框
 	if not _dialog_panel:
 		_create_dialog_panel()
-	GameUIStyle.fit_interaction_text_panel(_dialog_panel, _dialog_label, "太阳照常升起")
+	_dialog_lines = GameUIStyle.paginate_interaction_text(FINAL_ENDING_TEXT)
+	_dialog_index = 0
+	_show_dialog_page()
 	_dialog_panel.visible = true
-	# 同时开始5s黑屏渐入
+
+func _show_dialog_page() -> void:
+	if _dialog_index < _dialog_lines.size():
+		GameUIStyle.fit_interaction_text_panel(_dialog_panel, _dialog_label, _dialog_lines[_dialog_index])
+	else:
+		_finish_ending()
+
+func _advance_dialog() -> void:
+	if not _dialog_open:
+		return
+	_dialog_index += 1
+	_show_dialog_page()
+
+func _finish_ending() -> void:
+	_dialog_open = false
+	if _dialog_panel:
+		_dialog_panel.hide()
+	# 读完后开始5s黑屏渐入
 	var cv = CanvasLayer.new()
 	cv.name = "FadeCanvas"
 	cv.layer = 2000

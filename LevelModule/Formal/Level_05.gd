@@ -698,7 +698,7 @@ func _on_object_interacted(data: Dictionary) -> void:
 		var grandpa := _get_interactive_by_id("grandpa")
 		if grandpa:
 			grandpa.mark_completed()
-		_show_dialog(["爷爷？"], _play_grandpa_video)
+		_show_dialog(["爷爷？\n如果你真的是我记忆里的那盏灯，\n就请照我回去。"], _play_grandpa_video)
 
 ## 播放视频演出（爷爷交互后）：先淡入黑屏，再播放视频
 func _play_grandpa_video() -> void:
@@ -761,7 +761,7 @@ func _on_boss_death_recover(death_pos: Vector2) -> void:
 	Engine.time_scale = 1.0
 	_spawn_lantern(death_pos)
 	_show_dialog([
-		"[color=#ff6b9d]花旦：[/color]为什么要拥抱……残酷的现实……",
+		"[color=#ff6b9d]花旦：[/color]为什么要拥抱……残酷的现实……\n明明是你先请求我……\n把痛苦关在门外……",
 	], Callable())
 
 ## 在Boss死亡位置生成灯笼交互物
@@ -844,7 +844,7 @@ func _play_lantern_spawn(lantern: Node2D, glow: Sprite2D) -> void:
 func _on_lantern_interacted() -> void:
 	# 灯笼设为 allow_repeat，不标记 completed，对话结束后仍可再次交互
 	_show_dialog([
-		"[color=cyan]阿明：[/color]这是……爷爷给我的手提灯笼？",
+		"[color=cyan]阿明：[/color]这是……爷爷给我的手提灯笼。\n\n小时候停电，他总提着它走在前面。\n他说，路黑不要紧。\n人要自己记得往哪走。\n\n爷爷。\n我回去了。",
 	], _teleport_to_bg5)
 
 ## 检查玩家是否在灯笼交互范围内（自定义距离检测，不依赖Area2D）
@@ -940,9 +940,9 @@ func _enter_boss_arena() -> void:
 			obj.mark_completed()
 	# 显示对话 → 对话结束后传送到 Boss 区域
 	_show_dialog([
-		"[color=#ff6b9d]花旦：[/color]阿明，你瞧，技术能给你你想要的一切",
-		"[color=#ff6b9d]花旦：[/color]它能让回忆拥有形状，它能让记忆死而复生",
-		"[color=#ff6b9d]花旦：[/color]留下来吧，永远留在这个温暖的世界里……",
+		"[color=#ff6b9d]花旦：[/color]阿明，你瞧。\n技术能给你你想要的一切。",
+		"[color=#ff6b9d]花旦：[/color]它能让回忆拥有形状。\n它能让记忆死而复生。\n它能让失去的人，永远站在原地等你。",
+		"[color=#ff6b9d]花旦：[/color]留下来吧。\n永远留在这个温暖的世界里。\n不要回到那个会失败、会失去、会拆毁一切的现实。",
 	], _teleport_to_boss)
 
 func _teleport_to_boss() -> void:

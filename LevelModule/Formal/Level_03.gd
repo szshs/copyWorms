@@ -190,7 +190,7 @@ func _on_ready() -> void:
 
 	# 关卡开场叙事，延迟 0.5s 弹出
 	await get_tree().create_timer(0.5).timeout
-	_show_narrative("[color=white]我……我真的回来了！\n爷爷就在前面！爷爷！爷爷！[/color]")
+	_show_narrative("[color=white]我……真的回来了。\n凉茶铺还在。\n炉子还在。\n爷爷就在前面。\n\n爷爷！\n爷爷！[/color]")
 
 
 ## 入场黑屏遮罩：创建满黑 CanvasLayer，覆盖整个初始化过程
@@ -799,7 +799,7 @@ func _trigger_lingnan_combat() -> void:
 
 	# 显示战斗开始叙事
 	if level_data:
-		_show_narrative("[color=yellow]空气中弥漫着不安的气息……有什么东西正在逼近！[/color]")
+		_show_narrative("[color=yellow]空气中弥漫着不安的气息。\n凉茶铺的影子正在变形。\n有什么东西，正在逼近。[/color]")
 
 func _spawn_lingnan_enemies() -> void:
 	if not _enemy_paper_effigy_scene or not _enemy_lantern_ghost_scene:

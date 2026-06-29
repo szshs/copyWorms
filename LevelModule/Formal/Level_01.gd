@@ -77,7 +77,7 @@ var _narrative_enter_pressed: bool = false
 var _sleep_fading: bool = false
 
 # 床交互空闲提示：电脑解锁前，每次睡完 2s 内未再找床则弹提示
-const IDLE_BED_PROMPT_TEXT := "没什么事做，还是继续睡觉吧"
+const IDLE_BED_PROMPT_TEXT := "没什么事做。\n还是继续睡吧。"
 const IDLE_BED_PROMPT_DELAY: float = 2.0
 const COMPUTER_UNLOCK_SLEEP_COUNT: int = 3
 var _idle_bed_prompt_armed: bool = false
@@ -95,7 +95,8 @@ const FINAL_GLITCH_DURATION: float = 2.0
 # 代码滚动内容：从项目源码提取的代码片段，模拟 AI 实时编写
 const CODE_SCROLL_LINES: Array[String] = [
 	"# Xiguan_Dream v0.1 — 由 CodeBuddy 编译生成",
-	"# 模块: 西关历史地貌重建引擎",
+	"# 模块：西关历史地貌重建引擎",
+	"# 用户记忆关键词：西关老街 / 凉茶铺 / 麻石路 / 趟栊门 / 满洲窗",
 	"",
 	"class_name XiguanDreamEngine",
 	"extends Node2D",
@@ -878,7 +879,8 @@ func _start_ide_viewport_preview() -> void:
 
 func _on_preview_crashed() -> void:
 	if _chat_window:
-		_chat_window.append_text("[color=red][FATAL ERROR] 线程溢出: 'Xiguan_Dream' 崩溃。[/color]\n")
+		_chat_window.append_text("[color=red][FATAL ERROR] 线程溢出：'Xiguan_Dream' 崩溃。[/color]\n")
+		_chat_window.append_text("[color=yellow][SYSTEM] 检测到现实信号干扰。[/color]\n")
 		_chat_window.append_text("[color=red][SYSTEM] 连接中断。物理交互环境已强行关闭。[/color]\n")
 	await get_tree().create_timer(1.5).timeout
 	if _mini_viewport:

@@ -50,9 +50,9 @@ var _enemy_slime_scene: PackedScene = null
 const FINAL_BLACKOUT_FADE_DURATION: float = 0.8
 const NEXT_LEVEL_SEGMENT_PATH: String = "res://LevelModule/Formal/Level_02_01.tscn"
 const CHIPS_CAT_TEXTS: Array[String] = [
-	"薯片，是你！我最爱的猫！",
-	"薯片总是躺在药店前的桌子，懒洋洋地露出肚皮晒着太阳，看见他总感觉心中有温暖的太阳",
-	"喵呜唔～",
+	"薯片，是你！\n你还在这里。",
+	"薯片以前总躺在药店门口的桌子上。\n晒太阳，露肚皮，谁叫都不理。\n看见它，我总觉得老街还活着。\n可现在它一动不动。\n像一段被循环播放的温柔数据。",
+	"喵呜唔～\n声音很像。\n但只响了一次。",
 ]
 
 var _level_complete_emitted: bool = false

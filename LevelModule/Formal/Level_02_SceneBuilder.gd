@@ -58,7 +58,7 @@ func _build_interactives() -> void:
 	var door_indicator = level._attic_door_node.get_node_or_null("Indicator")
 	if door_indicator:
 		door_indicator.queue_free()
-	level._attic_door_node.prompt_text = "这个结界....触摸他会怎么样"
+	level._attic_door_node.prompt_text = "按 Enter 推开"
 
 	level._rattan_chair_node = _ensure_interactive(container, "GroceryStore", "rattan_chair", Vector2(880, 552), Vector2(80, 50))
 	var chair_indicator = level._rattan_chair_node.get_node_or_null("Indicator")
