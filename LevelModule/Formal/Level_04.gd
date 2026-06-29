@@ -26,7 +26,9 @@ const LNGN_POSITIONS: Array[Vector2] = [
 	Vector2(524, 2060), Vector2(3564, 2073), Vector2(1631, 1316)
 ]
 const LNGN_DIALOGS: Array[String] = [
-	"不太对，我需要到上面的阁楼看看", "还是不对", ""
+	"不太对。\n这条路像是旧阁楼的残片。\n我需要到上面看看。",
+	"还是不对。\n系统把路折回来了。",
+	""
 ]
 const STAGE2_SPAWN := Vector2(242, 4333)
 var _stage1_enemies: Array[Node2D] = []
@@ -364,7 +366,7 @@ func _on_object_interacted(data: Dictionary) -> void:
 	var oid: String = data.get("object_id", "")
 	if oid == "guide":
 		if _float_text: _float_text.visible = false
-		_show_narrative("[color=cyan]阿明：[/color]攻击怪物或被怪物攻击时，世界会瞬间切换。\n我需要借助世界切换来脱离这里的卡死。")
+		_show_narrative("[color=cyan]阿明：[/color]攻击怪物，或被怪物攻击时，世界会瞬间切换。\n这不是规则错误。\n这是裂缝。\n我需要借助世界切换，脱离这里的卡死。")
 	elif oid == "greeting":
 		_show_floating_text("晚上好，椰汁城")
 	elif oid == "enter_stage2":
@@ -560,8 +562,11 @@ func _show_narrative(text: String, cb: Callable = Callable()) -> void:
 			else:
 				break
 		await get_tree().create_timer(0.05).timeout; w += 0.05
-	_narrative_panel.hide(); _freeze_player(false)
-	_narrative_open = false; GameManager.is_dialog_active = false; _is_interacting = false
+	_narrative_panel.hide()
+	_freeze_player(false)
+	_narrative_open = false
+	GameManager.is_dialog_active = false
+	_is_interacting = false
 	InputManager.unblock_input("叙事面板")
 	if cb.is_valid(): cb.call()
 
@@ -606,7 +611,7 @@ func _prime_hurt_feedback_before_swap(player: Node) -> void:
 func _on_wall_trigger(_body: Node2D) -> void:
 	if _wall_dialog_shown: return
 	_wall_dialog_shown = true
-	_show_narrative("[color=gray]前面没有路了……[/color]")
+	_show_narrative("[color=gray]前面没有路了。\n但现实本来就没有铺好的路。\n这次，我自己走过去。[/color]")
 
 func _swap_world() -> void:
 	var p = GameManager.player_ref; if not p or not is_instance_valid(p): return
@@ -640,7 +645,7 @@ func _swap_world() -> void:
 			_cyber_return_dialog_shown = true
 			get_tree().create_timer(1.0).timeout.connect(func():
 				if _current_world != 0 or _narrative_open: return
-				_show_narrative("[color=cyan]阿明：[/color]我又回来了，可能需要多切换几次。")
+				_show_narrative("[color=cyan]阿明：[/color]我又回来了。\n出口被藏在重复的梦里。\n可能需要多切换几次。")
 			)
 	_swap_count += 1
 
@@ -684,7 +689,7 @@ func _enter_stage2() -> void:
 	_start_stage2_swap_timer()
 	_spawn_stage2_enemies()
 	_start_right_edge_flash()
-	_show_narrative("[color=cyan]阿明：[/color]这里……才是真正的出口吗？")
+	_show_narrative("[color=cyan]阿明：[/color]这里……\n才是真正的出口吗？")
 
 func _create_black_overlay() -> ColorRect:
 	var cv = $CanvasLayerUI
