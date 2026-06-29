@@ -46,6 +46,7 @@ const NARRATIVE_INPUT_TIMEOUT: float = 30.0
 
 var _street_enemies: Array[Node2D] = []
 var _enemy_slime_scene: PackedScene = null
+var _enemy_paper_effigy_scene: PackedScene = null
 
 const FINAL_BLACKOUT_FADE_DURATION: float = 0.8
 const NEXT_LEVEL_SEGMENT_PATH: String = "res://LevelModule/Formal/Level_02_01.tscn"
@@ -74,6 +75,9 @@ func _on_ready() -> void:
 	var enemy_path = "res://EnemyModule/Formal/Enemy_LanternGhost.tscn"
 	if ResourceLoader.exists(enemy_path):
 		_enemy_slime_scene = load(enemy_path)
+	var paper_effigy_path = "res://EnemyModule/Formal/Enemy_PaperEffigy.tscn"
+	if ResourceLoader.exists(paper_effigy_path):
+		_enemy_paper_effigy_scene = load(paper_effigy_path)
 
 	var builder = Level_02_SceneBuilder.new(self)
 	builder.build_all()
@@ -574,7 +578,8 @@ func _is_player_body(body: Node2D) -> bool:
 func _spawn_street_enemies() -> void:
 	if not _enemy_slime_scene:
 		return
-	var config = load("res://DataConfig/Enemy/StreetSlimeConfig.tres") as EnemyConfig
+	var lantern_config = load("res://DataConfig/Enemy/StreetSlimeConfig.tres") as EnemyConfig
+	var paper_config = load("res://DataConfig/Enemy/PaperEffigyConfig.tres") as EnemyConfig
 	var spawn_points: Array[Vector2] = []
 	if level_data and not level_data.street_enemy_spawn_points.is_empty():
 		spawn_points = level_data.street_enemy_spawn_points
@@ -582,9 +587,30 @@ func _spawn_street_enemies() -> void:
 		spawn_points = [Vector2(1500, 540), Vector2(2100, 540), Vector2(2800, 540)]
 	var count = mini(spawn_points.size(), 5)
 	for i in range(count):
-		var enemy = _spawn_enemy_with_config(_enemy_slime_scene, spawn_points[i], config)
+		var enemy = _spawn_enemy_with_config(_enemy_slime_scene, spawn_points[i], lantern_config)
 		if enemy:
 			_street_enemies.append(enemy)
+	if _enemy_paper_effigy_scene:
+		var paper_spawn_points := _paper_effigy_spawn_points(spawn_points, count)
+		for i in range(paper_spawn_points.size()):
+			var enemy = _spawn_enemy_with_config(_enemy_paper_effigy_scene, paper_spawn_points[i], paper_config)
+			if enemy:
+				_street_enemies.append(enemy)
+
+func _paper_effigy_spawn_points(lantern_points: Array[Vector2], count: int) -> Array[Vector2]:
+	var points: Array[Vector2] = []
+	if count <= 0:
+		return points
+	if count == 1:
+		points.append(lantern_points[0] + Vector2(300, 0))
+		return points
+	for i in range(count):
+		if i < count - 1:
+			points.append(lantern_points[i].lerp(lantern_points[i + 1], 0.5))
+		else:
+			var tail_offset := (lantern_points[i] - lantern_points[i - 1]) * 0.5
+			points.append(lantern_points[i] + tail_offset)
+	return points
 
 func _spawn_enemy_with_config(scene: PackedScene, spawn_pos: Vector2, config: EnemyConfig) -> Node2D:
 	if not scene:

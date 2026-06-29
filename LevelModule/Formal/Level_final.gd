@@ -15,7 +15,7 @@ var _ending_triggered: bool = false
 const PLAYER_SPAWN := Vector2(320, 616)
 const INTERACT_POS := Vector2(192, 592)
 const INTERACT_ID := "final_sun"
-const FINAL_ENDING_TEXT := "太阳照常升起。\n\n房间还是那间房间。\n桌上还有灰，电脑还在发烫。\n但窗帘被拉开了。\n\n外面很吵。\n车声、人声、早点摊的蒸汽声，乱成一团。\n可那才是真的世界。\n\n阿明合上旧项目。\n新建文件夹：\nXiguan_Archive\n\n他背起相机，拿起爷爷的灯笼。\n去记录那些还没来得及消失的门、窗、声音和人。\n\n老街会被拆掉。\n但记忆不该只被关在梦里。\n技术也不该只是逃避的温室。\n\n从今天起，\n它会成为一座通向现实的桥。"
+const FINAL_ENDING_TEXT := "太阳照常升起。\n房间还是那间房间，桌上还有灰，电脑还在发烫。\n但窗帘被拉开了。\n\n外面很吵。\n车声、人声、早点摊的蒸汽声，乱成一团。\n可那才是真的世界。\n\n阿明合上旧项目，新建文件夹：\nXiguan_Archive\n他背起相机，拿起爷爷的灯笼。\n去记录那些还没来得及消失的门、窗、声音和人。\n\n老街会被拆掉。\n但记忆不该只被关在梦里。\n技术也不该只是逃避的温室。\n\n从今天起，\n它会成为一座通向现实的桥。"
 
 func _ready() -> void:
 	# 清除旧玩家
@@ -196,4 +196,4 @@ func _create_dialog_panel() -> void:
 	cv.add_child(_dialog_panel)
 	_dialog_label = RichTextLabel.new()
 	_dialog_panel.add_child(_dialog_label)
-	GameUIStyle.apply_interaction_text_panel(_dialog_panel, _dialog_label, 33)
+	GameUIStyle.apply_interaction_text_panel(_dialog_panel, _dialog_label, 27)
