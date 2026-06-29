@@ -30,6 +30,7 @@ const INTERACTION_TEXT_PANEL_SIZE := Vector2(500.0, 320.0)
 const INTERACTION_TEXT_PANEL_SMALL := Vector2(500.0, 282.0)
 const INTERACTION_TEXT_PANEL_MEDIUM := Vector2(500.0, 320.0)
 const INTERACTION_TEXT_PAGE_VISIBLE_LIMIT := 92
+const INTERACTION_TEXT_PAGE_LINE_LIMIT := 4
 const INTERACTION_TEXT_PANEL_MARGIN_X := 64.0
 const INTERACTION_TEXT_PANEL_MARGIN_TOP := 56.0
 const INTERACTION_TEXT_PANEL_MARGIN_BOTTOM := 54.0
@@ -181,13 +182,14 @@ static func fit_interaction_text_panel(panel: Panel, text_label: RichTextLabel, 
 static func paginate_interaction_text(text: String) -> Array[String]:
 	var pages: Array[String] = []
 	var clean := _strip_bbcode(text).strip_edges()
-	if clean.length() <= INTERACTION_TEXT_PAGE_VISIBLE_LIMIT and _count_newlines(clean) <= 4:
+	if clean.length() <= INTERACTION_TEXT_PAGE_VISIBLE_LIMIT and _count_newlines(clean) < INTERACTION_TEXT_PAGE_LINE_LIMIT:
 		pages.append(text)
 		return pages
 
 	var page_start := 0
 	var i := 0
 	var visible_count := 0
+	var line_count := 1
 	var last_break := -1
 	var in_tag := false
 	while i < text.length():
@@ -200,9 +202,11 @@ static func paginate_interaction_text(text: String) -> Array[String]:
 			continue
 		elif not in_tag:
 			visible_count += 1
+			if c == "\n":
+				line_count += 1
 			if _is_interaction_page_break_char(c):
 				last_break = i + 1
-		if visible_count >= INTERACTION_TEXT_PAGE_VISIBLE_LIMIT:
+		if visible_count >= INTERACTION_TEXT_PAGE_VISIBLE_LIMIT or line_count > INTERACTION_TEXT_PAGE_LINE_LIMIT:
 			var cut := last_break if last_break > page_start else i + 1
 			var page := text.substr(page_start, cut - page_start).strip_edges()
 			if page != "":
@@ -212,6 +216,7 @@ static func paginate_interaction_text(text: String) -> Array[String]:
 				page_start += 1
 			i = page_start
 			visible_count = 0
+			line_count = 1
 			last_break = -1
 			in_tag = false
 			continue

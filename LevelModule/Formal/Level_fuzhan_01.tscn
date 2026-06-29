@@ -1,0 +1,64 @@
+[gd_scene format=3 uid="uid://b7y7krjdo8kx3"]
+
+[ext_resource type="Script" uid="uid://dcg37hnjxpjqx" path="res://LevelModule/Formal/Level_02.gd" id="1_acsbw"]
+[ext_resource type="Resource" uid="uid://b1s4igaiqss34" path="res://LevelModule/Backup/Level_02_CliffReality/snapshots/Level02Data.tres" id="2_ylijk"]
+[ext_resource type="Resource" uid="uid://l3hmrf4ux81n" path="res://DataConfig/Level/Level02Config.tres" id="3_28y1m"]
+[ext_resource type="PackedScene" path="res://LevelModule/Scenes/PixelworkMapStitch/Level 2/2D__2026-06-14T09-34-36-404Z_20260616_150503_986.tscn" id="5_k7v83"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_attic_floor"]
+size = Vector2(424, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_attic_left_wall"]
+size = Vector2(38, 1032)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_street_ground"]
+size = Vector2(4904, 40)
+
+[node name="Level_02" type="Node2D" unique_id=838993303]
+script = ExtResource("1_acsbw")
+level_data = ExtResource("2_ylijk")
+level_config = ExtResource("3_28y1m")
+
+[node name="DreamWorldRoot" type="Node2D" parent="." unique_id=800650625]
+
+[node name="CollisionBodies" type="Node2D" parent="DreamWorldRoot" unique_id=302510507]
+
+[node name="MainAtticFloor" type="StaticBody2D" parent="DreamWorldRoot/CollisionBodies" unique_id=668115575]
+position = Vector2(212, 620)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/MainAtticFloor" unique_id=196320683]
+shape = SubResource("RectangleShape2D_attic_floor")
+
+[node name="AtticLeftWall" type="StaticBody2D" parent="DreamWorldRoot/CollisionBodies" unique_id=1825517972]
+position = Vector2(-10, 360)
+collision_mask = 0
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/AtticLeftWall" unique_id=1821842956]
+position = Vector2(2, -232)
+shape = SubResource("RectangleShape2D_attic_left_wall")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/AtticLeftWall" unique_id=12000715]
+position = Vector2(5338, -232)
+shape = SubResource("RectangleShape2D_attic_left_wall")
+
+[node name="StreetGround" type="StaticBody2D" parent="DreamWorldRoot/CollisionBodies" unique_id=941844803]
+position = Vector2(2876, 620)
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/StreetGround" unique_id=1396998003]
+shape = SubResource("RectangleShape2D_street_ground")
+
+[node name="InteractiveObjects" type="Node2D" parent="." unique_id=1877745845]
+
+[node name="TriggerZones" type="Node2D" parent="." unique_id=2064629986]
+
+[node name="SpawnPoints" type="Node2D" parent="." unique_id=1230219533]
+
+[node name="AtticSpawn" type="Marker2D" parent="SpawnPoints" unique_id=1021604997]
+position = Vector2(140, 550)
+
+[node name="2D__2026-06-14T09-34-36-404Z_20260616_150503_986" parent="." unique_id=1838992939 instance=ExtResource("5_k7v83")]
+process_priority = 1000
+position = Vector2(0, -408.00003)
+scale = Vector2(0.1844249, 0.1844249)
