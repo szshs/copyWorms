@@ -81,7 +81,7 @@ func _build_ui() -> void:
 	health_label.text = "100 / 100"
 	health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	health_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	health_label.add_theme_font_size_override("font_size", 24)
+	health_label.add_theme_font_size_override("font_size", 20)
 	health_label.add_theme_color_override("font_color", Color.WHITE)
 	health_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar_container.add_child(health_label)
@@ -211,7 +211,7 @@ func _build_skill_icon() -> void:
 		placeholder.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
 		placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		placeholder.add_theme_font_size_override("font_size", 42)
+		placeholder.add_theme_font_size_override("font_size", 16)
 		placeholder.add_theme_color_override("font_color", Color(0.7, 0.7, 0.85))
 		placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_skill_icon_container.add_child(placeholder)
@@ -248,7 +248,7 @@ func _build_skill_icon() -> void:
 	_skill_key_label.position = Vector2(0, SKILL_ICON_SIZE - 18)
 	_skill_key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_skill_key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_skill_key_label.add_theme_font_size_override("font_size", 20)
+	_skill_key_label.add_theme_font_size_override("font_size", 16)
 	_skill_key_label.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
 	_skill_key_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	_skill_key_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -300,7 +300,7 @@ func _build_dash_icon() -> void:
 	placeholder.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
 	placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	placeholder.add_theme_font_size_override("font_size", 42)
+	placeholder.add_theme_font_size_override("font_size", 16)
 	placeholder.add_theme_color_override("font_color", Color(0.85, 0.7, 1.0))
 	placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dash_icon_container.add_child(placeholder)
@@ -335,7 +335,7 @@ func _build_dash_icon() -> void:
 	_dash_key_label.text = "[%s]" % _get_action_key_label(&"player_attack")
 	_dash_key_label.size = Vector2(40, 18)
 	_dash_key_label.position = Vector2(-2, SKILL_ICON_SIZE - 16)
-	_dash_key_label.add_theme_font_size_override("font_size", 20)
+	_dash_key_label.add_theme_font_size_override("font_size", 16)
 	_dash_key_label.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
 	_dash_key_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	_dash_key_label.add_theme_constant_override("shadow_offset_x", 1)
@@ -432,11 +432,11 @@ func _update_skill_key_hint() -> void:
 	if _skill_key_label.text == text:
 		return
 	_skill_key_label.text = text
-	var font_size := 20
+	var font_size := 16
 	if text.length() > 5:
-		font_size = 16
-	if text.length() > 8:
 		font_size = 13
+	if text.length() > 8:
+		font_size = 11
 	_skill_key_label.add_theme_font_size_override("font_size", font_size)
 	_skill_key_label.size = Vector2(maxf(SKILL_ICON_SIZE, float(text.length() * font_size) * 0.58), 20)
 	_skill_key_label.position = Vector2((SKILL_ICON_SIZE - _skill_key_label.size.x) * 0.5, SKILL_ICON_SIZE - 18)
@@ -565,7 +565,7 @@ func _refresh_panel_buttons() -> void:
 			GameUIStyle.refresh_texture_button(button)
 
 ## 创建统一梦境赛博皮肤按钮（暂停面板等局内UI共用）
-func _make_panel_btn(text: String, pos: Vector2, size: Vector2, font_size: int = 24) -> TextureButton:
+func _make_panel_btn(text: String, pos: Vector2, size: Vector2, font_size: int = 16) -> TextureButton:
 	var btn := TextureButton.new()
 	btn.position = pos
 	btn.custom_minimum_size = size

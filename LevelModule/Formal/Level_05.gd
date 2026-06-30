@@ -794,7 +794,7 @@ func _spawn_lantern(pos: Vector2) -> void:
 	prompt.name = "Prompt"
 	prompt.text = "按 Enter 拾起灯笼"
 	prompt.visible = false
-	prompt.add_theme_font_size_override("font_size", 21)
+	prompt.add_theme_font_size_override("font_size", 16)
 	prompt.add_theme_color_override("font_color", Color(1, 0.9, 0.2, 0.95))
 	prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1231,7 +1231,7 @@ func _create_dialog_panel() -> void:
 	_dialog_label = RichTextLabel.new()
 	_dialog_label.name = "RichTextLabel"
 	_dialog_panel.add_child(_dialog_label)
-	GameUIStyle.apply_interaction_text_panel(_dialog_panel, _dialog_label, 27)
+	GameUIStyle.apply_interaction_text_panel(_dialog_panel, _dialog_label, 22)
 
 func _show_dialog_line() -> void:
 	if _dialog_index < _dialog_lines.size():

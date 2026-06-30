@@ -1161,7 +1161,7 @@ func _trigger_level_end() -> void:
 	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	end_label.anchor_right = 1.0; end_label.anchor_bottom = 1.0
-	end_label.add_theme_font_size_override("font_size", 33)
+	end_label.add_theme_font_size_override("font_size", 26)
 	end_label.add_theme_color_override("font_color", Color(0.522, 0.357, 0.227))
 	text_panel.add_child(end_label)
 
@@ -1334,7 +1334,7 @@ func _build_all_ui() -> void:
 	_narrative_text = RichTextLabel.new()
 	_narrative_text.name = "NarrativeText"
 	_narrative_panel.add_child(_narrative_text)
-	GameUIStyle.apply_interaction_text_panel(_narrative_panel, _narrative_text, 27)
+	GameUIStyle.apply_interaction_text_panel(_narrative_panel, _narrative_text, 22)
 
 	# 红光遮罩
 	_red_overlay = ColorRect.new()
@@ -1351,7 +1351,7 @@ func _build_all_ui() -> void:
 	_wake_hint_label.visible = false
 	_wake_hint_label.text = "长按【Tab】睁开眼睛"
 	_wake_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_wake_hint_label.add_theme_font_size_override("font_size", 33)
+	_wake_hint_label.add_theme_font_size_override("font_size", 16)
 	_wake_hint_label.add_theme_color_override("font_color", Color(1, 0.85, 0.85, 0.95))
 	_wake_hint_label.position = Vector2(440, 70); _wake_hint_label.size = Vector2(400, 40)
 	_wake_hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1584,11 +1584,11 @@ func _build_all_ui() -> void:
 		var btn = Button.new()
 		btn.name = "ModifyButton_%d" % i; btn.text = "修改"
 		btn.position = Vector2(694, row_y - 8); btn.size = Vector2(112, 42)
-		GameUIStyle.apply_button(btn, 22)
+		GameUIStyle.apply_button(btn, 16)
 		_config_ui.add_child(btn); _config_buttons.append(btn)
 		var fb = Label.new()
 		fb.name = "Feedback_%d" % i
-		fb.add_theme_font_size_override("font_size", 20)
+		fb.add_theme_font_size_override("font_size", 16)
 		fb.add_theme_color_override("font_color", Color(0.4, 0.8, 0.5))
 		fb.position = Vector2(36, row_y + 32); fb.size = Vector2(760, 22); fb.text = ""
 		_config_ui.add_child(fb); _config_feedback_labels.append(fb)
@@ -1596,7 +1596,7 @@ func _build_all_ui() -> void:
 	_recompile_button.name = "RecompileButton"; _recompile_button.text = "重新编译并注入梦境"
 	_recompile_button.disabled = true; _recompile_button.position = Vector2(270, 380)
 	_recompile_button.size = Vector2(300, 48)
-	GameUIStyle.apply_code_button(_recompile_button, 23)
+	GameUIStyle.apply_code_button(_recompile_button, 16)
 	_config_ui.add_child(_recompile_button)
 	canvas.add_child(_config_ui)
 

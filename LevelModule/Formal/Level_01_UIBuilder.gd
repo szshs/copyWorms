@@ -47,7 +47,7 @@ func _build_narrative_panel() -> void:
 	var label = RichTextLabel.new()
 	label.name = "RichTextLabel"
 	panel.add_child(label)
-	GameUIStyle.apply_interaction_text_panel(panel, label, 27)
+	GameUIStyle.apply_interaction_text_panel(panel, label, 22)
 	level._narrative_text = label
 
 	canvas.add_child(panel)

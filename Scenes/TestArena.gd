@@ -17,6 +17,7 @@ const DUAL_CHAR_MAX_HP: int = 2000
 
 var _test_panel: CanvasLayer = null
 var _panel_visible: bool = false
+var _drop_archive_screen: LingnanDropArchiveScreen = null
 
 # ---- 掉落物测试 ----
 var _active_drops: Array[DropItem] = []
@@ -146,9 +147,14 @@ func _process(_delta: float) -> void:
 	_process_drops()
 
 func _input(event: InputEvent) -> void:
+	if _drop_archive_screen and is_instance_valid(_drop_archive_screen) and _drop_archive_screen.visible:
+		return
 	if event is InputEventKey and event.pressed:
 		match event.keycode:
 			KEY_0:
+				_open_lingnan_drop_archive()
+				get_viewport().set_input_as_handled()
+			KEY_1:
 				_panel_visible = not _panel_visible
 				if _test_panel:
 					_test_panel.get_node_or_null("Panel").visible = _panel_visible
@@ -222,7 +228,7 @@ func _build_test_panel() -> void:
 	var panel = Panel.new()
 	panel.name = "Panel"
 	panel.position = Vector2(500, 200)
-	panel.size = Vector2(280, 90 + _enemy_names.size() * 50)
+	panel.size = Vector2(280, 114 + _enemy_names.size() * 50)
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.05, 0.05, 0.08, 0.92)
 	style.set_corner_radius_all(8)
@@ -230,23 +236,31 @@ func _build_test_panel() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_test_panel.add_child(panel)
 	var title = Label.new()
-	title.text = "怪物切换 (按0开关)\n掉落物: 2=月饼 3=虾饺 4=木棉 5=醒狮 6=烧卖 7=蒲葵扇"
+	title.text = "怪物切换 (按1开关)\n图鉴: 0=岭南梦物志\n掉落物: 2=月饼 3=虾饺 4=木棉 5=醒狮 6=烧卖 7=蒲葵扇"
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
 	title.position = Vector2(10, 10)
-	title.size = Vector2(260, 70)
+	title.size = Vector2(260, 94)
 	panel.add_child(title)
 	for i in _enemy_names.size():
 		var btn = Button.new()
 		btn.text = _enemy_names[i]
-		btn.position = Vector2(10, 80 + i * 50)
+		btn.position = Vector2(10, 104 + i * 50)
 		btn.size = Vector2(260, 40)
-		btn.add_theme_font_size_override("font_size", 20)
+		btn.add_theme_font_size_override("font_size", 16)
 		btn.focus_mode = Control.FOCUS_NONE
 		var idx = i
 		btn.pressed.connect(func(): _spawn_enemy(idx))
 		panel.add_child(btn)
 	panel.visible = false
+
+func _open_lingnan_drop_archive() -> void:
+	if _drop_archive_screen and is_instance_valid(_drop_archive_screen):
+		return
+	_drop_archive_screen = LingnanDropArchiveScreen.show_archive(self)
+	_drop_archive_screen.closed.connect(func() -> void:
+		_drop_archive_screen = null
+	)
 
 # ---- 掉落物系统 ----
 
