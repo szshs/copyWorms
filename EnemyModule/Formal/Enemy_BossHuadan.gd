@@ -146,13 +146,11 @@ func _on_ready() -> void:
 
 ## 覆写基类：跳过 PlaceholderSprite（使用场景中的 AnimatedSprite2D）
 func _setup_visual() -> void:
-	_low_hp_blink = ColorRect.new()
-	_low_hp_blink.name = "LowHPBlink"
-	_low_hp_blink.color = Color(1, 0, 0, 0)
-	_low_hp_blink.size = _get_placeholder_size() + Vector2(6, 6)
-	_low_hp_blink.position = -_low_hp_blink.size / 2
-	_low_hp_blink.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_low_hp_blink)
+	pass  # Boss 不使用低血量闪烁 ColorRect，改为四阶段贴图红色滤镜
+
+## 禁用基类低血量闪烁（Boss 用阶段红色滤镜替代）
+func _update_low_hp_blink(_delta: float) -> void:
+	pass
 
 ## 运行时构建 SpriteFrames（仅当 .tscn 未提供时的 fallback）
 func _build_sprite_frames() -> SpriteFrames:
@@ -254,6 +252,10 @@ func _detect_phase() -> void:
 		if new_phase == 3 and not _phase3_hover_triggered and is_on_floor() and not _is_hovering:
 			_phase3_hover_triggered = true
 			_force_enter_hover()
+		# 进入四阶段：贴图增加红色滤镜
+		if new_phase == 4 and _sprite:
+			var tw = create_tween()
+			tw.tween_property(_sprite, "modulate", Color(1.4, 0.6, 0.6, 1.0), 1.0).set_trans(Tween.TRANS_SINE)
 
 ## 阶段参数插值：在 prev_phase 与 current_phase 之间按 _phase_blend_t 线性插值
 ## 避免阶段切换时移速/伤害/CD 等参数阶跃突变

@@ -700,6 +700,57 @@ func _on_object_interacted(data: Dictionary) -> void:
 			grandpa.mark_completed()
 		_show_dialog(["爷爷？\n如果你真的是我记忆里的那盏灯，\n就请照我回去。"], _play_grandpa_video)
 
+## 播放花旦CG过场（进入Boss战前）：淡入黑屏→播放CG→进入Boss战
+func _play_huadan_cg() -> void:
+	var stream := load("res://Assets/huadan-CG.ogv") as VideoStream
+	if stream == null:
+		push_error("[Level_05] huadan-CG.ogv 加载失败，直接进入Boss战")
+		_enter_boss_arena()
+		return
+	# 屏蔽游戏输入
+	InputManager.block_input("视频演出", self)
+	GameManager.is_dialog_active = true
+	# 冻结玩家
+	var player = GameManager.player_ref
+	if player and player.has_method("set_frozen"):
+		player.set_frozen(true)
+	# 用 CanvasLayer 确保在最上层
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	# 淡入黑屏
+	var black_bg := ColorRect.new()
+	black_bg.color = Color(0, 0, 0, 0)
+	black_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	black_bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(black_bg)
+	var fade_in := black_bg.create_tween()
+	fade_in.tween_property(black_bg, "color:a", 1.0, 0.5)
+	await fade_in.finished
+	# 视频播放器
+	var vp := VideoStreamPlayer.new()
+	vp.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vp.expand = true
+	vp.autoplay = true
+	vp.stream = stream
+	vp.volume_db = -80.0
+	vp.bus = "Master"
+	vp.mouse_filter = Control.MOUSE_FILTER_STOP
+	black_bg.add_child(vp)
+	print("[Level_05] 花旦CG开始播放")
+	# 等待视频播放结束
+	await vp.finished
+	print("[Level_05] 花旦CG播放结束，直接衔接战斗")
+	# 清理视频+黑屏
+	vp.queue_free()
+	layer.queue_free()
+	InputManager.unblock_input("视频演出")
+	GameManager.is_dialog_active = false
+	if player and is_instance_valid(player) and player.has_method("set_frozen"):
+		player.set_frozen(false)
+	# 传送到Boss区域并开始战斗
+	_teleport_to_boss()
+
 ## 播放视频演出（爷爷交互后）：先淡入黑屏，再播放视频
 func _play_grandpa_video() -> void:
 	if not _grandpa_video_started:
@@ -943,7 +994,7 @@ func _enter_boss_arena() -> void:
 		"[color=#ff6b9d]花旦：[/color]阿明，你瞧。\n技术能给你你想要的一切。",
 		"[color=#ff6b9d]花旦：[/color]它能让回忆拥有形状。\n它能让记忆死而复生。\n它能让失去的人，永远站在原地等你。",
 		"[color=#ff6b9d]花旦：[/color]留下来吧。\n永远留在这个温暖的世界里。\n不要回到那个会失败、会失去、会拆毁一切的现实。",
-	], _teleport_to_boss)
+	], _play_huadan_cg)
 
 func _teleport_to_boss() -> void:
 	_teleport_and_setup_camera(Vector2(931, 5037), 620, 1710, 4512, 5135, 1.33)
