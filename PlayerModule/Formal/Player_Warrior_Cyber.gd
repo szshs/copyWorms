@@ -29,6 +29,25 @@ var _dash_hit_enemies: Array = []
 var _lightning_cooldown: float = 0.0
 var _was_invincible: bool = false
 
+const CYBER_SKILL2_WINDOW := 2.0
+const CYBER_SKILL2_CD := 5.0
+const CYBER_SKILL2_FRONT_OFFSET := 64.0
+const CYBER_SKILL2_STAB_DISTANCE := 92.0
+const CYBER_SKILL2_POSE_TARGET_HEIGHT := 66.0
+const CYBER_SKILL2_STAB_TEXTURE := preload("res://Assets/Sprites/player_cyber Ani/技能二.png")
+const CYBER_SKILL2_SLASH_TEXTURE := preload("res://Assets/Sprites/player_cyber Ani/技能二1.png")
+const CYBER_SKILL2_EFFECT_A := preload("res://Assets/Effects/蓝色直线斩击特效 1.png")
+const CYBER_SKILL2_EFFECT_B := preload("res://Assets/Effects/蓝色直线斩击特效.png")
+var _skill2_charging: bool = false
+var _skill2_timer: float = 0.0
+var _skill2_cooldown_timer: float = 0.0
+var _skill2_sequence_active: bool = false
+var _skill2_pose_sprite: Sprite2D = null
+var _skill2_saved_invincible: bool = false
+var _skill2_saved_super_armor: bool = false
+var _skill2_saved_facing_right: bool = true
+var _skill2_manual_dash_visual: bool = false
+
 func _on_ready():
 	super._on_ready()
 	_anim_map = {
@@ -80,6 +99,23 @@ func _do_delayed_hit() -> void:
 
 func _on_physics_process(delta: float) -> void:
 	super._on_physics_process(delta)
+
+	if _skill2_cooldown_timer > 0:
+		_skill2_cooldown_timer -= delta
+
+	if _skill2_charging:
+		_skill2_timer += delta
+		_update_skill_charge_sfx(clampf(_skill2_timer / CYBER_SKILL2_WINDOW, 0.0, 1.0))
+		if _anim_sprite:
+			var blink2 = 0.75 + 0.25 * abs(sin(_skill2_timer * 22.0))
+			_anim_sprite.modulate = Color(0.75, 0.95, 1.35, 1.0) * blink2
+		velocity.x = move_toward(velocity.x, 0, 900.0 * delta)
+		if Input.is_action_just_pressed("player_attack"):
+			_do_skill2_manual_stab()
+			return
+		if _skill2_timer >= CYBER_SKILL2_WINDOW or not Input.is_action_pressed("player_skill_2"):
+			_cancel_skill2_charge()
+			return
 
 	# 技能蓄力检测：按住 I 键蓄力，松开按蓄力时长决定子弹数
 	if _skill_charging:
@@ -236,7 +272,340 @@ func _release_skill() -> void:
 
 const CYBER_SKILL_CD := 4.0  # 技能CD（保持不变）
 
+func perform_skill_2() -> void:
+	if _skill2_charging or _skill2_sequence_active or _skill_charging or _is_lightning_dash or _dash_windup:
+		return
+	if _skill2_cooldown_timer > 0 or is_attacking or is_dashing:
+		return
+	_skill2_charging = true
+	_skill2_timer = 0.0
+	_skill2_cooldown_timer = CYBER_SKILL2_CD
+	_start_skill_charge_sfx()
+	_change_state(GlobalDefine.PlayerState.SKILL)
+	velocity.x = move_toward(velocity.x, 0, 600.0)
+	if _anim_sprite:
+		_anim_sprite.modulate = Color(0.65, 0.95, 1.4, 1.0)
+
+func _cancel_skill2_charge() -> void:
+	_stop_skill_charge_sfx()
+	_skill2_charging = false
+	_skill2_timer = 0.0
+	if _anim_sprite:
+		_anim_sprite.modulate = Color.WHITE
+	if current_state == GlobalDefine.PlayerState.SKILL:
+		_change_state(GlobalDefine.PlayerState.IDLE)
+
+func _do_skill2_manual_stab() -> void:
+	if not _skill2_charging:
+		return
+	_stop_skill_charge_sfx()
+	_skill2_charging = false
+	_skill2_timer = 0.0
+	_skill2_sequence_active = true
+	_skill2_saved_invincible = is_invincible
+	_skill2_saved_super_armor = _is_super_armor
+	_skill2_saved_facing_right = is_facing_right
+	var input_dir := _get_input_direction()
+	if abs(input_dir.x) > 0.1:
+		is_facing_right = input_dir.x > 0
+	scale.x = 1
+	if _anim_sprite:
+		_anim_sprite.flip_h = not is_facing_right
+	is_invincible = true
+	_is_super_armor = true
+	invincible_timer = maxf(invincible_timer, _dash_duration + 0.35)
+	_change_state(GlobalDefine.PlayerState.SKILL)
+	_skill2_manual_dash_visual = true
+	_play_skill2_pose(CYBER_SKILL2_STAB_TEXTURE)
+	_do_lightning_dash()
+	await get_tree().create_timer(_dash_duration + 0.08).timeout
+	_clear_skill2_pose()
+	_finish_skill2_sequence(true)
+
+func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
+	if _skill2_sequence_active:
+		return
+	if _skill2_charging:
+		_trigger_skill2_counter(_find_skill2_attacker(knockback_dir))
+		return
+	super.take_damage(damage, knockback_dir)
+
+func _take_contact_damage(enemy: Node2D) -> void:
+	if _skill2_sequence_active:
+		return
+	if _skill2_charging:
+		_trigger_skill2_counter(enemy)
+		return
+	super._take_contact_damage(enemy)
+
+func _trigger_skill2_counter(enemy: Node2D) -> void:
+	if _skill2_sequence_active:
+		return
+	_stop_skill_charge_sfx()
+	_skill2_charging = false
+	_skill2_timer = 0.0
+	if not is_instance_valid(enemy):
+		enemy = _find_nearest_enemy()
+	if not is_instance_valid(enemy):
+		_cancel_skill2_charge()
+		return
+	_skill2_sequence_active = true
+	_skill2_saved_invincible = is_invincible
+	_skill2_saved_super_armor = _is_super_armor
+	_skill2_saved_facing_right = is_facing_right
+	is_invincible = true
+	_is_super_armor = true
+	invincible_timer = maxf(invincible_timer, CYBER_SKILL2_WINDOW + 1.0)
+	is_attacking = true
+	attack_timer = 1.1
+	_change_state(GlobalDefine.PlayerState.SKILL)
+	_run_skill2_counter_sequence(enemy)
+
+func _run_skill2_counter_sequence(enemy: Node2D) -> void:
+	_spawn_skill2_afterimage_stack()
+	await get_tree().create_timer(0.16).timeout
+	if not is_instance_valid(enemy):
+		_finish_skill2_sequence()
+		return
+	var side := signf(global_position.x - enemy.global_position.x)
+	if side == 0:
+		side = -1.0 if is_facing_right else 1.0
+	var front_pos := enemy.global_position + Vector2(side * CYBER_SKILL2_FRONT_OFFSET, 0)
+	var back_pos := enemy.global_position - Vector2(side * CYBER_SKILL2_FRONT_OFFSET, 0)
+
+	global_position = front_pos
+	_face_skill2_target(enemy)
+	_play_normal_attack_on_skill2(enemy)
+	await get_tree().create_timer(0.30).timeout
+
+	if is_instance_valid(enemy):
+		global_position = back_pos
+		_face_skill2_target(enemy)
+		_play_skill2_pose(CYBER_SKILL2_SLASH_TEXTURE)
+		_spawn_skill2_slash_effect(enemy, CYBER_SKILL2_EFFECT_A)
+		_deal_skill2_damage(enemy, 18, 10.0, 0.18)
+	await get_tree().create_timer(0.36).timeout
+
+	if is_instance_valid(enemy):
+		global_position = front_pos
+		_face_skill2_target(enemy)
+		_play_skill2_pose(CYBER_SKILL2_STAB_TEXTURE)
+		_spawn_skill2_slash_effect(enemy, CYBER_SKILL2_EFFECT_B)
+		_deal_skill2_damage(enemy, 22, 12.0, 0.20)
+		var dash_dir := 1.0 if is_facing_right else -1.0
+		var tween := create_tween()
+		tween.tween_property(self, "global_position", global_position + Vector2(dash_dir * CYBER_SKILL2_STAB_DISTANCE, 0), 0.20).set_trans(Tween.TRANS_QUAD)
+		await tween.finished
+	else:
+		await get_tree().create_timer(0.12).timeout
+	_clear_skill2_pose()
+	_finish_skill2_sequence()
+
+func _finish_skill2_sequence(force_recover_state: bool = true) -> void:
+	if _is_lightning_dash:
+		_end_lightning_dash()
+	_skill2_manual_dash_visual = false
+	_skill2_sequence_active = false
+	_is_lightning_dash = false
+	_dash_timer = 0.0
+	_lightning_cooldown = 0.0
+	_dash_windup = false
+	_dash_windup_timer = 0.0
+	_dash_hit_enemies.clear()
+	_attack_hold_time = 0.0
+	_hit_pending = false
+	is_attacking = false
+	attack_timer = 0.0
+	has_hit_this_attack = false
+	_attack_started_in_air = false
+	_attack_windup_pending = false
+	_attack_windup_timer = 0.0
+	if not _skill2_saved_invincible:
+		is_invincible = false
+		_restore_visibility()
+	_is_super_armor = _skill2_saved_super_armor
+	_clear_skill2_pose()
+	if _anim_sprite:
+		_anim_sprite.visible = true
+		_anim_sprite.modulate = Color.WHITE
+		_anim_sprite.position = Vector2.ZERO
+		_anim_sprite.speed_scale = 1.0
+	var input_dir := _get_input_direction()
+	if abs(input_dir.x) > 0.1:
+		is_facing_right = input_dir.x > 0
+	else:
+		is_facing_right = _skill2_saved_facing_right
+	velocity.x = 0.0
+	scale.x = 1
+	if _anim_sprite:
+		_anim_sprite.flip_h = not is_facing_right
+	if force_recover_state or current_state == GlobalDefine.PlayerState.SKILL or current_state == GlobalDefine.PlayerState.ATTACK:
+		_recover_skill2_animation_state()
+
+func _recover_skill2_animation_state() -> void:
+	var next_state := GlobalDefine.PlayerState.IDLE
+	if not is_on_floor():
+		next_state = GlobalDefine.PlayerState.FALL if velocity.y > 0.0 else GlobalDefine.PlayerState.JUMP
+	elif abs(_get_input_direction().x) > 0.1:
+		next_state = GlobalDefine.PlayerState.RUN
+	_change_state(next_state)
+	_last_anim = ""
+	_update_animation()
+	if _anim_sprite and _anim_sprite.sprite_frames:
+		var target_anim := _get_anim_for_state()
+		if _anim_sprite.sprite_frames.has_animation(target_anim):
+			_anim_sprite.play(target_anim)
+
 # ---- 突进蓄力 ----
+
+func _play_skill2_pose(texture: Texture2D) -> void:
+	_clear_skill2_pose()
+	if _anim_sprite:
+		_anim_sprite.visible = false
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	sprite.centered = true
+	sprite.z_index = 15
+	var bounds := _get_skill2_pose_visible_bounds(texture)
+	var visible_center := bounds.position + bounds.size * 0.5
+	var texture_center := Vector2(texture.get_width(), texture.get_height()) * 0.5
+	var s := CYBER_SKILL2_POSE_TARGET_HEIGHT / maxf(bounds.size.y, 1.0)
+	sprite.position = Vector2(0, -10) + (texture_center - visible_center) * s
+	sprite.scale = Vector2(s * (1.0 if is_facing_right else -1.0), s)
+	add_child(sprite)
+	_skill2_pose_sprite = sprite
+
+func _get_skill2_pose_visible_bounds(texture: Texture2D) -> Rect2:
+	if texture == CYBER_SKILL2_STAB_TEXTURE:
+		return Rect2(104, 216, 2001, 929)
+	if texture == CYBER_SKILL2_SLASH_TEXTURE:
+		return Rect2(716, 124, 1549, 1349)
+	return Rect2(0, 0, texture.get_width(), texture.get_height())
+
+func _clear_skill2_pose() -> void:
+	if _skill2_pose_sprite and is_instance_valid(_skill2_pose_sprite):
+		_skill2_pose_sprite.queue_free()
+	_skill2_pose_sprite = null
+	if _anim_sprite:
+		_anim_sprite.visible = true
+
+func _spawn_skill2_afterimage_stack() -> void:
+	var parent = get_parent()
+	if not parent or not _anim_sprite or not _anim_sprite.sprite_frames:
+		return
+	var tex := _anim_sprite.sprite_frames.get_frame_texture(_anim_sprite.animation, _anim_sprite.frame)
+	if not tex:
+		return
+	for i in range(6):
+		var ghost := Sprite2D.new()
+		ghost.texture = tex
+		ghost.centered = true
+		ghost.global_position = global_position + Vector2((i - 2) * -5.0 * (1.0 if is_facing_right else -1.0), -10 - i * 2.0)
+		ghost.global_scale = Vector2(1.0 if is_facing_right else -1.0, 1.0)
+		ghost.modulate = Color(0.35, 0.8, 1.0, 0.38 - i * 0.04)
+		ghost.z_index = 12 - i
+		parent.add_child(ghost)
+		var tween := ghost.create_tween()
+		tween.tween_property(ghost, "modulate:a", 0.0, 0.28)
+		tween.tween_callback(ghost.queue_free)
+
+func _spawn_skill2_slash_effect(enemy: Node2D, texture: Texture2D) -> void:
+	var parent = get_parent()
+	if not parent or not is_instance_valid(enemy):
+		return
+	var fx := Sprite2D.new()
+	fx.texture = texture
+	fx.centered = true
+	fx.z_index = 18
+	var bounds := _get_skill2_effect_visible_bounds(texture)
+	var visible_center := bounds.position + bounds.size * 0.5
+	var texture_center := Vector2(texture.get_width(), texture.get_height()) * 0.5
+	var scale_by_width := 180.0 / maxf(bounds.size.x, 1.0)
+	parent.add_child(fx)
+	fx.global_position = enemy.global_position + Vector2(0, -8) + (texture_center - visible_center) * scale_by_width
+	fx.global_scale = Vector2(scale_by_width * (1.0 if is_facing_right else -1.0), scale_by_width)
+	var tween := fx.create_tween()
+	tween.tween_property(fx, "modulate:a", 0.0, 0.24)
+	tween.tween_callback(fx.queue_free)
+
+func _get_skill2_effect_visible_bounds(texture: Texture2D) -> Rect2:
+	if texture == CYBER_SKILL2_EFFECT_A:
+		return Rect2(0, 216, 2729, 1029)
+	if texture == CYBER_SKILL2_EFFECT_B:
+		return Rect2(0, 392, 2549, 725)
+	return Rect2(0, 0, texture.get_width(), texture.get_height())
+
+func _deal_skill2_damage(enemy: Node2D, base_damage: int, shake_strength: float = 8.0, shake_duration: float = 0.14) -> void:
+	if not is_instance_valid(enemy):
+		return
+	var result = DamageCalculator.calculate(base_damage, 0, GlobalDefine.DamageType.MAGIC, 0.15)
+	var kb_dir = (enemy.global_position - global_position).normalized()
+	if kb_dir == Vector2.ZERO:
+		kb_dir = Vector2(1.0 if is_facing_right else -1.0, 0)
+	if enemy.has_method("take_damage"):
+		enemy.take_damage(result["damage"], kb_dir)
+	EventBus.emit(GlobalDefine.EventName.PLAYER_ATTACK_HIT, {
+		"attacker": self, "target": enemy, "damage": result["damage"], "is_crit": result["is_crit"]
+	})
+	_skill2_hit_feedback(shake_strength, shake_duration)
+
+func _play_normal_attack_on_skill2(enemy: Node2D) -> void:
+	if _anim_sprite and _anim_sprite.sprite_frames and _anim_sprite.sprite_frames.has_animation("attack"):
+		_anim_sprite.visible = true
+		_anim_sprite.play("attack")
+	_deal_skill2_damage(enemy, config.attack_damage if config else 25, 9.0, 0.16)
+
+func _skill2_hit_feedback(shake_strength: float, shake_duration: float) -> void:
+	var cam = get_node_or_null("SmoothCamera")
+	if cam and cam.has_method("shake"):
+		cam.shake(shake_strength, shake_duration)
+	_start_skill2_hitstop(0.045)
+
+func _start_skill2_hitstop(duration: float) -> void:
+	if Engine.time_scale < 0.99:
+		return
+	Engine.time_scale = 0.08
+	get_tree().create_timer(duration, true, false, true).timeout.connect(_end_skill2_hitstop)
+
+func _end_skill2_hitstop() -> void:
+	if Engine.time_scale < 0.99:
+		Engine.time_scale = 1.0
+
+func _face_skill2_target(enemy: Node2D) -> void:
+	if not is_instance_valid(enemy):
+		return
+	is_facing_right = enemy.global_position.x >= global_position.x
+	scale.x = 1
+	if _anim_sprite:
+		_anim_sprite.flip_h = not is_facing_right
+
+func _find_skill2_attacker(knockback_dir: Vector2) -> Node2D:
+	var best: Node2D = null
+	var best_score := INF
+	for enemy in GameManager.get_enemies():
+		if not is_instance_valid(enemy):
+			continue
+		var to_enemy := enemy.global_position - global_position
+		var dist := to_enemy.length()
+		var score := dist
+		if knockback_dir != Vector2.ZERO and signf(to_enemy.x) == -signf(knockback_dir.x):
+			score *= 0.45
+		if score < best_score:
+			best_score = score
+			best = enemy
+	return best
+
+func _find_nearest_enemy() -> Node2D:
+	var best: Node2D = null
+	var best_dist := INF
+	for enemy in GameManager.get_enemies():
+		if not is_instance_valid(enemy):
+			continue
+		var dist := global_position.distance_to(enemy.global_position)
+		if dist < best_dist:
+			best_dist = dist
+			best = enemy
+	return best
 
 func _start_dash_windup() -> void:
 	_dash_windup = true
@@ -267,7 +636,10 @@ func _do_lightning_dash() -> void:
 func _end_lightning_dash() -> void:
 	_is_lightning_dash = false
 	# 恢复无敌状态
-	if not _was_invincible:
+	if _skill2_sequence_active:
+		is_invincible = true
+		_is_super_armor = true
+	elif not _was_invincible:
 		is_invincible = false
 		_restore_visibility()
 	# 终点再检测一次路径敌人
@@ -406,19 +778,23 @@ func _spawn_arc_effect(attack_dir: Vector2, facing_dir: float) -> void:
 # ---- 覆盖：突进期间不更新动画 ----
 
 func _update_animation() -> void:
-	if _is_lightning_dash or _dash_windup or _skill_charging:
+	if _is_lightning_dash or _dash_windup or _skill_charging or _skill2_charging or _skill2_sequence_active:
 		return  # 突进/蓄力有自己的动画控制
 	super._update_animation()
 
 func _handle_attack_state(delta: float) -> void:
-	if _is_lightning_dash or _dash_windup or _skill_charging:
+	if _is_lightning_dash or _dash_windup or _skill_charging or _skill2_charging or _skill2_sequence_active:
 		return  # 突进/蓄力有自己的速度控制
 	super._handle_attack_state(delta)
 
 # ---- 覆盖：突进/蓄力中不接受其他操作 ----
 
 func _on_game_action(action: StringName, _event: InputEvent) -> void:
-	if _is_lightning_dash or _dash_windup or _skill_charging:
+	if _skill2_charging:
+		if action == &"player_attack":
+			_do_skill2_manual_stab()
+		return
+	if _is_lightning_dash or _dash_windup or _skill_charging or _skill2_sequence_active:
 		return
 	super._on_game_action(action, _event)
 
@@ -429,8 +805,12 @@ func _on_die() -> void:
 	_is_lightning_dash = false
 	_dash_windup = false
 	_skill_charging = false
+	_skill2_charging = false
+	_skill2_sequence_active = false
 	_skill_charge_time = 0.0
+	_skill2_timer = 0.0
 	_attack_hold_time = 0.0
+	_clear_skill2_pose()
 	if _anim_sprite:
 		_anim_sprite.modulate = Color.WHITE
 		_anim_sprite.position = Vector2.ZERO

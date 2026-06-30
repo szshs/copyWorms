@@ -14,6 +14,7 @@ class_name Player_Warrior_Lingnan
 var _is_charging: bool = false
 var _charging_skill_2: bool = false
 var _charge_time: float = 0.0
+var _skill2_cooldown_timer: float = 0.0
 const LINGNAN_SKILL_CD := 5.0  # 岭南技能CD
 const CHARGE_THRESHOLD_SHORT := 0.2    # 短按判定
 const CHARGE_THRESHOLD_BIG := 0.6     # 强蓄力视觉阈值
@@ -60,7 +61,7 @@ const BAGUA_SHOCK_MIN_RANGE: float = 120.0
 const BAGUA_SHOCK_MAX_RANGE: float = 360.0
 const BAGUA_PUSH_MIN_FORCE: float = 420.0
 const BAGUA_PUSH_MAX_FORCE: float = 980.0
-const BAGUA_HUADAN_STUN_TIME: float = 2.0
+const BAGUA_HUADAN_STUN_TIME: float = 3.0
 const BAGUA_SHIELD_MAX_HP: int = 15
 var _bagua_shield_hp: int = 0
 var _bagua_fx: Node2D = null
@@ -86,6 +87,8 @@ func _on_physics_process(delta: float) -> void:
 	super._on_physics_process(delta)
 
 	# 突进CD递减
+	if _skill2_cooldown_timer > 0:
+		_skill2_cooldown_timer -= delta
 	if _dash_attack_cd_timer > 0:
 		_dash_attack_cd_timer -= delta
 
@@ -144,10 +147,9 @@ func _on_physics_process(delta: float) -> void:
 		if abs(input_dir.x) > 0.1:
 			is_facing_right = input_dir.x > 0
 		# 一技能蓄力超阈值后进入霸体；二技能靠释放后的护盾承担防护
+		_update_skill_charge_sfx(clampf(_charge_time / max_charge_time, 0.0, 1.0))
 		if not _charging_skill_2 and _charge_time >= CHARGE_THRESHOLD_BIG:
-		_update_skill_charge_sfx(_charge_time / CHARGE_MAX_TIME)
 		# 蓄力超阈值后进入霸体
-		if _charge_time >= CHARGE_THRESHOLD_BIG:
 			_is_super_armor = true
 		# 冻结 attack 动画在第3帧
 		if _anim_sprite and _anim_sprite.animation == "attack":
@@ -170,7 +172,8 @@ func _on_physics_process(delta: float) -> void:
 			_anim_sprite.modulate = _anim_sprite.modulate.lerp(Color.WHITE, delta * 10)
 
 		# 蓄力期间吸附周围敌人
-		_suck_enemies(delta)
+		if not _charging_skill_2:
+			_suck_enemies(delta)
 
 		# 超过最大蓄力时间自动释放
 		if _charge_time >= max_charge_time:
@@ -216,7 +219,7 @@ func _on_skill() -> void:
 	_start_skill_charge(false)
 
 func perform_skill_2() -> void:
-	if _skill_cooldown_timer > 0 or is_attacking or is_dashing:
+	if _skill2_cooldown_timer > 0 or is_attacking or is_dashing:
 		return
 	_start_skill_charge(true)
 
@@ -257,18 +260,20 @@ func _release_skill() -> void:
 		_anim_sprite.scale = Vector2.ONE
 		_anim_sprite.modulate = Color.WHITE
 		_anim_sprite.position = Vector2.ZERO  # 恢复震动偏移
-	# 释放时才开始技能CD
-	_skill_cooldown_timer = LINGNAN_SKILL_CD
 	if was_skill_2:
+		_skill2_cooldown_timer = LINGNAN_SKILL_CD
 		_do_bagua_shockwave(charge_ratio)
 		_activate_bagua_shield()
 	elif _charge_time < CHARGE_THRESHOLD_SHORT:
+		_skill_cooldown_timer = LINGNAN_SKILL_CD
 		# 短按 → 小回旋斩
 		_do_spin_slash(false)
 	elif _charge_time < CHARGE_THRESHOLD_BIG:
+		_skill_cooldown_timer = LINGNAN_SKILL_CD
 		# 短蓄力 → 小回旋斩
 		_do_spin_slash(false)
 	else:
+		_skill_cooldown_timer = LINGNAN_SKILL_CD
 		# 长蓄力 → 大回旋斩
 		_do_spin_slash(true)
 
@@ -313,6 +318,9 @@ func _push_enemy_from_bagua(enemy: Node2D, push_force: float, dist: float, shock
 		enemy.global_position += push_dir * final_force * 0.04
 
 func _stun_huadan(enemy: Node2D) -> void:
+	if enemy.has_method("apply_lingnan_bagua_stun"):
+		enemy.call("apply_lingnan_bagua_stun", BAGUA_HUADAN_STUN_TIME)
+		return
 	if "stun_timer" in enemy:
 		enemy.set("stun_timer", maxf(float(enemy.get("stun_timer")), BAGUA_HUADAN_STUN_TIME))
 	if enemy.has_method("_cancel_attack"):

@@ -25,6 +25,11 @@ var _skill_ready_glow: ColorRect = null      # 就绪时边框高亮
 var _skill_icon_suppressed: bool = false     # 关卡可禁用技能图标显示（如叙事关卡）
 const SKILL_ICON_SIZE: float = 64.0
 const SKILL_ICON_PATH: String = "res://Assets/UI/skill_icon.png"  # 后续替换图片用
+var _skill2_icon_container: Control = null
+var _skill2_cooldown_overlay: ColorRect = null
+var _skill2_key_label: Label = null
+var _skill2_cd_label: Label = null
+var _skill2_ready_glow: ColorRect = null
 
 # ---- 蓄力攻击冷却UI ----
 var _dash_icon_container: Control = null     # 蓄力攻击图标容器
@@ -163,6 +168,8 @@ func _build_ui() -> void:
 
 	# === 右下角：技能冷却图标 ===
 	_build_skill_icon()
+	# === 右下角：技能2冷却图标 ===
+	_build_skill2_icon()
 	# === 右下角：蓄力攻击冷却图标 ===
 	_build_dash_icon()
 
@@ -170,7 +177,7 @@ func _build_ui() -> void:
 func _build_skill_icon() -> void:
 	_skill_icon_container = Control.new()
 	_skill_icon_container.name = "SkillIcon"
-	_skill_icon_container.position = Vector2(1200, 620)
+	_skill_icon_container.position = Vector2(1130, 620)
 	_skill_icon_container.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
 	_skill_icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_skill_icon_container)
@@ -257,6 +264,78 @@ func _build_skill_icon() -> void:
 	_skill_icon_container.add_child(_skill_key_label)
 	_update_skill_key_hint()
 
+func _build_skill2_icon() -> void:
+	_skill2_icon_container = Control.new()
+	_skill2_icon_container.name = "Skill2Icon"
+	_skill2_icon_container.position = Vector2(1200, 620)
+	_skill2_icon_container.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	_skill2_icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_skill2_icon_container)
+
+	_skill2_ready_glow = ColorRect.new()
+	_skill2_ready_glow.name = "ReadyGlow"
+	_skill2_ready_glow.color = Color(0.2, 0.65, 1.0, 0.0)
+	_skill2_ready_glow.size = Vector2(SKILL_ICON_SIZE + 6, SKILL_ICON_SIZE + 6)
+	_skill2_ready_glow.position = Vector2(-3, -3)
+	_skill2_ready_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill2_icon_container.add_child(_skill2_ready_glow)
+
+	var bg = ColorRect.new()
+	bg.name = "Bg"
+	bg.color = Color(0.12, 0.12, 0.18, 0.85)
+	bg.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill2_icon_container.add_child(bg)
+
+	var placeholder = Label.new()
+	placeholder.name = "Placeholder"
+	placeholder.text = "技2"
+	placeholder.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	placeholder.add_theme_font_size_override("font_size", 16)
+	placeholder.add_theme_color_override("font_color", Color(0.75, 0.9, 1.0))
+	placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill2_icon_container.add_child(placeholder)
+
+	_skill2_cooldown_overlay = ColorRect.new()
+	_skill2_cooldown_overlay.name = "CdOverlay"
+	_skill2_cooldown_overlay.color = Color(0, 0, 0, 0.7)
+	_skill2_cooldown_overlay.size = Vector2(SKILL_ICON_SIZE, 0)
+	_skill2_cooldown_overlay.position = Vector2(0, 0)
+	_skill2_cooldown_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill2_icon_container.add_child(_skill2_cooldown_overlay)
+
+	_skill2_cd_label = Label.new()
+	_skill2_cd_label.name = "CdLabel"
+	_skill2_cd_label.text = ""
+	_skill2_cd_label.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
+	_skill2_cd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_skill2_cd_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_skill2_cd_label.add_theme_font_size_override("font_size", 36)
+	_skill2_cd_label.add_theme_color_override("font_color", Color.WHITE)
+	_skill2_cd_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_skill2_cd_label.add_theme_constant_override("shadow_offset_x", 1)
+	_skill2_cd_label.add_theme_constant_override("shadow_offset_y", 1)
+	_skill2_cd_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill2_icon_container.add_child(_skill2_cd_label)
+
+	_skill2_key_label = Label.new()
+	_skill2_key_label.name = "KeyHint"
+	_skill2_key_label.text = ""
+	_skill2_key_label.size = Vector2(SKILL_ICON_SIZE, 20)
+	_skill2_key_label.position = Vector2(0, SKILL_ICON_SIZE - 18)
+	_skill2_key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_skill2_key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_skill2_key_label.add_theme_font_size_override("font_size", 16)
+	_skill2_key_label.add_theme_color_override("font_color", Color(1, 0.9, 0.3))
+	_skill2_key_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_skill2_key_label.add_theme_constant_override("shadow_offset_x", 1)
+	_skill2_key_label.add_theme_constant_override("shadow_offset_y", 1)
+	_skill2_key_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skill2_icon_container.add_child(_skill2_key_label)
+	_update_skill2_key_hint()
+
 ## 从 InputMap 读取动作绑定的按键并返回显示文本
 func _get_action_key_label(action: StringName) -> String:
 	var events: Array[InputEvent] = InputMap.action_get_events(action)
@@ -283,7 +362,7 @@ func _apply_key_hint_label_layout(label: Label, text: String, anchor_width: floa
 func _build_dash_icon() -> void:
 	_dash_icon_container = Control.new()
 	_dash_icon_container.name = "DashIcon"
-	_dash_icon_container.position = Vector2(1130, 620)
+	_dash_icon_container.position = Vector2(1060, 620)
 	_dash_icon_container.size = Vector2(SKILL_ICON_SIZE, SKILL_ICON_SIZE)
 	_dash_icon_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_dash_icon_container)
@@ -357,8 +436,10 @@ func _build_dash_icon() -> void:
 
 func _process(_delta: float) -> void:
 	_update_skill_cooldown()
+	_update_skill2_cooldown()
 	_update_dash_cooldown()
 	_update_skill_key_hint()
+	_update_skill2_key_hint()
 	_update_dash_key_hint()
 
 ## 每帧更新技能冷却UI
@@ -401,6 +482,39 @@ func _update_skill_cooldown() -> void:
 		var t = Time.get_ticks_msec() * 0.004
 		_skill_ready_glow.color.a = 0.15 + 0.2 * abs(sin(t))
 
+func _update_skill2_cooldown() -> void:
+	if not _skill2_icon_container: return
+	_update_skill2_key_hint()
+	if _skill_icon_suppressed:
+		_skill2_icon_container.visible = false
+		return
+	var p = GameManager.player_ref
+	if not p or not is_instance_valid(p):
+		_skill2_icon_container.visible = false
+		return
+	if not ("_skill2_cooldown_timer" in p):
+		_skill2_icon_container.visible = false
+		return
+	_skill2_icon_container.visible = true
+
+	var cd_remaining: float = p.get("_skill2_cooldown_timer")
+	var cd_max: float = 3.0
+	if "CYBER_SKILL2_CD" in p:
+		cd_max = p.get("CYBER_SKILL2_CD")
+	elif "LINGNAN_SKILL_CD" in p:
+		cd_max = p.get("LINGNAN_SKILL_CD")
+
+	if cd_remaining > 0.01:
+		var ratio = clampf(cd_remaining / cd_max, 0.0, 1.0)
+		_skill2_cooldown_overlay.size.y = SKILL_ICON_SIZE * ratio
+		_skill2_cd_label.text = "%.1f" % cd_remaining
+		_skill2_ready_glow.color.a = 0.0
+	else:
+		_skill2_cooldown_overlay.size.y = 0
+		_skill2_cd_label.text = ""
+		var t = Time.get_ticks_msec() * 0.004
+		_skill2_ready_glow.color.a = 0.15 + 0.2 * abs(sin(t))
+
 ## 每帧更新蓄力攻击冷却UI
 func _update_dash_cooldown() -> void:
 	if not _dash_icon_container: return
@@ -441,6 +555,14 @@ func _update_skill_key_hint() -> void:
 	if _skill_key_label.text == text:
 		return
 	_apply_key_hint_label_layout(_skill_key_label, text, SKILL_ICON_SIZE)
+
+func _update_skill2_key_hint() -> void:
+	if not _skill2_key_label:
+		return
+	var text := _format_key_hint_label(_get_action_key_label(&"player_skill_2"))
+	if _skill2_key_label.text == text:
+		return
+	_apply_key_hint_label_layout(_skill2_key_label, text, SKILL_ICON_SIZE)
 
 func _update_dash_key_hint() -> void:
 	if not _dash_key_label:

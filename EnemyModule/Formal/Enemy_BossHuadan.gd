@@ -109,6 +109,16 @@ var _minion_scenes: Array[PackedScene] = []
 var _spawned_minions: Array[Node2D] = []  # 已召唤的小怪（Boss死亡时清除）
 var _minion_reward_given: bool = false    # 是否已发放全灭小怪奖励
 
+# ---- 韧性 / 眩晕 ----
+const MAX_TOUGHNESS: float = 360.0
+const POISE_BREAK_STUN_TIME: float = 6.0
+const LINGNAN_BAGUA_STUN_TIME: float = 3.0
+const LINGNAN_STUN_IMMUNE_TIME: float = 15.0
+var toughness: float = MAX_TOUGHNESS
+var max_toughness: float = MAX_TOUGHNESS
+var _poise_broken: bool = false
+var _pending_poise_stun_on_land: bool = false
+var _lingnan_stun_immune_timer: float = 0.0
 
 func _on_ready() -> void:
 	super._on_ready()
@@ -125,6 +135,13 @@ func _on_ready() -> void:
 			_sprite.sprite_frames = _build_sprite_frames()
 		_sprite.offset = Vector2(0, 10)
 		_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
+		if _sprite.sprite_frames:
+			if _sprite.sprite_frames.has_animation("dizziness"):
+				_sprite.sprite_frames.set_animation_loop("dizziness", true)
+				_sprite.sprite_frames.set_animation_speed("dizziness", 6.0)
+			if _sprite.sprite_frames.has_animation("defeated"):
+				_sprite.sprite_frames.set_animation_loop("defeated", false)
+				_sprite.sprite_frames.set_animation_speed("defeated", 6.0)
 		_sprite.play("idle")
 	_melee_hitbox = get_node_or_null("MeleeHitbox")
 	if _melee_hitbox:
@@ -160,6 +177,8 @@ func _build_sprite_frames() -> SpriteFrames:
 	_add_sliced_anim(sf, "walk", "res://Assets/Sprites/boss_huadan/boss行走.png", 4, 3, 128, 128, 10.0, true)
 	_add_sliced_anim(sf, "attack", "res://Assets/Sprites/boss_huadan/boss攻击.png", 4, 4, 256, 256, 12.0, false)
 	_add_single_anim(sf, "hang_in_air", "res://Assets/Sprites/boss_huadan/boss悬空.png", 1.0, true)
+	_add_sliced_anim(sf, "dizziness", "res://Assets/Sprites/boss_huadan/boss眩晕.png", 4, 3, 256, 256, 6.0, true)
+	_add_sliced_anim(sf, "defeated", "res://Assets/Sprites/boss_huadan/boss眩晕.png", 4, 3, 256, 256, 6.0, false)
 	return sf
 
 ## 添加单帧动画（用于 hang_in_air 等单图资源）
@@ -207,6 +226,9 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 	if _phase3_buff_active:
 		damage = max(1, int(round(damage * PHASE3_DEFENSE_MULT)))
 	super.take_damage(damage, knockback_dir)
+	if is_dead:
+		return
+	_apply_toughness_damage(float(damage))
 	# Phase 1 可打断，Phase 2+ 霸体
 	if not is_dead and _current_phase <= 1 and (_current_action == BossAction.MELEE or _current_action == BossAction.RANGED):
 		_cancel_attack()
@@ -215,6 +237,39 @@ func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 		_tempo_damage_accum += damage
 		if _tempo_damage_accum >= TEMPO_DAMAGE_THRESHOLD:
 			_enter_kite_mode()
+
+func _apply_toughness_damage(amount: float) -> void:
+	if _poise_broken:
+		return
+	toughness = maxf(0.0, toughness - amount)
+	if toughness <= 0.0:
+		_poise_broken = true
+		_pending_poise_stun_on_land = true
+		_cancel_attack()
+		if is_on_floor():
+			_enter_huadan_stun(POISE_BREAK_STUN_TIME)
+
+func apply_lingnan_bagua_stun(duration: float = LINGNAN_BAGUA_STUN_TIME) -> bool:
+	if is_dead or _lingnan_stun_immune_timer > 0:
+		return false
+	_enter_huadan_stun(duration)
+	_lingnan_stun_immune_timer = LINGNAN_STUN_IMMUNE_TIME
+	return true
+
+func _enter_huadan_stun(duration: float) -> void:
+	_cancel_attack()
+	_is_hovering = false
+	_hover_rising = false
+	_is_jumping = false
+	_pending_poise_stun_on_land = false
+	_current_action = BossAction.IDLE
+	_action_lock = 0.0
+	stun_timer = maxf(stun_timer, duration)
+	velocity.x = 0.0
+	if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation("dizziness"):
+		_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
+		_sprite.offset = Vector2(0, 10)
+		_sprite.play("dizziness")
 
 func _cancel_attack() -> void:
 	_current_action = BossAction.IDLE
@@ -334,12 +389,18 @@ func _physics_process(delta: float) -> void:
 	_update_timers(delta)
 	_update_low_hp_blink(delta)
 	_update_target()
+	if _lingnan_stun_immune_timer > 0:
+		_lingnan_stun_immune_timer = maxf(0.0, _lingnan_stun_immune_timer - delta)
+	if _pending_poise_stun_on_land and is_on_floor():
+		_enter_huadan_stun(POISE_BREAK_STUN_TIME)
 
 	# STAGGER：受击硬直期间停止一切行为
 	if stun_timer > 0:
 		velocity.x = move_toward(velocity.x, 0, 500 * delta)
 		var grav = config.gravity if config else 600.0
 		velocity.y += grav * delta
+		if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation("dizziness") and _sprite.animation != "dizziness":
+			_sprite.play("dizziness")
 		move_and_slide()
 		return
 
@@ -1009,6 +1070,12 @@ func _update_facing() -> void:
 
 func _update_anim() -> void:
 	if not _sprite or not _sprite.sprite_frames: return
+	if stun_timer > 0:
+		if _sprite.sprite_frames.has_animation("dizziness") and _sprite.animation != "dizziness":
+			_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
+			_sprite.offset = Vector2(0, 10)
+			_sprite.play("dizziness")
+		return
 	var anim = "idle"
 	match _current_action:
 		BossAction.IDLE:     anim = "idle"
@@ -1029,6 +1096,33 @@ func _update_anim() -> void:
 	if _sprite.animation != anim or (anim == "attack" and not _sprite.is_playing() and _melee_active):
 		_sprite.frame = 0
 		_sprite.play(anim)
+
+func die() -> void:
+	if is_dead:
+		return
+	is_dead = true
+	_change_state(GlobalDefine.EnemyState.DEAD)
+	GameManager.unregister_enemy(self)
+	set_physics_process(false)
+	_activate_melee_hitbox(false)
+	_on_die()
+	EventBus.emit(GlobalDefine.EventName.ENEMY_DIED, {
+		"enemy": self,
+		"exp_reward": config.exp_reward if config else 10
+	})
+	if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation("defeated"):
+		modulate = Color.WHITE
+		_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
+		_sprite.offset = Vector2(0, 10)
+		_sprite.play("defeated")
+		var frames := _sprite.sprite_frames.get_frame_count("defeated")
+		var speed := maxf(_sprite.sprite_frames.get_animation_speed("defeated"), 1.0)
+		var wait_time := maxf(float(frames) / speed, 0.5)
+		get_tree().create_timer(wait_time).timeout.connect(queue_free)
+	else:
+		var tween = create_tween()
+		tween.tween_property(self, "modulate", Color(1, 1, 1, 0), 0.3)
+		tween.tween_callback(queue_free)
 
 
 # ============================================================

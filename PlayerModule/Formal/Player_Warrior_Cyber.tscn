@@ -630,4 +630,4 @@ script = ExtResource("cam_script")
 
 [node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1920920761]
 sprite_frames = SubResource("SpriteFrames_cyber")
-animation = &"defeated"
+animation = &"idle"

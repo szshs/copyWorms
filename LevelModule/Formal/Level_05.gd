@@ -47,6 +47,8 @@ var _all_interactives: Array[InteractiveObject] = []
 var _boss_bar_container: Control = null
 var _boss_bar_fill: ColorRect = null
 var _boss_bar_label: Label = null
+var _boss_toughness_fill: ColorRect = null
+var _boss_toughness_label: Label = null
 const BOSS_BAR_MAX_WIDTH: float = 400.0
 
 # ---- 对话框 ----
@@ -1324,7 +1326,7 @@ func _create_boss_bar() -> void:
 	_boss_bar_container = Control.new()
 	_boss_bar_container.name = "BossBarContainer"
 	_boss_bar_container.position = Vector2(440, 20)
-	_boss_bar_container.size = Vector2(BOSS_BAR_MAX_WIDTH, 28)
+	_boss_bar_container.size = Vector2(BOSS_BAR_MAX_WIDTH, 46)
 	_boss_bar_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_boss_bar_container.z_index = 150
 	_boss_bar_container.visible = false
@@ -1352,6 +1354,34 @@ func _create_boss_bar() -> void:
 	_boss_bar_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_boss_bar_container.add_child(_boss_bar_label)
 
+	var toughness_bg = ColorRect.new()
+	toughness_bg.position = Vector2(0, 32)
+	toughness_bg.size = Vector2(BOSS_BAR_MAX_WIDTH, 10)
+	toughness_bg.color = Color(0.05, 0.08, 0.12, 0.9)
+	toughness_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_bar_container.add_child(toughness_bg)
+
+	_boss_toughness_fill = ColorRect.new()
+	_boss_toughness_fill.position = Vector2(0, 32)
+	_boss_toughness_fill.size = Vector2(BOSS_BAR_MAX_WIDTH, 10)
+	_boss_toughness_fill.color = Color(0.35, 0.75, 1.0, 0.95)
+	_boss_toughness_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_bar_container.add_child(_boss_toughness_fill)
+
+	_boss_toughness_label = Label.new()
+	_boss_toughness_label.position = Vector2(0, 28)
+	_boss_toughness_label.size = Vector2(BOSS_BAR_MAX_WIDTH, 18)
+	_boss_toughness_label.text = "韧性"
+	_boss_toughness_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_toughness_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_boss_toughness_label.add_theme_font_size_override("font_size", 12)
+	_boss_toughness_label.add_theme_color_override("font_color", Color(0.8, 0.95, 1.0))
+	_boss_toughness_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_boss_toughness_label.add_theme_constant_override("shadow_offset_x", 1)
+	_boss_toughness_label.add_theme_constant_override("shadow_offset_y", 1)
+	_boss_toughness_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_bar_container.add_child(_boss_toughness_label)
+
 func _update_boss_bar() -> void:
 	if not _boss_bar_container or not _boss_bar_container.visible: return
 	if not _boss_instance or not is_instance_valid(_boss_instance): return
@@ -1360,6 +1390,17 @@ func _update_boss_bar() -> void:
 	var ratio = clampf(float(hp) / float(max_hp), 0.0, 1.0)
 	_boss_bar_fill.size.x = BOSS_BAR_MAX_WIDTH * ratio
 	_boss_bar_label.text = "花旦  %d / %d" % [hp, max_hp]
+	if _boss_toughness_fill and "toughness" in _boss_instance and "max_toughness" in _boss_instance:
+		var toughness = float(_boss_instance.get("toughness"))
+		var max_toughness = maxf(float(_boss_instance.get("max_toughness")), 1.0)
+		var toughness_ratio = clampf(toughness / max_toughness, 0.0, 1.0)
+		_boss_toughness_fill.size.x = BOSS_BAR_MAX_WIDTH * toughness_ratio
+		if toughness_ratio <= 0.01:
+			_boss_toughness_fill.color = Color(0.15, 0.35, 0.55, 0.7)
+			_boss_toughness_label.text = "破韧"
+		else:
+			_boss_toughness_fill.color = Color(0.35, 0.75, 1.0, 0.95)
+			_boss_toughness_label.text = "韧性"
 	# 狂暴变色
 	if ratio < 0.3:
 		_boss_bar_fill.color = Color(0.95, 0.2, 0.1, 0.95)
