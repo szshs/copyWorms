@@ -259,13 +259,25 @@ func _build_skill_icon() -> void:
 
 ## 从 InputMap 读取动作绑定的按键并返回显示文本
 func _get_action_key_label(action: StringName) -> String:
-	var events = InputMap.action_get_events(action)
-	for e in events:
-		if e is InputEventKey:
-			return OS.get_keycode_string(e.keycode)
-		if e is InputEventMouseButton:
-			return "M%d" % e.button_index
-	return "?"
+	var events: Array[InputEvent] = InputMap.action_get_events(action)
+	if events.is_empty():
+		return "?"
+	return KeybindManager.get_event_display_text(events[0])
+
+func _format_key_hint_label(text: String) -> String:
+	return "[%s]" % text
+
+func _apply_key_hint_label_layout(label: Label, text: String, anchor_width: float) -> void:
+	label.text = text
+	var font_size := 16
+	if text.length() > 5:
+		font_size = 13
+	if text.length() > 8:
+		font_size = 11
+	label.add_theme_font_size_override("font_size", font_size)
+	var min_width := maxf(anchor_width, float(text.length()) * float(font_size) * 0.62)
+	label.size = Vector2(min_width, 20)
+	label.position = Vector2((anchor_width - label.size.x) * 0.5, anchor_width - 18)
 
 ## 构建蓄力攻击冷却图标（右下角，技能图标左侧）
 func _build_dash_icon() -> void:
@@ -332,7 +344,7 @@ func _build_dash_icon() -> void:
 	# 按键提示（攻击键）
 	_dash_key_label = Label.new()
 	_dash_key_label.name = "KeyHint"
-	_dash_key_label.text = "[%s]" % _get_action_key_label(&"player_attack")
+	_dash_key_label.text = _format_key_hint_label(_get_action_key_label(&"player_attack"))
 	_dash_key_label.size = Vector2(40, 18)
 	_dash_key_label.position = Vector2(-2, SKILL_ICON_SIZE - 16)
 	_dash_key_label.add_theme_font_size_override("font_size", 16)
@@ -346,11 +358,8 @@ func _build_dash_icon() -> void:
 func _process(_delta: float) -> void:
 	_update_skill_cooldown()
 	_update_dash_cooldown()
-	# 动态更新按键提示（跟随玩家自定义按键）
-	if _skill_key_label:
-		_skill_key_label.text = "[%s]" % _get_action_key_label(&"player_skill")
-	if _dash_key_label:
-		_dash_key_label.text = "[%s]" % _get_action_key_label(&"player_attack")
+	_update_skill_key_hint()
+	_update_dash_key_hint()
 
 ## 每帧更新技能冷却UI
 func _update_skill_cooldown() -> void:
@@ -428,24 +437,21 @@ func _update_dash_cooldown() -> void:
 func _update_skill_key_hint() -> void:
 	if not _skill_key_label:
 		return
-	var text := "[%s]" % _get_first_action_event_display(&"player_skill")
+	var text := _format_key_hint_label(_get_action_key_label(&"player_skill"))
 	if _skill_key_label.text == text:
 		return
-	_skill_key_label.text = text
-	var font_size := 16
-	if text.length() > 5:
-		font_size = 13
-	if text.length() > 8:
-		font_size = 11
-	_skill_key_label.add_theme_font_size_override("font_size", font_size)
-	_skill_key_label.size = Vector2(maxf(SKILL_ICON_SIZE, float(text.length() * font_size) * 0.58), 20)
-	_skill_key_label.position = Vector2((SKILL_ICON_SIZE - _skill_key_label.size.x) * 0.5, SKILL_ICON_SIZE - 18)
+	_apply_key_hint_label_layout(_skill_key_label, text, SKILL_ICON_SIZE)
+
+func _update_dash_key_hint() -> void:
+	if not _dash_key_label:
+		return
+	var text := _format_key_hint_label(_get_action_key_label(&"player_attack"))
+	if _dash_key_label.text == text:
+		return
+	_apply_key_hint_label_layout(_dash_key_label, text, SKILL_ICON_SIZE)
 
 func _get_first_action_event_display(action: StringName) -> String:
-	var events: Array[InputEvent] = InputMap.action_get_events(action)
-	if events.is_empty():
-		return "?"
-	return KeybindManager.get_event_display_text(events[0])
+	return _get_action_key_label(action)
 
 func _connect_events() -> void:
 	EventBus.subscribe(GlobalDefine.EventName.HEALTH_CHANGED, self, "_on_health_changed")
@@ -487,6 +493,10 @@ func _on_game_resume(_data: Dictionary = {}) -> void:
 	pause_panel.hide()
 
 func _on_game_over(_data: Dictionary = {}) -> void:
+	if _is_fuzhan_memory_level():
+		GameManager.is_game_over = false
+		game_over_panel.hide()
+		return
 	_refresh_panel_buttons()
 	game_over_panel.show()
 
@@ -558,6 +568,10 @@ func _is_code_rain_pause_scene() -> bool:
 	if not scene:
 		return false
 	return scene is Level_03 or scene is Level_04 or scene is Level_05
+
+func _is_fuzhan_memory_level() -> bool:
+	var level = GameManager.current_level
+	return level is LevelFuzhanMemoryBase
 
 func _refresh_panel_buttons() -> void:
 	for button in _panel_buttons:

@@ -288,7 +288,7 @@ func _add_header() -> void:
 	var title := Label.new()
 	title.name = "ArchiveTitle"
 	title.text = "岭南梦物志"
-	title.position = Vector2(116, 106)
+	title.position = Vector2(116, 116)
 	title.size = Vector2(420, 48)
 	title.add_theme_font_size_override("font_size", 36)
 	title.add_theme_color_override("font_color", COLOR_TEXT_DARK)
@@ -437,7 +437,7 @@ func _add_close_button() -> void:
 	var btn := Button.new()
 	btn.name = "CloseButton"
 	btn.text = "退出图鉴"
-	btn.position = Vector2(936, 88)
+	btn.position = Vector2(936, 108)
 	btn.size = Vector2(142, 46)
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.add_theme_stylebox_override("normal", _make_lingnan_button_style("normal"))

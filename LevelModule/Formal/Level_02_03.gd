@@ -97,6 +97,12 @@ var _config_feedback_labels: Array = []
 var _config_buttons: Array = []
 var _recompile_button: Button = null
 var _drop_archive_screen: LingnanDropArchiveScreen = null
+var _drop_archive_button: Button = null
+var _drop_archive_style_normal: StyleBoxFlat = null
+var _drop_archive_style_hover: StyleBoxFlat = null
+var _drop_archive_style_pressed: StyleBoxFlat = null
+var _highlight_drop_archive_on_ide_open: bool = false
+var _drop_archive_highlight_tween: Tween = null
 var _runtime_ide_speakers: Array[String] = []
 var _runtime_ide_texts: Array[String] = []
 var _memory_last_return_reason: String = ""
@@ -485,9 +491,6 @@ func _trigger_fall_reset() -> void:
 	_fall_reset_running = true
 	fall_count += 1
 	print("[Level_02_03] 坠崖重置 #%d" % fall_count)
-	# 首次坠崖：切换 BGM 从 2test2 → lv3
-	if fall_count == 1:
-		MusicManager.fade_to("res://Assets/Music/lv3.ogg", 1.0)
 	InputManager.block_input("坠落重置", self)
 	_freeze_player(true)
 
@@ -751,6 +754,11 @@ func _load_reality_room() -> void:
 		_narrative_panel.set_meta("dialog_visual_style", "default")
 
 	_apply_reality_space_settings()
+	_play_reality_room_bgm()
+
+
+func _play_reality_room_bgm() -> void:
+	MusicManager.fade_to(LevelFuzhanSub01.NIGHTFALL_BGM_PATH, 1.0)
 
 
 func _setup_reality_after_memory_return() -> void:
@@ -767,6 +775,7 @@ func _setup_reality_after_memory_return() -> void:
 		_reality_computer_node.set_active(true)
 	if _reality_bed_node:
 		_reality_bed_node.set_active(false)
+	_highlight_drop_archive_on_ide_open = true
 
 
 func _find_interactive_in_node(root: Node, target_name: String) -> InteractiveObject:
@@ -942,6 +951,9 @@ func _enter_ide_chat() -> void:
 	_memory_last_return_reason = ""
 	if _ide_ui:
 		_ide_ui.show()
+	if _highlight_drop_archive_on_ide_open:
+		_highlight_drop_archive_on_ide_open = false
+		call_deferred("_start_drop_archive_button_highlight")
 	current_chat_index = 0
 	_pending_chat_text = ""
 	_prefilled_chat_text = ""
@@ -1085,6 +1097,7 @@ func _start_memory_recovery_area(area: int) -> void:
 	await get_tree().create_timer(0.45).timeout
 	if _ide_ui:
 		_ide_ui.hide()
+	_stop_drop_archive_button_highlight()
 	get_viewport().gui_release_focus()
 
 	if _blackout_overlay:
@@ -1257,6 +1270,7 @@ func _run_recompile_sequence() -> void:
 		_recompile_panel.hide()
 	if _ide_ui:
 		_ide_ui.hide()
+	_stop_drop_archive_button_highlight()
 	get_viewport().gui_release_focus()
 	_freeze_player(false)
 	InputManager.unblock_input("IDE对话")
@@ -1649,7 +1663,7 @@ func _build_all_ui() -> void:
 
 	var archive_button = Button.new()
 	archive_button.name = "DropArchiveButton"
-	archive_button.text = "> open/drop_archive"
+	archive_button.text = "> 岭南梦物志 · 童年回忆"
 	archive_button.position = Vector2(16, 236)
 	archive_button.size = Vector2(188, 30)
 	archive_button.focus_mode = Control.FOCUS_NONE
@@ -1678,6 +1692,10 @@ func _build_all_ui() -> void:
 	archive_button.add_theme_stylebox_override("pressed", archive_pressed)
 	archive_button.pressed.connect(_open_lingnan_drop_archive)
 	sidebar.add_child(archive_button)
+	_drop_archive_button = archive_button
+	_drop_archive_style_normal = archive_normal
+	_drop_archive_style_hover = archive_hover
+	_drop_archive_style_pressed = archive_pressed
 
 	# 边栏 — 分隔线
 	var sep2 = ColorRect.new()
@@ -1806,10 +1824,67 @@ func _build_all_ui() -> void:
 func _open_lingnan_drop_archive() -> void:
 	if _drop_archive_screen and is_instance_valid(_drop_archive_screen):
 		return
+	_stop_drop_archive_button_highlight()
 	_drop_archive_screen = LingnanDropArchiveScreen.show_archive(self)
 	_drop_archive_screen.closed.connect(func() -> void:
 		_drop_archive_screen = null
 	)
+
+
+func _start_drop_archive_button_highlight() -> void:
+	if not _drop_archive_button or not is_instance_valid(_drop_archive_button):
+		return
+	if not _ide_ui or not _ide_ui.visible:
+		return
+	_stop_drop_archive_button_highlight()
+	var pulse_normal := _drop_archive_style_normal.duplicate() as StyleBoxFlat
+	var pulse_hover := _drop_archive_style_hover.duplicate() as StyleBoxFlat
+	_drop_archive_button.add_theme_stylebox_override("normal", pulse_normal)
+	_drop_archive_button.add_theme_stylebox_override("hover", pulse_hover)
+	_drop_archive_button.add_theme_stylebox_override("pressed", _drop_archive_style_pressed)
+	_drop_archive_button.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45))
+	_drop_archive_highlight_tween = _drop_archive_button.create_tween().set_loops()
+	_drop_archive_highlight_tween.tween_method(
+		func(intensity: float) -> void:
+			if not is_instance_valid(pulse_normal):
+				return
+			pulse_normal.border_color = Color(1.0, 0.85, 0.2, 0.45 + intensity * 0.55)
+			pulse_normal.bg_color = Color(0.1, 0.12, 0.08, 0.92).lerp(Color(0.18, 0.16, 0.06, 1.0), intensity)
+			if is_instance_valid(pulse_hover):
+				pulse_hover.border_color = Color(1.0, 0.9, 0.35, 0.55 + intensity * 0.45)
+				pulse_hover.bg_color = pulse_normal.bg_color.lerp(Color(0.14, 0.18, 0.1, 1.0), intensity * 0.5),
+		0.0,
+		1.0,
+		0.55
+	).set_trans(Tween.TRANS_SINE)
+	_drop_archive_highlight_tween.tween_method(
+		func(intensity: float) -> void:
+			if not is_instance_valid(pulse_normal):
+				return
+			pulse_normal.border_color = Color(1.0, 0.85, 0.2, 0.45 + intensity * 0.55)
+			pulse_normal.bg_color = Color(0.1, 0.12, 0.08, 0.92).lerp(Color(0.18, 0.16, 0.06, 1.0), intensity)
+			if is_instance_valid(pulse_hover):
+				pulse_hover.border_color = Color(1.0, 0.9, 0.35, 0.55 + intensity * 0.45)
+				pulse_hover.bg_color = pulse_normal.bg_color.lerp(Color(0.14, 0.18, 0.1, 1.0), intensity * 0.5),
+		1.0,
+		0.0,
+		0.55
+	).set_trans(Tween.TRANS_SINE)
+
+
+func _stop_drop_archive_button_highlight() -> void:
+	if _drop_archive_highlight_tween and is_instance_valid(_drop_archive_highlight_tween):
+		_drop_archive_highlight_tween.kill()
+	_drop_archive_highlight_tween = null
+	if not _drop_archive_button or not is_instance_valid(_drop_archive_button):
+		return
+	if _drop_archive_style_normal:
+		_drop_archive_button.add_theme_stylebox_override("normal", _drop_archive_style_normal)
+	if _drop_archive_style_hover:
+		_drop_archive_button.add_theme_stylebox_override("hover", _drop_archive_style_hover)
+	if _drop_archive_style_pressed:
+		_drop_archive_button.add_theme_stylebox_override("pressed", _drop_archive_style_pressed)
+	_drop_archive_button.add_theme_color_override("font_color", Color(0.35, 0.9, 1.0))
 
 
 # ============================================================

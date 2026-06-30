@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cykaogn1dhr5n"
+path="res://.godot/imported/Energy Accumulate.mp3-8355bd1a365c4c1138424e5febc31348.mp3str"
+
+[deps]
+
+source_file="res://Assets/Sound/Energy Accumulate.mp3"
+dest_files=["res://.godot/imported/Energy Accumulate.mp3-8355bd1a365c4c1138424e5febc31348.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

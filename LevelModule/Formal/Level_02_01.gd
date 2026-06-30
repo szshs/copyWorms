@@ -11,7 +11,7 @@ class_name Level_02_01
 @export var exit_trigger_position: Vector2 = Vector2(4336, 460)
 @export var exit_trigger_size: Vector2 = Vector2(120, 360)
 
-const CAMERA_LIMIT_TOP: int = 0
+const CAMERA_LIMIT_TOP: int = 56
 const CAMERA_LIMIT_BOTTOM: int = 616
 const CAMERA_ZOOM: Vector2 = Vector2(1.5, 1.5)
 const CAMERA_LERP_SPEED: float = 2.5

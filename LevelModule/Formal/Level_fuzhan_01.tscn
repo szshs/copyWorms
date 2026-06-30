@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b7y7krjdo8kx3"]
 
-[ext_resource type="Script" path="res://LevelModule/Formal/Level_fuzhan_01.gd" id="1_fuzhan"]
+[ext_resource type="Script" uid="uid://blb7ed45jyyv3" path="res://LevelModule/Formal/Level_fuzhan_01.gd" id="1_fuzhan"]
 [ext_resource type="PackedScene" path="res://LevelModule/Scenes/PixelworkMapStitch/Level 2/2D__2026-06-14T09-34-36-404Z_20260616_150503_986.tscn" id="2_map"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_attic_floor"]
@@ -12,45 +12,62 @@ size = Vector2(38, 1032)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_street_ground"]
 size = Vector2(4904, 40)
 
-[node name="Level_fuzhan_01" type="Node2D" unique_id=838993303]
+[node name="Level_fuzhan_01" type="Node2D"]
 script = ExtResource("1_fuzhan")
+area_index = 1
+camera_limit_left = 0
+camera_limit_right = 5328
+camera_limit_top = -500
+camera_limit_bottom = 640
+camera_zoom = Vector2(1, 1)
+camera_lerp_speed = 2.5
+enemy_spawn_y = 540.0
+enemy_spawn_x_range = Vector2(260, 5100)
+drop_spawn_y = 560.0
+drop_spawn_x_range = Vector2(200, 5200)
+use_override_spawn_position = true
+override_spawn_position = Vector2(2264, 544)
+max_alive_enemies = 4
+enemy_spawn_interval = 3.0
 
-[node name="DreamWorldRoot" type="Node2D" parent="." unique_id=800650625]
+[node name="DreamWorldRoot" type="Node2D" parent="."]
 
-[node name="CollisionBodies" type="Node2D" parent="DreamWorldRoot" unique_id=302510507]
+[node name="CollisionBodies" type="Node2D" parent="DreamWorldRoot"]
 
-[node name="MainAtticFloor" type="StaticBody2D" parent="DreamWorldRoot/CollisionBodies" unique_id=668115575]
+[node name="MainAtticFloor" type="StaticBody2D" parent="DreamWorldRoot/CollisionBodies"]
 position = Vector2(212, 620)
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/MainAtticFloor" unique_id=196320683]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/MainAtticFloor"]
 shape = SubResource("RectangleShape2D_attic_floor")
 
-[node name="AtticLeftWall" type="StaticBody2D" parent="DreamWorldRoot/CollisionBodies" unique_id=1825517972]
+[node name="AtticLeftWall" type="StaticBody2D" parent="DreamWorldRoot/CollisionBodies"]
 position = Vector2(-10, 360)
 collision_mask = 0
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/AtticLeftWall" unique_id=1821842956]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/AtticLeftWall"]
 position = Vector2(2, -232)
 shape = SubResource("RectangleShape2D_attic_left_wall")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/AtticLeftWall" unique_id=12000715]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/AtticLeftWall"]
 position = Vector2(5338, -232)
 shape = SubResource("RectangleShape2D_attic_left_wall")
 
-[node name="StreetGround" type="StaticBody2D" parent="DreamWorldRoot/CollisionBodies" unique_id=941844803]
+[node name="StreetGround" type="StaticBody2D" parent="DreamWorldRoot/CollisionBodies"]
 position = Vector2(2876, 620)
 collision_mask = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/StreetGround" unique_id=1396998003]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DreamWorldRoot/CollisionBodies/StreetGround"]
 shape = SubResource("RectangleShape2D_street_ground")
 
-[node name="SpawnPoints" type="Node2D" parent="." unique_id=1230219533]
+[node name="SpawnPoints" type="Node2D" parent="."]
 
-[node name="AtticSpawn" type="Marker2D" parent="SpawnPoints" unique_id=1021604997]
+[node name="AtticSpawn" type="Marker2D" parent="SpawnPoints"]
 position = Vector2(140, 550)
 
-[node name="2D__2026-06-14T09-34-36-404Z_20260616_150503_986" parent="." unique_id=1838992939 instance=ExtResource("2_map")]
+[node name="DynamicActors" type="Node2D" parent="."]
+
+[node name="2D__2026-06-14T09-34-36-404Z_20260616_150503_986" parent="." instance=ExtResource("2_map")]
 process_priority = 1000
 position = Vector2(0, -408.00003)
 scale = Vector2(0.1844249, 0.1844249)
