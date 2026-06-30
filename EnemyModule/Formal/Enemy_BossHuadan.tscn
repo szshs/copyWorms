@@ -1,10 +1,11 @@
 [gd_scene format=3 uid="uid://sqxjmoflc0bw"]
 
+[ext_resource type="Texture2D" uid="uid://bqcsogw40d8s5" path="res://Assets/Sprites/boss_huadan/boss眩晕.png" id="3_wsjyj"]
 [ext_resource type="Script" uid="uid://c50y2d31q8cb6" path="res://EnemyModule/Formal/Enemy_BossHuadan.gd" id="scr"]
 [ext_resource type="Texture2D" uid="uid://cut01rfjxrchu" path="res://Assets/Sprites/boss_huadan/boss攻击.png" id="tex_attack"]
+[ext_resource type="Texture2D" uid="uid://c6pbl5k1ta5h2" path="res://Assets/Sprites/boss_huadan/boss悬空.png" id="tex_hover"]
 [ext_resource type="Texture2D" uid="uid://gmd1ma47j5w6" path="res://Assets/Sprites/boss_huadan/boss待机.png" id="tex_idle"]
 [ext_resource type="Texture2D" uid="uid://bjj4tgqjhhly7" path="res://Assets/Sprites/boss_huadan/boss行走.png" id="tex_walk"]
-[ext_resource type="Texture2D" path="res://Assets/Sprites/boss_huadan/boss悬空.png" id="tex_hover"]
 
 [sub_resource type="AtlasTexture" id="attack_0"]
 atlas = ExtResource("tex_attack")
@@ -69,6 +70,58 @@ region = Rect2(512, 768, 256, 256)
 [sub_resource type="AtlasTexture" id="attack_15"]
 atlas = ExtResource("tex_attack")
 region = Rect2(768, 768, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_34ata"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(0, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ey3j3"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(256, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ernhc"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(512, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5ygbv"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(768, 0, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yyqoj"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(0, 256, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v4p5s"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(256, 256, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q2gb8"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(512, 256, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mbwky"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(768, 256, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sirne"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(0, 512, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p1o2h"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(256, 512, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_upldm"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(512, 512, 256, 256)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7tv00"]
+atlas = ExtResource("3_wsjyj")
+region = Rect2(768, 512, 256, 256)
+
+[sub_resource type="AtlasTexture" id="hover_0"]
+atlas = ExtResource("tex_hover")
+region = Rect2(0, 0, 1024, 1024)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_60g1g"]
 atlas = ExtResource("tex_idle")
@@ -154,10 +207,6 @@ region = Rect2(128, 256, 128, 128)
 atlas = ExtResource("tex_walk")
 region = Rect2(256, 256, 128, 128)
 
-[sub_resource type="AtlasTexture" id="hover_0"]
-atlas = ExtResource("tex_hover")
-region = Rect2(0, 0, 1024, 1024)
-
 [sub_resource type="SpriteFrames" id="sprite_frames"]
 animations = [{
 "frames": [{
@@ -215,6 +264,55 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": SubResource("AtlasTexture_34ata")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ey3j3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ernhc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5ygbv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yyqoj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_v4p5s")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_q2gb8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mbwky")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sirne")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_p1o2h")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_upldm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7tv00")
+}],
+"loop": true,
+"name": &"dizziness",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("hover_0")
+}],
+"loop": true,
+"name": &"hang_in_air",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": SubResource("AtlasTexture_60g1g")
 }, {
 "duration": 1.0,
@@ -253,14 +351,6 @@ animations = [{
 "loop": true,
 "name": &"idle",
 "speed": 6.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("hover_0")
-}],
-"loop": true,
-"name": &"hang_in_air",
-"speed": 1.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -304,7 +394,7 @@ script = ExtResource("scr")
 [node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=1766081876]
 scale = Vector2(1.2, 1.2)
 sprite_frames = SubResource("sprite_frames")
-animation = &"attack"
+animation = &"dizziness"
 
 [node name="MeleeHitbox" type="Area2D" parent="." unique_id=206889178]
 collision_layer = 0
