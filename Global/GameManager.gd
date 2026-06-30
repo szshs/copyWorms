@@ -58,7 +58,12 @@ func _apply_font_to_theme_variants(theme: Theme, font: FontFile) -> void:
 
 ## 自动检测运行模式
 func _detect_run_mode() -> void:
-	var current_scene = get_tree().current_scene
+	var tree = get_tree()
+	if tree == null:
+		run_mode = GlobalDefine.RunMode.FORMAL
+		return
+
+	var current_scene: Node = tree.current_scene
 	if current_scene == null:
 		run_mode = GlobalDefine.RunMode.FORMAL
 		return

@@ -33,6 +33,7 @@ var has_double_jumped: bool = false
 var is_jump_held: bool = false
 var jump_hold_time: float = 0.0
 var max_jump_hold_time: float = 0.25
+const JUMP_INVINCIBLE_TIME: float = 0.18
 
 # 冷却计时器
 var attack_cooldown_timer: float = 0.0
@@ -188,6 +189,8 @@ func _on_game_action(action: StringName, _event: InputEvent) -> void:
 			if can_dash: perform_dash()
 		&"player_skill":
 			if can_skill: perform_skill()
+		&"player_skill_2":
+			if can_skill: perform_skill_2()
 		# ui_accept 不在此处理，由 Level_01 订阅
 		&"ui_accept":
 			pass
@@ -490,11 +493,16 @@ func _handle_dead(delta: float) -> void:
 
 # ---- 动作 ----
 
+func _grant_short_invincibility(duration: float) -> void:
+	is_invincible = true
+	invincible_timer = maxf(invincible_timer, duration)
+
 func _perform_jump() -> void:
 	velocity.y = (config.jump_velocity if config else -650.0) * 1.15
 	is_jump_held = true
 	jump_hold_time = 0.0
 	_air_time = AIR_THRESHOLD + 0.01
+	_grant_short_invincibility(JUMP_INVINCIBLE_TIME)
 	_change_state(GlobalDefine.PlayerState.JUMP)
 
 func _perform_double_jump() -> void:
@@ -538,6 +546,9 @@ func perform_skill() -> void:
 	if is_attacking or is_dashing:
 		return
 	_on_skill()
+
+func perform_skill_2() -> void:
+	perform_skill()
 
 func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
 	if is_invincible or current_state == GlobalDefine.PlayerState.DEAD:

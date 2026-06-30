@@ -5,9 +5,9 @@ var _hit_pending: bool = false
 
 # ---- 长按普攻：闪电突进（原技能突进逻辑，独立CD不影响普攻） ----
 var _attack_hold_time: float = 0.0
-const ATTACK_HOLD_THRESHOLD := 0.25   # 长按阈值
+const ATTACK_HOLD_THRESHOLD := 0.18   # 长按阈值（略微减少）
 var _dash_cd_timer: float = 0.0        # 突进独立CD（不影响普攻）
-const DASH_CD := 4.0                   # 突进CD（原CYBER_SKILL_CD）
+const DASH_CD := 3.0                   # 突进CD（略微减少）
 const DASH_WINDUP_TIME := 0.2          # 突进前摇蓄力时长
 var _dash_windup: bool = false         # 突进蓄力中
 var _dash_windup_timer: float = 0.0    # 蓄力计时
@@ -84,6 +84,10 @@ func _on_physics_process(delta: float) -> void:
 	# 技能蓄力检测：按住 I 键蓄力，松开按蓄力时长决定子弹数
 	if _skill_charging:
 		_skill_charge_time += delta
+		# 蓄力期间允许转向（以输入方向为准）
+		var input_dir = _get_input_direction()
+		if abs(input_dir.x) > 0.1:
+			is_facing_right = input_dir.x > 0
 		# 蓄力视觉：角色微闪烁，强度随蓄力时间增强
 		if _anim_sprite:
 			var intensity = clampf(_skill_charge_time / SKILL_CHARGE_TIER2, 0.0, 1.0)
@@ -120,6 +124,10 @@ func _on_physics_process(delta: float) -> void:
 	# 突进蓄力帧逻辑：最少蓄力 DASH_WINDUP_TIME，之后由玩家松开普攻键释放
 	if _dash_windup:
 		_dash_windup_timer -= delta
+		# 蓄力期间允许转向（以输入方向为准）
+		var input_dir = _get_input_direction()
+		if abs(input_dir.x) > 0.1:
+			is_facing_right = input_dir.x > 0
 		# 蓄力视觉：角色微闪烁（随蓄力时长增强）
 		if _anim_sprite:
 			var charge_ratio = clampf(1.0 - _dash_windup_timer / DASH_WINDUP_TIME, 0.0, 1.0)

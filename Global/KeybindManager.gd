@@ -12,6 +12,7 @@ const REBINDABLE_ACTIONS: Dictionary = {
 	&"player_attack": "攻击",
 	&"player_dash": "闪避",
 	&"player_skill": "技能",
+	&"player_skill_2": "技能2",
 	&"player_jump": "跳跃",
 	&"ui_left": "左移",
 	&"ui_right": "右移",

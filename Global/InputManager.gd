@@ -5,7 +5,7 @@
 #
 # 职责:
 #   1. 全局快捷键(ESC暂停) — 独占处理, 不受 pause 影响
-#   2. 游戏操作信号分发(attack/dash/skill/accept) — 通过 game_action 信号
+#   2. 游戏操作信号分发(attack/dash/skill/skill2/accept) — 通过 game_action 信号
 #   3. 输入屏蔽 — 暂停/对话/叙事时自动阻断所有游戏操作
 #   4. 使用 _input + CanvasLayer GUI 检测 — 鼠标在 HUD 按钮上时不触发游戏操作
 #
@@ -24,7 +24,7 @@
 extends Node
 
 ## 游戏操作输入信号（仅未屏蔽 + 未暂停 + 无 UI 焦点时发射）
-## 订阅者: PlayerBase(attack/dash/skill), Level_01(ui_accept)
+## 订阅者: PlayerBase(attack/dash/skill/skill2), Level_01(ui_accept)
 signal game_action(action: StringName, event: InputEvent)
 
 ## 输入屏蔽标志
@@ -186,6 +186,7 @@ func _identify_game_action(event: InputEvent) -> StringName:
 	if event.is_action_pressed("player_attack"):   return &"player_attack"
 	if event.is_action_pressed("player_dash"):     return &"player_dash"
 	if event.is_action_pressed("player_skill"):    return &"player_skill"
+	if event.is_action_pressed("player_skill_2"):  return &"player_skill_2"
 	if event.is_action_pressed("ui_accept"):       return &"ui_accept"
 	return &""
 

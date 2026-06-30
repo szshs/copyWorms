@@ -186,6 +186,8 @@ flowchart LR
 - 游戏结束广播
 - 检查点重启入口
 
+运行模式检测需要容忍启动和切场过程中的空树状态：当 `SceneTree` 或 `current_scene` 还不可用时，`GameManager` 默认回到 `FORMAL`，避免 Autoload 初始化早于主场景挂载时出现空实例访问。
+
 ### 4.3 `InputManager`
 
 输入层已经不再依赖各关卡自己散落监听，而是集中处理：
@@ -204,6 +206,8 @@ flowchart LR
 - 提供整树场景切换
 - 提供检查点重启
 - 通过 `is_transitioning` 避免重复切换
+
+转场清理采用防御式写法：先取 `tree = get_tree()` 并判空，再访问 `tree.current_scene`。涉及 `current_scene` 的局部变量显式标注为 `Node`，避免 GDScript 无法从 `current_scene` 推断类型。即使没有 `SceneTree`，清理流程仍会重置 `GameManager`、`InputManager` 和音频暂停状态，只跳过需要场景树的暂停、焦点和场景替换 API。
 
 ## 5. 关卡系统
 
@@ -304,6 +308,8 @@ flowchart LR
 - 受击
 - 死亡
 
+普通起跳会复用现有 `is_invincible` / `invincible_timer` 机制获得 `0.18s` 短无敌帧。该无敌帧通过 `maxf(invincible_timer, duration)` 叠加，不会缩短冲刺、受击等路径已经授予的更长无敌时间。
+
 相机不再由关卡手动创建，而是作为 `SmoothCamera` 直接挂在玩家预制体里。这样做的好处是：
 
 - 切换角色时相机跟随关系稳定
@@ -387,7 +393,9 @@ Boss 段的玩家采用双角色独立血量策略：
 
 ### 8.3 侵蚀值系统
 
-侵蚀值会随时间增长，击杀敌人可降低。侵蚀值达到上限后触发游戏结束。对话期间会暂停增长。
+侵蚀值会随时间增长，击杀敌人可降低。侵蚀值达到上限后触发游戏结束。对话期间、进入 `bg5` 后，以及花旦 Boss 死亡后都会暂停自然增长。
+
+花旦死亡时，`Level_05` 通过 `_erosion_growth_locked` 锁住后续自然增长；这只影响 `EROSION_RATE` 驱动的自动增加，不改变侵蚀条显示、击杀敌人降低侵蚀值、Boss 死亡后的灯笼和终局转场流程。
 
 ### 8.4 Boss 区域与 bg5 区域
 
@@ -549,6 +557,10 @@ Boss 段的玩家采用双角色独立血量策略：
 - `MCPGameInspector`
 
 这层集成不参与游戏运行逻辑，但对调试、截图、输入模拟、场景检查很重要。
+
+本地开发环境已安装 Godot Engine 4.7 CLI，可使用 `godot_console` 执行命令行解析和启动检查。项目配置仍声明 `Godot 4.6` 与 `GL Compatibility`，因此用 4.7 CLI 验证时需要把它视为兼容性检查，而不是严格等同于目标引擎版本。
+
+当前命令行检查可以启动到标题页，但会报告 `project.godot` 中 3 个 Godot MCP Autoload 对应脚本缺失；这是编辑器协作插件文件缺失问题，不是主游戏链路脚本解析失败。若要让 CLI 日志完全干净，需要恢复 `addons/godot_mcp/` 下的服务脚本，或在无 MCP 的环境中移除这 3 个 Autoload 引用。
 
 ## 16. 部署与导出现状
 

@@ -554,7 +554,12 @@ func _stop_pause_code_rain(immediate: bool = false) -> void:
 func _is_code_rain_pause_scene() -> bool:
 	if not GameUIStyle.is_cyber_theme():
 		return false
-	var scene = get_tree().current_scene
+	if not is_inside_tree():
+		return false
+	var tree = get_tree()
+	if tree == null:
+		return false
+	var scene: Node = tree.current_scene
 	if not scene:
 		return false
 	return scene is Level_03 or scene is Level_04 or scene is Level_05

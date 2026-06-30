@@ -4,26 +4,28 @@
 #
 # 操作设计:
 #   长按普攻 → 突进攻击（独立CD，CD中不影响正常普攻）
-#   技能短按 (<0.2s) → 小回旋斩：半径80px，1段伤害
-#   技能长按 (>0.6s) → 大回旋斩：半径130px，2段伤害，蓄力超0.6s后霸体
+#   技能长按蓄力 → 松开时释放八卦冲击：蓄力越久范围越大，弹开小怪，命中花旦眩晕
+#   技能释放后 → 获得 15 点八卦护盾，护盾存在时显示等身八卦阵
 # ============================================================
 extends Player_Warrior
 class_name Player_Warrior_Lingnan
 
 # ---- 蓄力技能状态 ----
 var _is_charging: bool = false
+var _charging_skill_2: bool = false
 var _charge_time: float = 0.0
 const LINGNAN_SKILL_CD := 5.0  # 岭南技能CD
 const CHARGE_THRESHOLD_SHORT := 0.2    # 短按判定
-const CHARGE_THRESHOLD_BIG := 0.6     # 大回旋斩蓄力阈值
-const CHARGE_MAX_TIME := 1.1          # 超过此时间自动释放大回旋斩 (0.6 + 0.5)
+const CHARGE_THRESHOLD_BIG := 0.6     # 强蓄力视觉阈值
+const CHARGE_MAX_TIME := 1.1          # 一技能回旋斩最大蓄力时间
+const BAGUA_CHARGE_MAX_TIME := 3.5    # 二技能八卦冲击最大蓄力时间
 const CHARGE_FREEZE_FRAME := 2        # 蓄力期间冻结在 attack 第几帧 (0-indexed)
 
 # ---- 长按普攻：突进攻击（独立CD不影响普攻） ----
 var _attack_hold_time: float = 0.0
-const ATTACK_HOLD_THRESHOLD := 0.25   # 长按阈值
+const ATTACK_HOLD_THRESHOLD := 0.18   # 长按阈值（略微减少）
 var _dash_attack_cd_timer: float = 0.0 # 突进独立CD
-const DASH_ATTACK_CD := 5.0           # 突进CD（原LINGNAN_SKILL_CD）
+const DASH_ATTACK_CD := 3.5           # 突进CD（略微减少）
 const DASH_WINDUP_TIME := 0.2         # 突进前摇蓄力时长
 var _dash_windup: bool = false        # 突进蓄力中
 var _dash_windup_timer: float = 0.0   # 蓄力计时
@@ -50,8 +52,18 @@ var _spin_hit_enemies: Array = []     # 每段独立防重复
 
 # ---- 蓄力减伤 + 吸附 ----
 const CHARGE_DAMAGE_REDUCTION: float = 0.5   # 蓄力期间受伤减半
-const SUCK_RANGE: float = 500.0              # 吸附范围
-const SUCK_FORCE: float = 800.0              # 吸附力
+const SUCK_RANGE: float = 800.0              # 吸附范围（大幅增强）
+const SUCK_FORCE: float = 520.0              # 吸附力（持续牵引，避免长按时过猛）
+
+# ---- 八卦冲击 + 护盾 ----
+const BAGUA_SHOCK_MIN_RANGE: float = 120.0
+const BAGUA_SHOCK_MAX_RANGE: float = 360.0
+const BAGUA_PUSH_MIN_FORCE: float = 420.0
+const BAGUA_PUSH_MAX_FORCE: float = 980.0
+const BAGUA_HUADAN_STUN_TIME: float = 2.0
+const BAGUA_SHIELD_MAX_HP: int = 15
+var _bagua_shield_hp: int = 0
+var _bagua_fx: Node2D = null
 
 func _on_ready():
 	super._on_ready()
@@ -92,6 +104,10 @@ func _on_physics_process(delta: float) -> void:
 	# 突进蓄力帧逻辑：最少蓄力 DASH_WINDUP_TIME，之后由玩家松开普攻键释放
 	if _dash_windup:
 		_dash_windup_timer -= delta
+		# 蓄力期间允许转向（以输入方向为准）
+		var input_dir = _get_input_direction()
+		if abs(input_dir.x) > 0.1:
+			is_facing_right = input_dir.x > 0
 		# 蓄力视觉：震动效果（随蓄力时长增强）
 		if _anim_sprite:
 			var charge_ratio = clampf(1.0 - _dash_windup_timer / DASH_WINDUP_TIME, 0.0, 1.0)
@@ -122,8 +138,13 @@ func _on_physics_process(delta: float) -> void:
 	# 蓄力帧逻辑
 	if _is_charging:
 		_charge_time += delta
-		# 蓄力超阈值后进入霸体
-		if _charge_time >= CHARGE_THRESHOLD_BIG:
+		var max_charge_time := _get_active_charge_max_time()
+		# 蓄力期间允许转向（以输入方向为准）
+		var input_dir = _get_input_direction()
+		if abs(input_dir.x) > 0.1:
+			is_facing_right = input_dir.x > 0
+		# 一技能蓄力超阈值后进入霸体；二技能靠释放后的护盾承担防护
+		if not _charging_skill_2 and _charge_time >= CHARGE_THRESHOLD_BIG:
 			_is_super_armor = true
 		# 冻结 attack 动画在第3帧
 		if _anim_sprite and _anim_sprite.animation == "attack":
@@ -132,7 +153,7 @@ func _on_physics_process(delta: float) -> void:
 			_anim_sprite.pause()
 		# 蓄力视觉：震动效果，强度随时间增强
 		if _anim_sprite:
-			var intensity = clampf(_charge_time / CHARGE_MAX_TIME, 0.0, 1.0)
+			var intensity = clampf(_charge_time / max_charge_time, 0.0, 1.0)
 			var shake_amp = 1.0 + intensity * 4.0  # 1~5px
 			var shake_freq = 15.0 + intensity * 25.0  # 频率也加快
 			var shake_x = sin(_charge_time * shake_freq) * shake_amp
@@ -148,12 +169,13 @@ func _on_physics_process(delta: float) -> void:
 		# 蓄力期间吸附周围敌人
 		_suck_enemies(delta)
 
-		# 超过最大蓄力时间自动释放大回旋斩
-		if _charge_time >= CHARGE_MAX_TIME:
+		# 超过最大蓄力时间自动释放
+		if _charge_time >= max_charge_time:
+			_charge_time = max_charge_time
 			_release_skill()
 			return
 		# 检测松开：直接轮询 Input
-		if not Input.is_action_pressed("player_skill"):
+		if not _is_any_skill_action_pressed():
 			_release_skill()
 		return
 
@@ -188,6 +210,15 @@ func _on_physics_process(delta: float) -> void:
 # ---- 技能：开始蓄力 ----
 func _on_skill() -> void:
 	# 不调用 super，完全覆盖
+	_start_skill_charge(false)
+
+func perform_skill_2() -> void:
+	if _skill_cooldown_timer > 0 or is_attacking or is_dashing:
+		return
+	_start_skill_charge(true)
+
+func _start_skill_charge(is_skill_2: bool) -> void:
+	_charging_skill_2 = is_skill_2
 	_is_charging = true
 	_charge_time = 0.0
 	attack_cooldown_timer = 0.0  # 不占用普攻CD
@@ -202,18 +233,31 @@ func _on_skill() -> void:
 			_anim_sprite.frame = CHARGE_FREEZE_FRAME
 			_anim_sprite.pause()
 
+func _get_active_charge_max_time() -> float:
+	return BAGUA_CHARGE_MAX_TIME if _charging_skill_2 else CHARGE_MAX_TIME
+
+func _is_any_skill_action_pressed() -> bool:
+	if _charging_skill_2:
+		return Input.is_action_pressed("player_skill_2")
+	return Input.is_action_pressed("player_skill")
+
 # ---- 技能：松开释放 ----
 func _release_skill() -> void:
 	_is_charging = false
 	_is_super_armor = false
+	var was_skill_2 := _charging_skill_2
+	_charging_skill_2 = false
+	var charge_ratio := clampf(_charge_time / (BAGUA_CHARGE_MAX_TIME if was_skill_2 else CHARGE_MAX_TIME), 0.0, 1.0)
 	if _anim_sprite:
 		_anim_sprite.scale = Vector2.ONE
 		_anim_sprite.modulate = Color.WHITE
 		_anim_sprite.position = Vector2.ZERO  # 恢复震动偏移
 	# 释放时才开始技能CD
 	_skill_cooldown_timer = LINGNAN_SKILL_CD
-
-	if _charge_time < CHARGE_THRESHOLD_SHORT:
+	if was_skill_2:
+		_do_bagua_shockwave(charge_ratio)
+		_activate_bagua_shield()
+	elif _charge_time < CHARGE_THRESHOLD_SHORT:
 		# 短按 → 小回旋斩
 		_do_spin_slash(false)
 	elif _charge_time < CHARGE_THRESHOLD_BIG:
@@ -222,6 +266,151 @@ func _release_skill() -> void:
 	else:
 		# 长蓄力 → 大回旋斩
 		_do_spin_slash(true)
+
+# ---- 八卦冲击 ----
+
+func _do_bagua_shockwave(charge_ratio: float) -> void:
+	is_attacking = true
+	has_hit_this_attack = false
+	attack_timer = 0.35
+	_change_state(GlobalDefine.PlayerState.SKILL)
+
+	var shock_range := lerpf(BAGUA_SHOCK_MIN_RANGE, BAGUA_SHOCK_MAX_RANGE, charge_ratio)
+	var push_force := lerpf(BAGUA_PUSH_MIN_FORCE, BAGUA_PUSH_MAX_FORCE, charge_ratio)
+	for enemy in GameManager.get_enemies():
+		if not is_instance_valid(enemy):
+			continue
+		var dist := global_position.distance_to(enemy.global_position)
+		if dist > shock_range:
+			continue
+		if enemy is Enemy_BossHuadan or enemy.name.find("Huadan") >= 0:
+			_stun_huadan(enemy)
+			continue
+		_push_enemy_from_bagua(enemy, push_force, dist, shock_range)
+
+	_spawn_bagua_shockwave_effect(shock_range)
+	var cam = get_node_or_null("SmoothCamera")
+	if cam and cam.has_method("shake"):
+		cam.shake(4.0 + charge_ratio * 5.0, 0.16)
+
+func _push_enemy_from_bagua(enemy: Node2D, push_force: float, dist: float, shock_range: float) -> void:
+	var push_dir := (enemy.global_position - global_position).normalized()
+	if push_dir == Vector2.ZERO:
+		push_dir = Vector2(1.0 if is_facing_right else -1.0, -0.2).normalized()
+	var falloff := clampf(1.0 - dist / shock_range, 0.25, 1.0)
+	var final_force := push_force * falloff
+	if enemy is CharacterBody2D:
+		var body := enemy as CharacterBody2D
+		body.velocity = Vector2(push_dir.x * final_force, -final_force * 0.35)
+		if "stun_timer" in body:
+			body.set("stun_timer", maxf(float(body.get("stun_timer")), 0.35))
+	else:
+		enemy.global_position += push_dir * final_force * 0.04
+
+func _stun_huadan(enemy: Node2D) -> void:
+	if "stun_timer" in enemy:
+		enemy.set("stun_timer", maxf(float(enemy.get("stun_timer")), BAGUA_HUADAN_STUN_TIME))
+	if enemy.has_method("_cancel_attack"):
+		enemy.call("_cancel_attack")
+	if enemy is CharacterBody2D:
+		(enemy as CharacterBody2D).velocity = Vector2.ZERO
+
+func _spawn_bagua_shockwave_effect(shock_range: float) -> void:
+	var parent = get_parent()
+	if not parent:
+		return
+	var ring := Line2D.new()
+	ring.width = 4.0
+	ring.default_color = Color(1.0, 0.86, 0.36, 0.86)
+	ring.z_index = 20
+	ring.global_position = global_position
+	var segments := 72
+	for i in range(segments + 1):
+		var a := TAU * float(i) / float(segments)
+		ring.add_point(Vector2(cos(a), sin(a)) * shock_range)
+	parent.add_child(ring)
+	var tween = ring.create_tween()
+	tween.tween_property(ring, "scale", Vector2(1.08, 1.08), 0.22).set_trans(Tween.TRANS_SINE)
+	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.22)
+	tween.tween_callback(ring.queue_free)
+
+# ---- 八卦护盾 ----
+
+func _activate_bagua_shield() -> void:
+	_bagua_shield_hp = BAGUA_SHIELD_MAX_HP
+	_spawn_bagua_shield_fx()
+
+func _spawn_bagua_shield_fx() -> void:
+	if _bagua_fx and is_instance_valid(_bagua_fx):
+		_bagua_fx.queue_free()
+	_bagua_fx = Node2D.new()
+	_bagua_fx.name = "BaguaShieldFx"
+	_bagua_fx.z_index = 30
+	add_child(_bagua_fx)
+
+	var radius := maxf(_get_collision_size().x, _get_collision_size().y) * 0.58
+	_add_bagua_ring(_bagua_fx, radius, Color(1.0, 0.88, 0.42, 0.9), 2.5)
+	_add_bagua_ring(_bagua_fx, radius * 0.62, Color(0.2, 0.08, 0.03, 0.72), 1.8)
+	_add_bagua_cross(_bagua_fx, radius)
+	_add_bagua_trigrams(_bagua_fx, radius)
+
+	var pulse = _bagua_fx.create_tween()
+	pulse.set_loops()
+	pulse.tween_property(_bagua_fx, "scale", Vector2(1.08, 1.08), 0.45).set_trans(Tween.TRANS_SINE)
+	pulse.tween_property(_bagua_fx, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_SINE)
+
+func _add_bagua_ring(parent: Node2D, radius: float, color: Color, width: float) -> void:
+	var line := Line2D.new()
+	line.width = width
+	line.default_color = color
+	line.z_index = 1
+	var segments := 64
+	for i in range(segments + 1):
+		var a := TAU * float(i) / float(segments)
+		line.add_point(Vector2(cos(a), sin(a)) * radius)
+	parent.add_child(line)
+
+func _add_bagua_cross(parent: Node2D, radius: float) -> void:
+	for angle in [0.0, PI * 0.5]:
+		var line := Line2D.new()
+		line.width = 1.6
+		line.default_color = Color(1.0, 0.88, 0.42, 0.55)
+		line.add_point(Vector2.from_angle(angle) * -radius * 0.52)
+		line.add_point(Vector2.from_angle(angle) * radius * 0.52)
+		parent.add_child(line)
+
+func _add_bagua_trigrams(parent: Node2D, radius: float) -> void:
+	for i in range(8):
+		var angle := TAU * float(i) / 8.0
+		var center := Vector2.from_angle(angle) * radius * 0.82
+		var tangent := Vector2.from_angle(angle + PI * 0.5)
+		for j in range(3):
+			var line := Line2D.new()
+			line.width = 1.5
+			line.default_color = Color(1.0, 0.88, 0.42, 0.75)
+			var offset := Vector2.from_angle(angle) * float(j - 1) * 4.0
+			line.add_point(center - tangent * 5.5 + offset)
+			line.add_point(center + tangent * 5.5 + offset)
+			parent.add_child(line)
+
+func _flash_bagua_shield() -> void:
+	if not _bagua_fx or not is_instance_valid(_bagua_fx):
+		return
+	_bagua_fx.modulate = Color(1.6, 1.35, 0.75, 1.0)
+	var tween = _bagua_fx.create_tween()
+	tween.tween_property(_bagua_fx, "modulate", Color.WHITE, 0.16)
+
+func _break_bagua_shield() -> void:
+	_bagua_shield_hp = 0
+	if not _bagua_fx or not is_instance_valid(_bagua_fx):
+		_bagua_fx = null
+		return
+	var fx := _bagua_fx
+	_bagua_fx = null
+	var tween = fx.create_tween()
+	tween.tween_property(fx, "scale", Vector2(1.35, 1.35), 0.16).set_trans(Tween.TRANS_BACK)
+	tween.parallel().tween_property(fx, "modulate:a", 0.0, 0.16)
+	tween.tween_callback(fx.queue_free)
 
 # ---- 突进蓄力 ----
 
@@ -317,12 +506,12 @@ func _do_spin_slash(is_big: bool) -> void:
 		_spin_timer = 0.3
 		_spin_max_hits = 2
 		_spin_range = 160.0
-		_spin_damage = 15
+		_spin_damage = 25
 	else:
 		_spin_timer = 0.2
 		_spin_max_hits = 1
 		_spin_range = 100.0
-		_spin_damage = 20
+		_spin_damage = 30
 
 	attack_timer = _spin_timer + 0.05
 	_change_state(GlobalDefine.PlayerState.SKILL)
@@ -402,6 +591,15 @@ func _on_game_action(action: StringName, _event: InputEvent) -> void:
 # ---- 蓄力期间减伤 ----
 
 func take_damage(damage: int, knockback_dir: Vector2 = Vector2.ZERO) -> void:
+	if _bagua_shield_hp > 0:
+		var absorbed = mini(damage, _bagua_shield_hp)
+		_bagua_shield_hp -= absorbed
+		damage -= absorbed
+		_flash_bagua_shield()
+		if _bagua_shield_hp <= 0:
+			_break_bagua_shield()
+		if damage <= 0:
+			return
 	# 蓄力期间减伤50%
 	if _is_charging:
 		damage = max(1, int(round(damage * CHARGE_DAMAGE_REDUCTION)))
@@ -418,17 +616,30 @@ func _suck_enemies(delta: float) -> void:
 			var suck_dir = (global_position - enemy.global_position).normalized()
 			# 吸附力随距离衰减（越近吸力越小，避免抖动）
 			var strength = SUCK_FORCE * clampf(1.0 - dist / SUCK_RANGE, 0.2, 1.0)
-			enemy.velocity.x = move_toward(enemy.velocity.x, suck_dir.x * strength, strength * delta * 10.0)
-			enemy.velocity.y = move_toward(enemy.velocity.y, suck_dir.y * strength * 0.5, strength * delta * 5.0)
+			var pull_velocity = Vector2(suck_dir.x * strength, suck_dir.y * strength * 0.5)
+			var pull_motion = pull_velocity * delta
+			if enemy is CharacterBody2D:
+				var body := enemy as CharacterBody2D
+				body.velocity.x = move_toward(body.velocity.x, pull_velocity.x, strength * delta * 10.0)
+				body.velocity.y = move_toward(body.velocity.y, pull_velocity.y, strength * delta * 5.0)
+				# 敌人 AI 会在自己的物理帧重写 velocity；直接补一段位移，保证长按期间吸附持续生效。
+				body.move_and_collide(pull_motion)
+			else:
+				enemy.global_position += pull_motion
 
 # ---- 死亡时清理技能状态 ----
 func _on_die() -> void:
 	_is_charging = false
+	_charging_skill_2 = false
 	_is_dashing_attack = false
 	_is_spinning = false
 	_dash_windup = false
 	_attack_hold_time = 0.0
 	_is_super_armor = false
+	_bagua_shield_hp = 0
+	if _bagua_fx and is_instance_valid(_bagua_fx):
+		_bagua_fx.queue_free()
+	_bagua_fx = null
 	if _anim_sprite:
 		_anim_sprite.scale = Vector2.ONE
 		_anim_sprite.modulate = Color.WHITE

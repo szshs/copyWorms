@@ -66,6 +66,7 @@ var _erosion_bar_bg: ColorRect = null
 var _erosion_bar_fill: ColorRect = null
 var _erosion_label: Label = null
 var _code_rain_overlay: CodeRain = null
+var _erosion_growth_locked: bool = false
 const EROSION_MAX: float = 100.0
 const EROSION_RATE: float = 0.7
 const EROSION_KILL_REDUCE: float = 15.0
@@ -447,7 +448,7 @@ func _process(delta: float) -> void:
 	# 切换冷却递减
 	_layer_swap_cd = maxf(0.0, _layer_swap_cd - delta)
 	# 对话期间暂停侵蚀
-	if not _dialog_open and not _in_bg5:
+	if not _dialog_open and not _in_bg5 and not _erosion_growth_locked:
 		_modify_erosion(EROSION_RATE * delta)
 	_corruption = _erosion_value / 100.0
 
@@ -1179,6 +1180,7 @@ func _on_enemy_died(data: Dictionary) -> void:
 	if e == _boss_instance:
 		# 灯笼生成位置：X用Boss位置，Y在5000~5077之间随机（地面高度区间）
 		var death_pos: Vector2 = Vector2(e.global_position.x, randf_range(5000.0, 5077.0))
+		_erosion_growth_locked = true
 		_hide_boss_bar()
 		GameManager.boss_target = null
 		_boss_instance = null

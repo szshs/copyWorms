@@ -817,9 +817,16 @@ func _physics_process(delta: float) -> void:
 	_update_runtime_actors()
 
 func _refresh_runtime_actors() -> void:
-	var root := get_tree().current_scene
+	if not is_inside_tree():
+		return
+	var tree = get_tree()
+	if tree == null:
+		return
+	var root: Node = tree.current_scene
 	if root == null:
-		root = get_tree().root
+		root = tree.root
+	if root == null:
+		return
 	var detection_keys := _runtime_tile_window_keys()
 	_collect_actor_candidates(root, detection_keys)
 	_prune_runtime_actors(detection_keys)
