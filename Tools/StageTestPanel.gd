@@ -49,7 +49,7 @@ func _build_ui() -> void:
 		btn.text = _stages[i].get("name", "阶段%d" % i)
 		btn.position = Vector2(10, 50 + i * 50)
 		btn.size = Vector2(260, 40)
-		btn.add_theme_font_size_override("font_size", 20)
+		btn.add_theme_font_size_override("font_size", 16)
 		btn.focus_mode = Control.FOCUS_NONE
 		var action: Callable = _stages[i].get("action", Callable())
 		btn.pressed.connect(func():

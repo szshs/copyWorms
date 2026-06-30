@@ -39,15 +39,16 @@ func _ready() -> void:
 
 ## 全局字体：所有 UI 节点默认使用覆盖中文完整字形的像素字体
 func _apply_global_font() -> void:
-	var font := load("res://Assets/Fonts/像素Silver/像素Silver.ttf") as FontFile
+	const CJK_FONT_PATH := "res://Assets/Fonts/文泉驿点阵宋体/WenQuanYi Bitmap Song 16px.ttf"
+	var font := load(CJK_FONT_PATH) as FontFile
 	if font == null:
-		push_error("[GameManager] 像素Silver.ttf 加载失败")
+		push_error("[GameManager] 文泉驿点阵宋体 16px.ttf 加载失败")
 		return
 	# 设置项目默认主题字体，所有 Control 节点自动继承
 	var default_theme := ThemeDB.get_default_theme()
 	default_theme.set_default_font(font)
 	_apply_font_to_theme_variants(default_theme, font)
-	print("[GameManager] 全局字体已设为像素Silver")
+	print("[GameManager] 全局字体已设为文泉驿点阵宋体 16px")
 
 func _apply_font_to_theme_variants(theme: Theme, font: FontFile) -> void:
 	for theme_type in ["Label", "Button", "LineEdit", "TextEdit", "CodeEdit"]:

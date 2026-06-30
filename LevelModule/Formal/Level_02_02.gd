@@ -226,7 +226,7 @@ func _build_narrative_ui() -> void:
 		_narrative_text = RichTextLabel.new()
 		_narrative_text.name = "RichTextLabel"
 		_narrative_panel.add_child(_narrative_text)
-	GameUIStyle.apply_interaction_text_panel(_narrative_panel, _narrative_text, 27)
+	GameUIStyle.apply_interaction_text_panel(_narrative_panel, _narrative_text, 22)
 
 
 func _show_intro_narrative() -> void:

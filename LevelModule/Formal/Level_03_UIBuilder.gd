@@ -46,7 +46,7 @@ func _build_narrative_panel() -> void:
 	var label = RichTextLabel.new()
 	label.name = "RichTextLabel"
 	panel.add_child(label)
-	GameUIStyle.apply_interaction_text_panel(panel, label, 27)
+	GameUIStyle.apply_interaction_text_panel(panel, label, 22)
 	level._narrative_text = label
 
 	canvas.add_child(panel)
@@ -102,7 +102,7 @@ func _build_ending_prompt() -> void:
 	label.name = "EndingLabel"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 30)
+	label.add_theme_font_size_override("font_size", 26)
 	# 绿色终端文字
 	label.add_theme_color_override("font_color", Color(0, 1.0, 0.25, 0.95))
 	label.position = Vector2(240, 240)

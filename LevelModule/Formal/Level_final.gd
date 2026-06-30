@@ -196,4 +196,4 @@ func _create_dialog_panel() -> void:
 	cv.add_child(_dialog_panel)
 	_dialog_label = RichTextLabel.new()
 	_dialog_panel.add_child(_dialog_label)
-	GameUIStyle.apply_interaction_text_panel(_dialog_panel, _dialog_label, 27)
+	GameUIStyle.apply_interaction_text_panel(_dialog_panel, _dialog_label, 22)

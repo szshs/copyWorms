@@ -118,7 +118,7 @@ static func apply_pressed_button_panel(panel: Panel) -> void:
 	else:
 		panel.add_theme_stylebox_override("panel", make_panel_style(0.9))
 
-static func apply_interaction_text_panel(panel: Panel, text_label: RichTextLabel = null, font_size: int = 27) -> void:
+static func apply_interaction_text_panel(panel: Panel, text_label: RichTextLabel = null, font_size: int = 22) -> void:
 	panel.anchor_left = 0.0
 	panel.anchor_top = 0.0
 	panel.anchor_right = 0.0
@@ -150,7 +150,7 @@ static func _apply_interaction_text_panel_style(panel: Panel) -> void:
 	else:
 		panel.add_theme_stylebox_override("panel", make_panel_style(0.96))
 
-static func style_interaction_text_label(label: RichTextLabel, font_size: int = 27, panel: Panel = null) -> void:
+static func style_interaction_text_label(label: RichTextLabel, font_size: int = 22, panel: Panel = null) -> void:
 	label.anchor_left = 0.0
 	label.anchor_top = 0.0
 	label.anchor_right = 1.0
@@ -397,7 +397,7 @@ static func _is_interaction_page_break_char(c: String) -> bool:
 static func _is_interaction_page_leading_space(c: String) -> bool:
 	return c == "\n" or c == "\t" or c == " "
 
-static func apply_button(button: Button, font_size: int = 24) -> void:
+static func apply_button(button: Button, font_size: int = 16) -> void:
 	button.focus_mode = Control.FOCUS_NONE
 	var use_texture := _should_use_texture_for_size(button.size)
 	button.add_theme_stylebox_override("normal", _make_button_visual_style("normal", use_texture))
@@ -412,7 +412,7 @@ static func apply_button(button: Button, font_size: int = 24) -> void:
 	button.add_theme_constant_override("outline_size", 3)
 	button.add_theme_font_size_override("font_size", font_size)
 
-static func apply_code_button(button: Button, font_size: int = 24) -> void:
+static func apply_code_button(button: Button, font_size: int = 16) -> void:
 	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_stylebox_override("normal", make_button_style("normal"))
 	button.add_theme_stylebox_override("hover", make_button_style("hover"))
@@ -426,7 +426,7 @@ static func apply_code_button(button: Button, font_size: int = 24) -> void:
 	button.add_theme_constant_override("outline_size", 3)
 	button.add_theme_font_size_override("font_size", font_size)
 
-static func apply_texture_button(button: TextureButton, font_size: int = 24, force_simple: bool = false) -> void:
+static func apply_texture_button(button: TextureButton, font_size: int = 16, force_simple: bool = false) -> void:
 	button.texture_normal = null
 	button.texture_hover = null
 	button.texture_pressed = null
@@ -469,7 +469,7 @@ static func apply_texture_button(button: TextureButton, font_size: int = 24, for
 		_apply_texture_button_state(button, skin, "hover" if not button.disabled else "disabled")
 	)
 
-static func apply_lingnan_pressed_texture_button(button: TextureButton, font_size: int = 24) -> void:
+static func apply_lingnan_pressed_texture_button(button: TextureButton, font_size: int = 16) -> void:
 	button.texture_normal = null
 	button.texture_hover = null
 	button.texture_pressed = null
@@ -524,7 +524,7 @@ static func refresh_texture_button(button: TextureButton) -> void:
 	button.set_meta("use_button_texture", false if force_simple else _should_use_texture_for_size(button.size))
 	_apply_texture_button_state(button, skin, "disabled" if button.disabled else "normal")
 
-static func style_button_label(label: Label, font_size: int = 24) -> void:
+static func style_button_label(label: Label, font_size: int = 16) -> void:
 	label.anchor_left = 0.0
 	label.anchor_top = 0.0
 	label.anchor_right = 1.0
@@ -727,9 +727,9 @@ static func _make_lingnan_pressed_button_style() -> StyleBoxTexture:
 		"res://Assets/UI/Lingnan/lingnanbotton_pressed.png",
 		Vector4(
 			LINGNAN_BUTTON_TEXTURE_MARGIN_LEFT,
-			LINGNAN_BUTTON_TEXTURE_MARGIN_TOP,
+			24,
 			LINGNAN_BUTTON_TEXTURE_MARGIN_RIGHT,
-			LINGNAN_BUTTON_TEXTURE_MARGIN_BOTTOM
+			24
 		),
 		Vector4(18, 8, 18, 8)
 	)

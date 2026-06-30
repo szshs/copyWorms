@@ -357,7 +357,7 @@ func _show_combat_hint() -> void:
 		_get_first_action_event_display(&"player_skill"),
 	]
 	_combat_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_combat_hint_label.add_theme_font_size_override("font_size", 27)
+	_combat_hint_label.add_theme_font_size_override("font_size", 20)
 	_combat_hint_label.add_theme_color_override("font_color", Color(1, 0.95, 0.7, 0.9))
 	_combat_hint_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	_combat_hint_label.add_theme_constant_override("shadow_offset_x", 1)

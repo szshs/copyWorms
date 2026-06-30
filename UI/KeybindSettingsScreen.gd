@@ -56,7 +56,7 @@ func _build_ui() -> void:
 	var hint := Label.new()
 	hint.text = "点击 [修改] 后按下新按键，ESC 取消"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 21)
+	hint.add_theme_font_size_override("font_size", 16)
 	hint.add_theme_color_override("font_color", _hint_color())
 	hint.position = Vector2(420, 198)
 	hint.size = Vector2(580, 26)
@@ -79,16 +79,16 @@ func _build_ui() -> void:
 		_add_action_row(action)
 
 	# 底部按钮
-	var reset_btn := _make_btn("恢复默认", Vector2(500, 512), Vector2(182, 54), true, 29)
+	var reset_btn := _make_btn("恢复默认", Vector2(500, 504), Vector2(182, 68), true, 16)
 	reset_btn.pressed.connect(_on_reset_pressed)
 	add_child(reset_btn)
 
-	var back_btn := _make_btn("返回", Vector2(738, 512), Vector2(182, 54), true, 29)
+	var back_btn := _make_btn("返回", Vector2(738, 504), Vector2(182, 68), true, 16)
 	back_btn.pressed.connect(_on_back_pressed)
 	add_child(back_btn)
 
 ## 创建统一梦境赛博皮肤按钮
-func _make_btn(text: String, pos: Vector2, size: Vector2, force_simple: bool = false, font_size: int = 24) -> TextureButton:
+func _make_btn(text: String, pos: Vector2, size: Vector2, force_simple: bool = false, font_size: int = 16) -> TextureButton:
 	var btn := TextureButton.new()
 	btn.position = pos
 	btn.custom_minimum_size = size
@@ -112,20 +112,22 @@ func _add_action_row(action: StringName) -> void:
 	# 动作名称
 	var name_label := Label.new()
 	name_label.text = KeybindManager.get_action_display_name(action)
-	name_label.custom_minimum_size = Vector2(115, 38)
+	name_label.custom_minimum_size = Vector2(115, 64)
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 23)
 	name_label.add_theme_color_override("font_color", _name_color())
 	row.add_child(name_label)
 
 	# 当前绑定显示
 	var bind_label := Label.new()
-	bind_label.custom_minimum_size = Vector2(390, 38)
-	bind_label.add_theme_font_size_override("font_size", 21)
+	bind_label.custom_minimum_size = Vector2(390, 64)
+	bind_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bind_label.add_theme_font_size_override("font_size", 16)
 	bind_label.add_theme_color_override("font_color", _binding_color())
 	row.add_child(bind_label)
 
 	# 修改按钮
-	var rebind_btn := _make_btn("修改", Vector2.ZERO, Vector2(132, 46), true, 25)
+	var rebind_btn := _make_btn("修改", Vector2.ZERO, Vector2(132, 64), true, 16)
 	rebind_btn.pressed.connect(_on_rebind_pressed.bind(action))
 	row.add_child(rebind_btn)
 
