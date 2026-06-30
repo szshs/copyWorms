@@ -145,6 +145,9 @@ func _on_physics_process(delta: float) -> void:
 			is_facing_right = input_dir.x > 0
 		# 一技能蓄力超阈值后进入霸体；二技能靠释放后的护盾承担防护
 		if not _charging_skill_2 and _charge_time >= CHARGE_THRESHOLD_BIG:
+		_update_skill_charge_sfx(_charge_time / CHARGE_MAX_TIME)
+		# 蓄力超阈值后进入霸体
+		if _charge_time >= CHARGE_THRESHOLD_BIG:
 			_is_super_armor = true
 		# 冻结 attack 动画在第3帧
 		if _anim_sprite and _anim_sprite.animation == "attack":
@@ -221,6 +224,7 @@ func _start_skill_charge(is_skill_2: bool) -> void:
 	_charging_skill_2 = is_skill_2
 	_is_charging = true
 	_charge_time = 0.0
+	_start_skill_charge_sfx()
 	attack_cooldown_timer = 0.0  # 不占用普攻CD
 	# 技能CD在释放时才开始
 	_change_state(GlobalDefine.PlayerState.SKILL)
@@ -243,6 +247,7 @@ func _is_any_skill_action_pressed() -> bool:
 
 # ---- 技能：松开释放 ----
 func _release_skill() -> void:
+	_play_skill_release_sfx()
 	_is_charging = false
 	_is_super_armor = false
 	var was_skill_2 := _charging_skill_2
@@ -421,6 +426,7 @@ func _start_dash_windup() -> void:
 
 # ---- 突进攻击（长按普攻触发） ----
 func _do_dash_attack() -> void:
+	_play_charge_attack_sfx()
 	_is_dashing_attack = true
 	_dash_attack_timer = _dash_attack_duration
 	_dash_attack_dir = 1.0 if is_facing_right else -1.0
@@ -629,6 +635,7 @@ func _suck_enemies(delta: float) -> void:
 
 # ---- 死亡时清理技能状态 ----
 func _on_die() -> void:
+	_stop_skill_charge_sfx()
 	_is_charging = false
 	_charging_skill_2 = false
 	_is_dashing_attack = false

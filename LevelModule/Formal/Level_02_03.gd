@@ -96,6 +96,16 @@ var _config_value_labels: Array = []
 var _config_feedback_labels: Array = []
 var _config_buttons: Array = []
 var _recompile_button: Button = null
+var _drop_archive_screen: LingnanDropArchiveScreen = null
+var _drop_archive_button: Button = null
+var _drop_archive_style_normal: StyleBoxFlat = null
+var _drop_archive_style_hover: StyleBoxFlat = null
+var _drop_archive_style_pressed: StyleBoxFlat = null
+var _highlight_drop_archive_on_ide_open: bool = false
+var _drop_archive_highlight_tween: Tween = null
+var _runtime_ide_speakers: Array[String] = []
+var _runtime_ide_texts: Array[String] = []
+var _memory_last_return_reason: String = ""
 var _recompile_panel: Panel = null
 var _recompile_log: RichTextLabel = null
 var _left_edge_flash: ColorRect = null
@@ -184,6 +194,9 @@ func _on_ready() -> void:
 		InputManager.game_action.connect(_on_game_action)
 
 	set_process(true)
+	if LevelFuzhanSub01.should_resume_reality():
+		_resume_reality_from_fuzhan()
+		return
 	print("[Level_02_03] 初始化完成 — DREAM_STREET")
 
 
@@ -478,9 +491,6 @@ func _trigger_fall_reset() -> void:
 	_fall_reset_running = true
 	fall_count += 1
 	print("[Level_02_03] 坠崖重置 #%d" % fall_count)
-	# 首次坠崖：切换 BGM 从 2test2 → lv3
-	if fall_count == 1:
-		MusicManager.fade_to("res://Assets/Music/lv3.ogg", 1.0)
 	InputManager.block_input("坠落重置", self)
 	_freeze_player(true)
 
@@ -694,6 +704,23 @@ func _complete_wake_up_transition() -> void:
 		_show_narrative(level_data.wake_up_monologue)
 
 
+func _resume_reality_from_fuzhan() -> void:
+	_memory_last_return_reason = LevelFuzhanSub01.consume_return_reason()
+	_cleanup_dream_interference()
+	if _dream_root:
+		_dream_root.visible = false
+		_set_space_collision(_dream_root, false)
+	if _blackout_overlay:
+		_blackout_overlay.hide()
+		_blackout_overlay.color.a = 0.0
+	_load_reality_room()
+	_setup_reality_after_memory_return()
+	print("[Level_02_03] 复战返回现实房间 — reason=%s" % _memory_last_return_reason)
+	var return_text := LevelFuzhanSub01.reality_return_text(_memory_last_return_reason)
+	if return_text != "":
+		_show_narrative(return_text)
+
+
 func _load_reality_room() -> void:
 	if not ResourceLoader.exists(SUB01_SCENE_PATH):
 		push_error("[Level_02_03] 子场景不存在: %s" % SUB01_SCENE_PATH)
@@ -727,6 +754,28 @@ func _load_reality_room() -> void:
 		_narrative_panel.set_meta("dialog_visual_style", "default")
 
 	_apply_reality_space_settings()
+	_play_reality_room_bgm()
+
+
+func _play_reality_room_bgm() -> void:
+	MusicManager.fade_to(LevelFuzhanSub01.NIGHTFALL_BGM_PATH, 1.0)
+
+
+func _setup_reality_after_memory_return() -> void:
+	has_read_reality_phone = true
+	current_state = LevelState.REALITY_PHONE_READ
+	_stop_phone_vibration()
+	_stop_left_edge_flash()
+	if _reality_phone_node:
+		_reality_phone_node.set_active(false)
+		_reality_phone_node.completed = true
+	if _reality_computer_node:
+		_reality_computer_node.allow_repeat = true
+		_reality_computer_node.completed = false
+		_reality_computer_node.set_active(true)
+	if _reality_bed_node:
+		_reality_bed_node.set_active(false)
+	_highlight_drop_archive_on_ide_open = true
 
 
 func _find_interactive_in_node(root: Node, target_name: String) -> InteractiveObject:
@@ -873,6 +922,8 @@ func _handle_reality_phone() -> void:
 func _unlock_reality_computer() -> void:
 	current_state = LevelState.REALITY_PHONE_READ
 	if _reality_computer_node:
+		_reality_computer_node.allow_repeat = true
+		_reality_computer_node.completed = false
 		_reality_computer_node.set_active(true)
 
 
@@ -882,8 +933,27 @@ func _enter_ide_chat() -> void:
 	current_state = LevelState.REALITY_IDE_CHAT
 	_freeze_player(true)
 	InputManager.block_input("IDE对话", self)
+	var flags := LevelFuzhanSub01.ensure_state()
+	var default_speakers: Array[String] = []
+	var default_texts: Array[String] = []
+	if level_data:
+		default_speakers = level_data.ide_speakers
+		default_texts = level_data.ide_texts
+	_runtime_ide_speakers = LevelFuzhanSub01.ide_speakers_for_stage(default_speakers)
+	_runtime_ide_texts = LevelFuzhanSub01.ide_texts_for_stage(default_texts)
+	var return_speakers := LevelFuzhanSub01.ide_speakers_for_return_reason(_memory_last_return_reason)
+	var return_texts := LevelFuzhanSub01.ide_texts_for_return_reason(_memory_last_return_reason)
+	if not return_texts.is_empty():
+		_runtime_ide_speakers = return_speakers
+		_runtime_ide_texts = return_texts
+	if not bool(flags.get(LevelFuzhanSub01.KEY_STARTED, false)):
+		LevelFuzhanSub01.start_flow()
+	_memory_last_return_reason = ""
 	if _ide_ui:
 		_ide_ui.show()
+	if _highlight_drop_archive_on_ide_open:
+		_highlight_drop_archive_on_ide_open = false
+		call_deferred("_start_drop_archive_button_highlight")
 	current_chat_index = 0
 	_pending_chat_text = ""
 	_prefilled_chat_text = ""
@@ -897,13 +967,13 @@ func _enter_ide_chat() -> void:
 
 
 func _render_next_chat_line() -> void:
-	if not level_data:
+	if _runtime_ide_speakers.is_empty() or _runtime_ide_texts.is_empty():
 		_enter_free_chat(); return
-	var total = mini(level_data.ide_speakers.size(), level_data.ide_texts.size())
+	var total = mini(_runtime_ide_speakers.size(), _runtime_ide_texts.size())
 	if current_chat_index >= total:
 		_enter_free_chat(); return
-	var speaker = level_data.ide_speakers[current_chat_index]
-	var text = level_data.ide_texts[current_chat_index]
+	var speaker = _runtime_ide_speakers[current_chat_index]
+	var text = _runtime_ide_texts[current_chat_index]
 	current_chat_index += 1
 
 	# ── 非 Ming 对话：延迟动画后直接显示在主区 ──
@@ -933,7 +1003,7 @@ func _enter_free_chat() -> void:
 	_prefilled_chat_text = ""
 	current_state = LevelState.REALITY_FREE_CHAT
 	if _chat_window:
-		_chat_window.append_text("[color=cyan]CodeBuddy: 对话已就绪。输入 '/config' 可进入配置编辑器。[/color]\n")
+		_chat_window.append_text("[color=cyan]%s[/color]\n" % LevelFuzhanSub01.free_chat_prompt())
 	if _chat_input:
 		_chat_input.text = ""
 		_chat_input.editable = true
@@ -970,11 +1040,34 @@ func _on_chat_submitted(text: String) -> void:
 	if current_state == LevelState.REALITY_FREE_CHAT:
 		# 特殊命令：/config 进入配置编辑
 		if msg == "/config":
+			if not LevelFuzhanSub01.can_open_config():
+				if _chat_window:
+					_chat_window.append_text("[color=cyan]%s[/color]\n" % LevelFuzhanSub01.config_locked_prompt())
+				if _chat_input:
+					_chat_input.text = ""
+				return
 			current_state = LevelState.REALITY_CONFIG_EDIT
 			if _chat_input:
 				_chat_input.editable = false
 				_chat_input.text = ""
 			_enter_config_edit()
+			return
+
+		if msg == "/memory":
+			var target_area := LevelFuzhanSub01.current_target_area()
+			if target_area == 0:
+				if _chat_window:
+					_chat_window.append_text("[color=cyan]CodeBuddy: 童年回忆样本已补全。输入 /config 继续。[/color]\n")
+				if _chat_input:
+					_chat_input.text = ""
+				return
+			if _chat_window:
+				_chat_window.append_text("[color=white][b]阿明:[/b][/color] %s\n" % msg)
+				_chat_window.append_text("[color=cyan]%s[/color]\n" % LevelFuzhanSub01.memory_launch_prompt(target_area))
+			if _chat_input:
+				_chat_input.text = ""
+				_chat_input.editable = false
+			_start_memory_recovery_area(target_area)
 			return
 
 		# 用户消息 → 主对话区
@@ -990,6 +1083,75 @@ func _on_chat_submitted(text: String) -> void:
 		var reply = _generate_ai_reply(msg)
 		if _chat_window:
 			_chat_window.append_text("[color=cyan]CodeBuddy: %s[/color]\n" % reply)
+
+
+func _start_memory_recovery_area(area: int) -> void:
+	if _transition_running:
+		return
+	_transition_running = true
+	_is_interacting = true
+	var flags := LevelFuzhanSub01.ensure_state()
+	flags[LevelFuzhanSub01.KEY_CURRENT_AREA] = area
+	flags[LevelFuzhanSub01.KEY_RESUME_REALITY] = false
+	GameManager.dream_runtime_flags = flags
+	await get_tree().create_timer(0.45).timeout
+	if _ide_ui:
+		_ide_ui.hide()
+	_stop_drop_archive_button_highlight()
+	get_viewport().gui_release_focus()
+
+	if _blackout_overlay:
+		_blackout_overlay.color = Color(0, 0, 0, 0)
+		_blackout_overlay.show()
+	var tw := create_tween()
+	if _blackout_overlay:
+		tw.tween_property(_blackout_overlay, "color:a", 1.0, FINAL_BLACKOUT_FADE_DURATION).set_trans(Tween.TRANS_SINE)
+	else:
+		tw.tween_interval(FINAL_BLACKOUT_FADE_DURATION)
+
+	var canvas = _blackout_overlay.get_parent() if _blackout_overlay else null
+	var text_panel := Control.new()
+	text_panel.name = "MemoryRecoveryTextPanel"
+	text_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	text_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if canvas:
+		canvas.add_child(text_panel)
+	else:
+		add_child(text_panel)
+	var label := Label.new()
+	label.name = "MemoryRecoveryText"
+	label.text = LevelFuzhanSub01.enter_text(area)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.anchor_right = 1.0
+	label.anchor_bottom = 1.0
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_color_override("font_color", Color(0.74, 0.92, 0.78))
+	text_panel.add_child(label)
+
+	tw.tween_interval(2.2)
+	tw.tween_callback(func():
+		_switch_to_memory_scene(area)
+	)
+
+
+func _switch_to_memory_scene(area: int) -> void:
+	var next_path := LevelFuzhanSub01.area_scene_path(area)
+	get_viewport().gui_release_focus()
+	InputManager.force_unblock_all()
+	_stop_left_edge_flash()
+	_stop_phone_vibration()
+	if _reality_player_rules_active:
+		_reality_player_rules_active = false
+		_clear_reality_player_rules()
+	EventBus.unsubscribe_all(self)
+	if not _is_loaded_under_main_entry():
+		SceneTransitionManager.request_scene_change(next_path, self)
+		return
+	EventBus.emit(GlobalDefine.EventName.LEVEL_COMPLETE, {
+		"level": self,
+		"next_level": next_path,
+	})
 
 
 func _generate_ai_reply(user_msg: String) -> String:
@@ -1095,18 +1257,20 @@ func _run_recompile_sequence() -> void:
 		await get_tree().create_timer(0.45).timeout
 
 	recompilation_done = true
-	GameManager.dream_runtime_flags = {
-		"player_damage_reduction": config_flags.get("player_damage_reduction", true),
-		"base_jump_height": config_flags.get("base_jump_height", 99),
-		"allow_external_signal": config_flags.get("allow_external_signal", false),
-		"dream_version": "2.0"
-	}
+	var runtime_flags := LevelFuzhanSub01.ensure_state()
+	runtime_flags["player_damage_reduction"] = config_flags.get("player_damage_reduction", true)
+	runtime_flags["base_jump_height"] = config_flags.get("base_jump_height", 99)
+	runtime_flags["allow_external_signal"] = config_flags.get("allow_external_signal", false)
+	runtime_flags["dream_version"] = "2.0"
+	GameManager.dream_runtime_flags = runtime_flags
+	LevelFuzhanSub01.apply_core_flags()
 
 	await get_tree().create_timer(1.0).timeout
 	if _recompile_panel:
 		_recompile_panel.hide()
 	if _ide_ui:
 		_ide_ui.hide()
+	_stop_drop_archive_button_highlight()
 	get_viewport().gui_release_focus()
 	_freeze_player(false)
 	InputManager.unblock_input("IDE对话")
@@ -1157,7 +1321,7 @@ func _trigger_level_end() -> void:
 		add_child(text_panel)
 	var end_label = Label.new()
 	end_label.name = "EndLabel"
-	end_label.text = "西关梦境 V2.0 已构建成功\n\n沉入梦乡……\n回到那个地方……\n回到不会失去的家……"
+	end_label.text = "西关梦境 V2.0 已构建成功\n\n童年回忆补全完成。\n核心区域：凉茶铺，已开放。\n\n沉入梦乡……\n回到那个地方……\n见到爷爷……"
 	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	end_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	end_label.anchor_right = 1.0; end_label.anchor_bottom = 1.0
@@ -1497,9 +1661,45 @@ func _build_all_ui() -> void:
 		fi.position = Vector2(16, 142 + j * 22)
 		sidebar.add_child(fi)
 
+	var archive_button = Button.new()
+	archive_button.name = "DropArchiveButton"
+	archive_button.text = "> 岭南梦物志 · 童年回忆"
+	archive_button.position = Vector2(16, 236)
+	archive_button.size = Vector2(188, 30)
+	archive_button.focus_mode = Control.FOCUS_NONE
+	archive_button.add_theme_font_size_override("font_size", 15)
+	archive_button.add_theme_color_override("font_color", Color(0.35, 0.9, 1.0))
+	archive_button.add_theme_color_override("font_hover_color", Color(0.8, 1.0, 1.0))
+	archive_button.add_theme_color_override("font_pressed_color", Color(1.0, 1.0, 0.35))
+	var archive_normal = StyleBoxFlat.new()
+	archive_normal.bg_color = Color(0.08, 0.1, 0.15, 0.9)
+	archive_normal.border_width_left = 1
+	archive_normal.border_width_right = 1
+	archive_normal.border_width_top = 1
+	archive_normal.border_width_bottom = 1
+	archive_normal.border_color = Color(0.18, 0.5, 0.65, 0.85)
+	archive_normal.set_corner_radius_all(4)
+	archive_normal.content_margin_left = 8
+	archive_normal.content_margin_right = 8
+	var archive_hover = archive_normal.duplicate() as StyleBoxFlat
+	archive_hover.bg_color = Color(0.1, 0.16, 0.22, 0.95)
+	archive_hover.border_color = Color(0.35, 0.8, 1.0, 0.95)
+	var archive_pressed = archive_normal.duplicate() as StyleBoxFlat
+	archive_pressed.bg_color = Color(0.06, 0.08, 0.12, 1.0)
+	archive_pressed.border_color = Color(0.9, 0.9, 0.25, 0.95)
+	archive_button.add_theme_stylebox_override("normal", archive_normal)
+	archive_button.add_theme_stylebox_override("hover", archive_hover)
+	archive_button.add_theme_stylebox_override("pressed", archive_pressed)
+	archive_button.pressed.connect(_open_lingnan_drop_archive)
+	sidebar.add_child(archive_button)
+	_drop_archive_button = archive_button
+	_drop_archive_style_normal = archive_normal
+	_drop_archive_style_hover = archive_hover
+	_drop_archive_style_pressed = archive_pressed
+
 	# 边栏 — 分隔线
 	var sep2 = ColorRect.new()
-	sep2.name = "Sep2"; sep2.size = Vector2(188, 1); sep2.position = Vector2(16, 236)
+	sep2.name = "Sep2"; sep2.size = Vector2(188, 1); sep2.position = Vector2(16, 278)
 	sep2.color = Color(0.18, 0.2, 0.28)
 	sidebar.add_child(sep2)
 
@@ -1619,6 +1819,72 @@ func _build_all_ui() -> void:
 		var idx = i
 		_config_buttons[i].pressed.connect(func(): _on_config_button_pressed(idx))
 	_recompile_button.pressed.connect(_on_recompile_pressed)
+
+
+func _open_lingnan_drop_archive() -> void:
+	if _drop_archive_screen and is_instance_valid(_drop_archive_screen):
+		return
+	_stop_drop_archive_button_highlight()
+	_drop_archive_screen = LingnanDropArchiveScreen.show_archive(self)
+	_drop_archive_screen.closed.connect(func() -> void:
+		_drop_archive_screen = null
+	)
+
+
+func _start_drop_archive_button_highlight() -> void:
+	if not _drop_archive_button or not is_instance_valid(_drop_archive_button):
+		return
+	if not _ide_ui or not _ide_ui.visible:
+		return
+	_stop_drop_archive_button_highlight()
+	var pulse_normal := _drop_archive_style_normal.duplicate() as StyleBoxFlat
+	var pulse_hover := _drop_archive_style_hover.duplicate() as StyleBoxFlat
+	_drop_archive_button.add_theme_stylebox_override("normal", pulse_normal)
+	_drop_archive_button.add_theme_stylebox_override("hover", pulse_hover)
+	_drop_archive_button.add_theme_stylebox_override("pressed", _drop_archive_style_pressed)
+	_drop_archive_button.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45))
+	_drop_archive_highlight_tween = _drop_archive_button.create_tween().set_loops()
+	_drop_archive_highlight_tween.tween_method(
+		func(intensity: float) -> void:
+			if not is_instance_valid(pulse_normal):
+				return
+			pulse_normal.border_color = Color(1.0, 0.85, 0.2, 0.45 + intensity * 0.55)
+			pulse_normal.bg_color = Color(0.1, 0.12, 0.08, 0.92).lerp(Color(0.18, 0.16, 0.06, 1.0), intensity)
+			if is_instance_valid(pulse_hover):
+				pulse_hover.border_color = Color(1.0, 0.9, 0.35, 0.55 + intensity * 0.45)
+				pulse_hover.bg_color = pulse_normal.bg_color.lerp(Color(0.14, 0.18, 0.1, 1.0), intensity * 0.5),
+		0.0,
+		1.0,
+		0.55
+	).set_trans(Tween.TRANS_SINE)
+	_drop_archive_highlight_tween.tween_method(
+		func(intensity: float) -> void:
+			if not is_instance_valid(pulse_normal):
+				return
+			pulse_normal.border_color = Color(1.0, 0.85, 0.2, 0.45 + intensity * 0.55)
+			pulse_normal.bg_color = Color(0.1, 0.12, 0.08, 0.92).lerp(Color(0.18, 0.16, 0.06, 1.0), intensity)
+			if is_instance_valid(pulse_hover):
+				pulse_hover.border_color = Color(1.0, 0.9, 0.35, 0.55 + intensity * 0.45)
+				pulse_hover.bg_color = pulse_normal.bg_color.lerp(Color(0.14, 0.18, 0.1, 1.0), intensity * 0.5),
+		1.0,
+		0.0,
+		0.55
+	).set_trans(Tween.TRANS_SINE)
+
+
+func _stop_drop_archive_button_highlight() -> void:
+	if _drop_archive_highlight_tween and is_instance_valid(_drop_archive_highlight_tween):
+		_drop_archive_highlight_tween.kill()
+	_drop_archive_highlight_tween = null
+	if not _drop_archive_button or not is_instance_valid(_drop_archive_button):
+		return
+	if _drop_archive_style_normal:
+		_drop_archive_button.add_theme_stylebox_override("normal", _drop_archive_style_normal)
+	if _drop_archive_style_hover:
+		_drop_archive_button.add_theme_stylebox_override("hover", _drop_archive_style_hover)
+	if _drop_archive_style_pressed:
+		_drop_archive_button.add_theme_stylebox_override("pressed", _drop_archive_style_pressed)
+	_drop_archive_button.add_theme_color_override("font_color", Color(0.35, 0.9, 1.0))
 
 
 # ============================================================

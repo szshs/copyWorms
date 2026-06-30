@@ -33,30 +33,86 @@ dream_phone_echo_text = "阿明，医生说你爷爷在今天凌晨走了……
 
 为什么连梦里都不放过我！"
 wake_up_monologue = "……又是这个天花板。
+梦里的裂缝、黑影，还有那条短信。
 
-心脏还在狂跳。手机在枕边震个不停，屏幕的红光刺得眼睛生疼。
+我以为只要造出老街，就能回到爷爷身边。
+可我连凉茶铺都到不了。
 
-梦里的裂缝、黑影、还有那条短信……我躲不掉了。"
+也许不是梦不够完整。
+是我记得的东西，还不够完整。"
 computer_locked_text = "屏幕还停留在崩溃日志界面。
+CodeBuddy 似乎已经完成了新的诊断。
+但在那之前，手机还在震。
+先看看手机。"
+bed_locked_text = "现在还不能睡。
+如果记忆不完整，回到梦里也只是继续迷路。
+先看看手机，再问问 CodeBuddy。"
+reality_phone_content = "阿明，明天就是你爷爷的头七了。
+老屋那边已经开始清空。
 
-不……现在不是碰电脑的时候。先看看手机，它已经震了一整夜。"
-bed_locked_text = "床上的被子还残留着噩梦的冷汗。
+大伯在柜子里找到了你小时候画的城市图纸。
+纸都黄了，可你画得好认真。
 
-现在睡回去，等着我的只有那道跳不过去的裂缝、和满街的黑影。
+还有一些你小时候舍不得丢的小东西。
+妈妈帮你收起来了。
 
-不行。在回去之前，我得先改变那个梦的规则。"
-reality_phone_content = "阿明，明天就是你爷爷的头七了。家里人都不怪你没赶回来，爷爷走前还在念叨：『阿明读书辛苦，唔好嘈醒佢。』
-
-老街后日就要围蔽动工了。妈妈知道你心里苦，但有些事，回来和家人聊聊好吗。你要保重自己。"
+你要是愿意，就回来看看。
+不用急着说什么。
+回来就好。"
 reality_phone_monologue = "……连最后一面都没见到。
 
-爷爷到最后都在护着我。而我连……梦里的我跳不过那道裂缝，打不过那些黑影，连一句『再见』都说不出口。
+可我记得爷爷。
+记得凉茶铺的味道，记得老街的声音。
+也记得小时候那些舍不得丢的小东西。
 
-……不对。那是 CodeBuddy 编译出来的梦境。是程序，就有配置；是配置，就可以改。
+如果这个梦真的是靠记忆编译出来的，
+那我现在还不够靠近他。
 
-这一次，我不要再当一个被动挨打的废物，我要找到爷爷。"
-ide_speakers = Array[String](["System", "CodeBuddy", "Ming", "CodeBuddy", "Ming", "CodeBuddy", "CodeBuddy", "System"])
-ide_texts = Array[String](["Reconnecting to localhost:8080... CodeBuddy Terminal v1.4.2 resumed.", "欢迎回来，阿明。检测到项目『西关梦境』于上次会话中异常崩溃：现实信号注入导致环境撕裂，生成了未授权的敌对实体。", "我在梦里跳不过那道裂缝，也打不过那些黑影。CodeBuddy，我要改掉这个梦的规则。", "可行。『西关梦境』的运行参数存储于配置文件 西关梦境.ini。修改后需要重新编译才能生效。警告：篡改梦境基础配置属于非常规操作，可能导致记忆数据与现实认知进一步偏离。是否继续？", "继续。这一次，我要亲手把规则改写。我要跳过那道裂缝，我要见爷爷最后一面。", "已为您打开配置编辑器。请修改以下三项参数：1) 玩家伤害减免；2) 基础跳跃高度；3) 外部信号注入许可。", "提示：将 Allow_External_Signal 设为 false 后，现实端的一切干扰信号（包括通讯消息）都将无法进入梦境。这意味着……梦境将成为完全封闭的世界。", "Configuration editor ready. Awaiting input..."])
+我要把那些记忆找回来。
+找到足够多，才能真的见到爷爷。"
+ide_speakers = Array[String](["System", "CodeBuddy", "Ming", "CodeBuddy", "Ming", "CodeBuddy", "Ming", "CodeBuddy", "Ming", "CodeBuddy", "Ming", "CodeBuddy", "Ming", "CodeBuddy", "System"])
+ide_texts = Array[String](["Reconnecting to localhost:8080…
+CodeBuddy Terminal v1.4.2 resumed.", "欢迎回来，阿明。
+检测到项目『西关梦境』仍处于不完整状态。
+上次崩溃后，系统已完成原因分析：
+当前记忆锚点不足，无法稳定抵达核心区域“凉茶铺”。", "记忆锚点？
+我已经描述了老街、满洲窗、麻石路，还有爷爷的凉茶铺。
+这还不够吗？", "不够。
+当前梦境拥有建筑外观，但缺少足够的童年回忆样本。
+换言之：
+它像老街，但还没有真正成为“你的老街”。", "所以我才一直到不了爷爷那里？", "是。
+“爷爷”位于记忆核心深层。
+若强行进入，系统只能生成低精度模拟对象。
+这可能导致对话重复、情感失真，甚至触发梦境崩溃。", "我不要一个假的爷爷。
+至少……不要只是一个会重复台词的影子。
+我要再靠近一点。
+我要想起来。", "可行。
+建议启动“童年回忆补全流程”。
+系统将开启两个复战区域：
+
+Area 01：level_fuzhan_01
+Area 02：level_fuzhan_02
+
+两个区域的地图结构将保持原样。
+您需要通过战斗回收童年回忆样本。", "要怎么回收？", "每击败 10 个敌对实体，系统将凝结 1 个童年回忆掉落物。
+每个区域最多可稳定回收 3 个。
+
+您需要在两个区域内共回收 6 个童年回忆样本。
+完成后，配置编辑器将开放。
+届时，您才能重新编译梦境，并进入核心区域“凉茶铺”。", "如果我失败呢？", "若您在复战区域中被击败，意识将自动返回现实房间。
+当前区域回收进度不会完成。
+您需要重新进入该区域，直到收集满 3 个掉落物。
+
+这不是惩罚。
+这是为了保证记忆样本足够稳定。", "明白了。
+先找回那些东西。
+找回我和爷爷之间真正留下来的东西。", "童年回忆补全流程即将启动。
+第一目标区域：level_fuzhan_01。
+目标：回收 3 个童年回忆样本。
+请准备入梦。", "Memory Recovery Mode initialized.
+Target Area 01: level_fuzhan_01
+Required Memory Fragments: 3 / 3
+Preparing Local Dream Viewport…"])
 config_item_ids = Array[String](["player_damage_reduction", "base_jump_height", "allow_external_signal"])
 config_item_labels = Array[String](["Player_Damage_Reduction  （玩家伤害减免）", "Base_Jump_Height  （跳跃能力增强）", "Allow_External_Signal  （外部信号注入许可）"])
 config_initial_values = Array[String](["false", "10", "true"])
@@ -64,18 +120,24 @@ config_target_values = Array[String](["true", "99", "false"])
 config_initial_display = Array[String](["false", "关", "true"])
 config_target_display = Array[String](["true", "开", "false"])
 config_success_feedbacks = Array[String](["// 黑影的爪牙再也伤不到我。", "// 增强跳跃能力——那道裂缝，我跳得过去了。", "// 把现实关在门外。这个梦，只属于我和爷爷。"])
-recompilation_lines = Array[String](["[SYSTEM] Recompiling project: Xiguan_Dream ...", "[BUILD] Loading 西关历史地貌数据集 ... OK", "[BUILD] Patching player_module: damage_reduction = true ... OK", "[BUILD] Patching physics_module: base_jump_height = 99 ... OK", "[BUILD] Sealing external signal gateway ... OK", "[BUILD] Rebuilding 凉茶铺 / 石板路 / 满洲窗 ... OK", "[WARN] 检测到记忆偏差风险：+47%。已忽略。", "[SYSTEM] Compilation successful. Dream version: 2.0"])
+recompilation_lines = Array[String](["[SYSTEM] Recompiling project: Xiguan_Dream …", "[BUILD] Loading 西关历史地貌数据集 … OK", "[BUILD] Loading recovered childhood memories: 6 / 6 … OK", "[BUILD] Stabilizing core area: 凉茶铺 … OK", "[BUILD] Patching player_module: damage_reduction = true … OK", "[BUILD] Patching physics_module: base_jump_height = 99 … OK", "[BUILD] Sealing external signal gateway … OK", "[BUILD] Rebuilding 凉茶铺 / 石板路 / 满洲窗 … OK", "[WARN] 检测到记忆偏差风险：+47%。已忽略。", "[SYSTEM] Compilation successful. Dream version: 2.0"])
 compile_success_text = "编译完成。
+『西关梦境 2.0』已生成。
 
-『西关梦境 2.0』已生成
+童年回忆样本：6 / 6。
+核心区域“凉茶铺”已稳定。
+通往爷爷的路径，终于打开了。
 
-床头的旧台灯忽然亮了一下，像是某种邀请。"
-bed_unlocked_text = "回去吧。爷爷还在对岸等我。"
+床头的旧台灯忽然亮了一下。
+像小时候停电时，爷爷提着灯笼站在楼梯口等我。"
+bed_unlocked_text = "回去吧。
+这一次，不只是去梦里。
+是带着那些真正的回忆，去见爷爷。"
 sfx_phone_vibrate_path = "res://Assets/Audio/sfx_phone_vibrate.ogg"
 sfx_electric_noise_path = "res://Assets/Audio/sfx_electric_noise.ogg"
 bgm_dream_warm_path = "res://Assets/Audio/bgm_dream_warm.ogg"
 dream_rebuilt_text = "西关梦境 v2.0 重构完毕。
+记忆样本同步完成：6 / 6。
 
 意识正在下沉……下沉……
-
-闭上眼睛，回到梦里。"
+闭上眼睛，进入核心梦境。"

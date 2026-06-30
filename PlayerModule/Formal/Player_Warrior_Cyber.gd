@@ -88,6 +88,7 @@ func _on_physics_process(delta: float) -> void:
 		var input_dir = _get_input_direction()
 		if abs(input_dir.x) > 0.1:
 			is_facing_right = input_dir.x > 0
+		_update_skill_charge_sfx(clampf(_skill_charge_time / SKILL_CHARGE_TIER2, 0.0, 1.0))
 		# 蓄力视觉：角色微闪烁，强度随蓄力时间增强
 		if _anim_sprite:
 			var intensity = clampf(_skill_charge_time / SKILL_CHARGE_TIER2, 0.0, 1.0)
@@ -175,6 +176,7 @@ func _on_skill() -> void:
 	# 开始蓄力，由玩家选择释放时机（松开I键释放）
 	_skill_charging = true
 	_skill_charge_time = 0.0
+	_start_skill_charge_sfx()
 	attack_cooldown_timer = 0.0
 	# 技能CD在释放时才开始
 	_change_state(GlobalDefine.PlayerState.SKILL)
@@ -188,6 +190,7 @@ func _on_skill() -> void:
 			_anim_sprite.pause()
 
 func _release_skill() -> void:
+	_play_skill_release_sfx()
 	_skill_charging = false
 	if _anim_sprite:
 		_anim_sprite.modulate = Color.WHITE
@@ -243,6 +246,7 @@ func _start_dash_windup() -> void:
 # ---- 闪电突进 ----
 
 func _do_lightning_dash() -> void:
+	_play_charge_attack_sfx()
 	_is_lightning_dash = true
 	_dash_timer = _dash_duration
 	_dash_dir = 1.0 if is_facing_right else -1.0
@@ -421,6 +425,7 @@ func _on_game_action(action: StringName, _event: InputEvent) -> void:
 # ---- 死亡时清理状态 ----
 
 func _on_die() -> void:
+	_stop_skill_charge_sfx()
 	_is_lightning_dash = false
 	_dash_windup = false
 	_skill_charging = false

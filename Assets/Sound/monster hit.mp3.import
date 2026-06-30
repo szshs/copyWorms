@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://chtwjvthw8n4b"
+path="res://.godot/imported/monster hit.mp3-7b9828e78ed4e0f2a916e312ff11afc4.mp3str"
+
+[deps]
+
+source_file="res://Assets/Sound/monster hit.mp3"
+dest_files=["res://.godot/imported/monster hit.mp3-7b9828e78ed4e0f2a916e312ff11afc4.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

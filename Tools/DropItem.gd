@@ -64,15 +64,20 @@ func _process(delta: float) -> void:
 		_drop_sprite.rotation = sin(_float_phase * 0.7) * 0.1
 
 ## 拾取时调用：触发全屏展示，然后移除自身
-func on_collected() -> void:
+func on_collected(callback: Callable = Callable()) -> void:
 	if completed: return
 	mark_completed()
+	var newly_owned := LingnanDropArchiveScreen.grant_drop_item_by_name(drop_type)
 	# 直接创建全屏展示动画（不依赖关卡方法）
 	var showcase = DropItemShowcase.new()
 	var parent = get_parent()
 	if parent:
 		parent.add_child(showcase)
-		showcase.show_item(drop_type)
+		showcase.show_item(drop_type, callback)
+	elif callback.is_valid():
+		callback.call()
+	if newly_owned:
+		print("[DropItem] 新增图鉴收录: %s" % drop_type)
 	# 隐藏自身
 	if _drop_sprite: _drop_sprite.visible = false
 	if _prompt_label: _prompt_label.visible = false
