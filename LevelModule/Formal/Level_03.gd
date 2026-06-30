@@ -96,12 +96,19 @@ const GLITCH_SPIKE: float = 0.8      # 互动时峰值强度
 var _ending_enter_armed: bool = false
 var _level_complete_emitted: bool = false
 
+const LEVEL_03_BGM_PATH := "res://Assets/Music/lv3.ogg"
+
 var _fsm: Level_03_FSM = null
 
 
 # ============================================================
 # 生命周期
 # ============================================================
+
+func _apply_config() -> void:
+	if level_config and level_config.bg_color:
+		RenderingServer.set_default_clear_color(level_config.bg_color)
+	# 进入关卡不切换 BGM，继承上一关；爷爷对话链结束后 fade 到 lv3
 
 func _setup_player() -> void:
 	if GameManager.player_ref and is_instance_valid(GameManager.player_ref):
@@ -190,7 +197,7 @@ func _on_ready() -> void:
 
 	# 关卡开场叙事，延迟 0.5s 弹出
 	await get_tree().create_timer(0.5).timeout
-	_show_narrative("[color=white]我……真的回来了。\n凉茶铺还在。\n炉子还在。\n爷爷就在前面。\n\n爷爷！\n爷爷！[/color]")
+	_show_narrative("我……真的回来了。\n凉茶铺还在。\n炉子还在。\n爷爷就在前面。\n\n爷爷！\n爷爷！")
 
 
 ## 入场黑屏遮罩：创建满黑 CanvasLayer，覆盖整个初始化过程
@@ -723,12 +730,12 @@ func _advance_grandpa_dialogue() -> void:
 	var text = entry.get("text", "")
 	var formatted = ""
 	match speaker:
-		"Ming": formatted = "[color=white]阿明：[/color]" + text
+		"Ming": formatted = "阿明：" + text
 		"Grandpa":
 			if grandpa_dialogue_index >= 4:
-				formatted = "[color=gray][GLITCH] [/color][color=cyan]爷爷：[/color]" + text
+				formatted = "[GLITCH] 爷爷：" + text
 			else:
-				formatted = "[color=cyan]爷爷：[/color]" + text
+				formatted = "爷爷：" + text
 		_: formatted = text
 	grandpa_dialogue_index += 1
 	if speaker == "Grandpa" and grandpa_dialogue_index == 4:
@@ -746,6 +753,7 @@ func _flash_grandpa_indicator() -> void:
 
 func _trigger_grandpa_glitch() -> void:
 	if not level_data: return
+	MusicManager.fade_to(LEVEL_03_BGM_PATH, 1.0)
 	_mark_interaction_completed("grandpa")
 	_show_narrative(level_data.grandpa_glitch_text, func():
 		_show_narrative(level_data.ming_realization_text, func():
@@ -799,7 +807,7 @@ func _trigger_lingnan_combat() -> void:
 
 	# 显示战斗开始叙事
 	if level_data:
-		_show_narrative("[color=yellow]空气中弥漫着不安的气息。\n凉茶铺的影子正在变形。\n有什么东西，正在逼近。[/color]")
+		_show_narrative("[color=red]空气中弥漫着不安的气息。\n凉茶铺的影子正在变形。\n有什么东西，正在逼近。[/color]")
 
 func _spawn_lingnan_enemies() -> void:
 	if not _enemy_paper_effigy_scene or not _enemy_lantern_ghost_scene:

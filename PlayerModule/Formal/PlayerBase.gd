@@ -614,4 +614,21 @@ func _on_physics_process(_delta: float) -> void: pass
 func _on_attack() -> void: pass
 func _on_dash() -> void: pass
 func _on_skill() -> void: pass
+
+func _play_skill_release_sfx() -> void:
+	_stop_skill_charge_sfx()
+	SFXManager.play_pitched(SFXManager.SFX.PLAYER_SKILL, 0.95, 1.05)
+
+func _play_charge_attack_sfx() -> void:
+	SFXManager.play_pitched(SFXManager.SFX.PLAYER_CHARGE_ATTACK, 0.95, 1.08)
+
+func _start_skill_charge_sfx() -> void:
+	SFXManager.start_skill_charge_loop()
+
+func _update_skill_charge_sfx(progress: float) -> void:
+	SFXManager.update_skill_charge_progress(progress)
+
+func _stop_skill_charge_sfx() -> void:
+	SFXManager.stop_skill_charge_loop()
+
 func _on_die() -> void: pass

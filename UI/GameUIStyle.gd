@@ -192,10 +192,17 @@ static func paginate_interaction_text(text: String) -> Array[String]:
 	var line_count := 1
 	var last_break := -1
 	var in_tag := false
+	var page_prefix := ""
 	while i < text.length():
 		var c := text.substr(i, 1)
 		if c == "[":
-			in_tag = true
+			var tag_end := text.find("]", i)
+			if tag_end == -1:
+				in_tag = true
+			else:
+				in_tag = false
+				i = tag_end + 1
+				continue
 		elif c == "]" and in_tag:
 			in_tag = false
 			i += 1
@@ -208,9 +215,11 @@ static func paginate_interaction_text(text: String) -> Array[String]:
 				last_break = i + 1
 		if visible_count >= INTERACTION_TEXT_PAGE_VISIBLE_LIMIT or line_count > INTERACTION_TEXT_PAGE_LINE_LIMIT:
 			var cut := last_break if last_break > page_start else i + 1
-			var page := text.substr(page_start, cut - page_start).strip_edges()
-			if page != "":
-				pages.append(page)
+			var stack_at_cut := _bbcode_open_stack_at(text, cut)
+			var page_body := text.substr(page_start, cut - page_start).strip_edges()
+			if page_body != "":
+				pages.append(page_prefix + page_body + _bbcode_close_tags_suffix(stack_at_cut))
+			page_prefix = _bbcode_open_tags_prefix(stack_at_cut)
 			page_start = cut
 			while page_start < text.length() and _is_interaction_page_leading_space(text.substr(page_start, 1)):
 				page_start += 1
@@ -223,8 +232,10 @@ static func paginate_interaction_text(text: String) -> Array[String]:
 		i += 1
 
 	var tail := text.substr(page_start).strip_edges()
-	if tail != "":
-		pages.append(tail)
+	if tail != "" or page_prefix != "":
+		var final_page := (page_prefix + tail).strip_edges()
+		if final_page != "":
+			pages.append(final_page)
 	if pages.is_empty():
 		pages.append(text)
 	return pages
@@ -343,6 +354,58 @@ static func _strip_bbcode(text: String) -> String:
 			result += c
 	return result
 
+static func _bbcode_open_stack_at(text: String, end_index: int) -> Array[String]:
+	var stack: Array[String] = []
+	var i := 0
+	var limit := mini(end_index, text.length())
+	while i < limit:
+		if text.substr(i, 1) != "[":
+			i += 1
+			continue
+		var tag_end := text.find("]", i)
+		if tag_end == -1 or tag_end >= limit:
+			break
+		_apply_bbcode_tag_to_stack(text.substr(i, tag_end - i + 1), stack)
+		i = tag_end + 1
+	return stack
+
+static func _apply_bbcode_tag_to_stack(tag: String, stack: Array[String]) -> void:
+	if not tag.begins_with("[") or not tag.ends_with("]"):
+		return
+	if tag.begins_with("[/"):
+		var close_name := tag.substr(2, tag.length() - 3).strip_edges()
+		for j in range(stack.size() - 1, -1, -1):
+			if _bbcode_open_tag_name(stack[j]) == close_name:
+				stack.remove_at(j)
+				return
+		return
+	stack.append(tag)
+
+static func _bbcode_open_tag_name(open_tag: String) -> String:
+	var inner := open_tag.substr(1, open_tag.length() - 2)
+	var eq_pos := inner.find("=")
+	if eq_pos == -1:
+		return inner.strip_edges()
+	return inner.substr(0, eq_pos).strip_edges()
+
+static func _bbcode_close_tag_for(open_tag: String) -> String:
+	var tag_name := _bbcode_open_tag_name(open_tag)
+	if tag_name == "":
+		return ""
+	return "[/%s]" % tag_name
+
+static func _bbcode_close_tags_suffix(stack: Array[String]) -> String:
+	var suffix := ""
+	for j in range(stack.size() - 1, -1, -1):
+		suffix += _bbcode_close_tag_for(stack[j])
+	return suffix
+
+static func _bbcode_open_tags_prefix(stack: Array[String]) -> String:
+	var prefix := ""
+	for open_tag in stack:
+		prefix += open_tag
+	return prefix
+
 static func _format_interaction_text_for_panel(text: String, panel: Panel = null) -> String:
 	if panel == null or not _is_lingnan_interaction_panel(panel):
 		return text
@@ -359,7 +422,7 @@ static func _normalize_lingnan_warning_colors(text: String) -> String:
 	for match_result in matches:
 		result += text.substr(cursor, match_result.get_start() - cursor)
 		var color_name := match_result.get_string(1).strip_edges().to_lower()
-		var target_color := "red" if _is_lingnan_warning_color(color_name) else LINGNAN_INTERACTION_TEXT_BBCODE
+		var target_color := LINGNAN_INTERACTION_TEXT_BBCODE if not _is_lingnan_warning_color(color_name) else color_name
 		result += "[color=%s]" % target_color
 		cursor = match_result.get_end()
 	result += text.substr(cursor)
