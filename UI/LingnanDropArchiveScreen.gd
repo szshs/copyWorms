@@ -25,6 +25,23 @@ const COLOR_PAPER := Color(0.92, 0.86, 0.72, 1.0)
 const COLOR_TEXT := Color(0.10, 0.20, 0.14, 1.0)
 const COLOR_TEXT_DARK := Color(0.055, 0.105, 0.075, 1.0)
 const COLOR_TEXT_MUTED := Color(0.36, 0.43, 0.34, 1.0)
+const UNKNOWN_NAME := "？？？"
+const LOCKED_HINT := "尚未获得该梦物"
+const DROP_ID_ALIASES: Dictionary = {
+	"月饼": "mooncake",
+	"mooncake": "mooncake",
+	"虾饺": "har_gow",
+	"har_gow": "har_gow",
+	"木棉": "kapok",
+	"kapok": "kapok",
+	"醒狮": "lion_dance",
+	"lion_dance": "lion_dance",
+	"烧卖": "siu_mai",
+	"广式烧卖": "siu_mai",
+	"siu_mai": "siu_mai",
+	"蒲葵扇": "palm_fan",
+	"palm_fan": "palm_fan",
+}
 
 const ITEM_DATA: Array[Dictionary] = [
 	{
@@ -101,6 +118,8 @@ var _source_label: Label = null
 var _usage_label: Label = null
 var _article_label: RichTextLabel = null
 var _was_opened: bool = false
+static var _owned_drop_ids: Dictionary = {}
+static var _active_screens: Array = []
 
 
 func _ready() -> void:
@@ -129,12 +148,73 @@ static func show_archive(parent: Node, selected_id: String = "") -> LingnanDropA
 	return screen
 
 
+static func has_drop_item(drop_id: String) -> bool:
+	return _owned_drop_ids.has(_normalize_drop_id(drop_id))
+
+
+static func grant_drop_item(drop_id: String) -> bool:
+	var normalized_id := _normalize_drop_id(drop_id)
+	if normalized_id == "":
+		return false
+	var was_new := not _owned_drop_ids.has(normalized_id)
+	_owned_drop_ids[normalized_id] = true
+	if was_new:
+		_refresh_active_screens()
+	return was_new
+
+
+static func grant_drop_item_by_name(drop_name: String) -> bool:
+	return grant_drop_item(get_drop_id_by_name(drop_name))
+
+
+static func get_drop_id_by_name(drop_name: String) -> String:
+	if DROP_ID_ALIASES.has(drop_name):
+		return str(DROP_ID_ALIASES[drop_name])
+	for item in ITEM_DATA:
+		if str(item.get("name", "")) == drop_name:
+			return str(item.get("id", ""))
+	return _normalize_drop_id(drop_name)
+
+
+static func get_owned_drop_ids() -> Array[String]:
+	var ids: Array[String] = []
+	for id in _owned_drop_ids.keys():
+		ids.append(str(id))
+	return ids
+
+
+static func set_owned_drop_ids(drop_ids: Array) -> void:
+	_owned_drop_ids.clear()
+	for id in drop_ids:
+		var normalized_id := _normalize_drop_id(str(id))
+		if normalized_id != "":
+			_owned_drop_ids[normalized_id] = true
+	_refresh_active_screens()
+
+
+static func _normalize_drop_id(drop_id: String) -> String:
+	var clean := drop_id.strip_edges()
+	if DROP_ID_ALIASES.has(clean):
+		return str(DROP_ID_ALIASES[clean])
+	return clean.to_lower()
+
+
+static func _refresh_active_screens() -> void:
+	for screen in _active_screens.duplicate():
+		if screen and is_instance_valid(screen):
+			screen.refresh_owned_state()
+		else:
+			_active_screens.erase(screen)
+
+
 func open(selected_id: String = "") -> void:
 	if _root == null:
 		_build_ui()
 	_center_main_panel()
 	visible = true
 	_was_opened = true
+	if not _active_screens.has(self):
+		_active_screens.append(self)
 	InputManager.block_input("岭南图鉴", self)
 	InputManager.set_pause_allowed(false)
 	var player = GameManager.player_ref
@@ -144,11 +224,18 @@ func open(selected_id: String = "") -> void:
 	_play_open_motion()
 
 
+func refresh_owned_state() -> void:
+	for i in range(_item_buttons.size()):
+		_apply_item_button_owned_state(_item_buttons[i], ITEM_DATA[i], i == _selected_index)
+	_select_item(_selected_index)
+
+
 func close() -> void:
 	if not visible:
 		return
 	visible = false
 	_restore_game_state()
+	_active_screens.erase(self)
 	closed.emit()
 	queue_free()
 
@@ -157,6 +244,7 @@ func _restore_game_state() -> void:
 	if not _was_opened:
 		return
 	_was_opened = false
+	_active_screens.erase(self)
 	var player = GameManager.player_ref
 	if player and is_instance_valid(player) and player.has_method("set_frozen"):
 		player.set_frozen(false)
@@ -399,7 +487,6 @@ func _make_item_button(index: int) -> Button:
 
 	var label := Label.new()
 	label.name = "Name"
-	label.text = str(item.get("name", "未命名"))
 	label.position = Vector2(8, 56)
 	label.size = Vector2(110, 20)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -412,25 +499,35 @@ func _make_item_button(index: int) -> Button:
 	btn.pressed.connect(func() -> void:
 		_select_item(index)
 	)
+	_apply_item_button_owned_state(btn, item, false)
 	return btn
 
 
 func _select_item(index: int) -> void:
 	_selected_index = clampi(index, 0, ITEM_DATA.size() - 1)
 	var item := ITEM_DATA[_selected_index]
+	var owned := _is_item_owned(item)
 	var texture := _load_texture(str(item.get("icon", "")))
 	_left_icon.texture = texture
 	_left_icon.visible = texture != null
-	_left_placeholder.text = str(item.get("name", "?"))
+	_left_icon.modulate = Color.WHITE if owned else Color(0, 0, 0, 0.94)
+	_left_placeholder.text = str(item.get("name", "?")) if owned else UNKNOWN_NAME
 	_left_placeholder.visible = texture == null
-	_name_label.text = str(item.get("name", "未命名"))
-	_rarity_label.text = "◇ " + str(item.get("rarity", "未知品级")) + " ◇"
-	_source_label.text = str(item.get("source", "来源未记录"))
-	_usage_label.text = "用途：" + str(item.get("usage", "暂无用途记录。"))
-	_article_label.text = "[b]说明[/b]\n%s\n\n[b]背景[/b]\n%s" % [
-		str(item.get("description", "暂无说明。")),
-		str(item.get("lore", "暂无背景记录。"))
-	]
+	if owned:
+		_name_label.text = str(item.get("name", "未命名"))
+		_rarity_label.text = "◇ " + str(item.get("rarity", "未知品级")) + " ◇"
+		_source_label.text = str(item.get("source", "来源未记录"))
+		_usage_label.text = "用途：" + str(item.get("usage", "暂无用途记录。"))
+		_article_label.text = "[b]说明[/b]\n%s\n\n[b]背景[/b]\n%s" % [
+			str(item.get("description", "暂无说明。")),
+			str(item.get("lore", "暂无背景记录。"))
+		]
+	else:
+		_name_label.text = UNKNOWN_NAME
+		_rarity_label.text = "◇ 未收录 ◇"
+		_source_label.text = LOCKED_HINT
+		_usage_label.text = LOCKED_HINT
+		_article_label.text = "[center]%s[/center]" % LOCKED_HINT
 	_refresh_item_button_states()
 
 
@@ -441,13 +538,40 @@ func _refresh_item_button_states() -> void:
 		btn.add_theme_stylebox_override("normal", _make_item_style(selected, false))
 		btn.add_theme_stylebox_override("hover", _make_item_style(selected, true))
 		btn.add_theme_stylebox_override("pressed", _make_item_style(true, false))
+		_apply_item_button_owned_state(btn, ITEM_DATA[i], selected)
+
+
+func _apply_item_button_owned_state(btn: Button, item: Dictionary, selected: bool) -> void:
+	var owned := _is_item_owned(item)
+	var icon := btn.get_node_or_null("Icon") as TextureRect
+	if icon:
+		icon.modulate = Color.WHITE if owned else Color(0, 0, 0, 0.94)
+	var placeholder := btn.get_node_or_null("Placeholder") as Label
+	if placeholder:
+		placeholder.text = str(item.get("name", "?")) if owned else UNKNOWN_NAME
+		placeholder.visible = icon == null or icon.texture == null
+	var label := btn.get_node_or_null("Name") as Label
+	if label:
+		label.text = str(item.get("name", "未命名")) if owned else UNKNOWN_NAME
+		label.add_theme_color_override("font_color", COLOR_PAPER if owned else Color(0.55, 0.56, 0.50, 1.0))
+	btn.tooltip_text = str(item.get("name", "")) if owned else LOCKED_HINT
+	btn.add_theme_stylebox_override("normal", _make_item_style(selected, false, not owned))
+	btn.add_theme_stylebox_override("hover", _make_item_style(selected, true, not owned))
+	btn.add_theme_stylebox_override("pressed", _make_item_style(true, false, not owned))
+
+
+func _is_item_owned(item: Dictionary) -> bool:
+	return has_drop_item(str(item.get("id", "")))
 
 
 func _index_for_id(selected_id: String) -> int:
 	if selected_id == "":
 		return 0
+	var normalized_selected := _normalize_drop_id(selected_id)
 	for i in range(ITEM_DATA.size()):
-		if str(ITEM_DATA[i].get("id", "")) == selected_id or str(ITEM_DATA[i].get("name", "")) == selected_id:
+		var item_id := _normalize_drop_id(str(ITEM_DATA[i].get("id", "")))
+		var item_name_id := get_drop_id_by_name(str(ITEM_DATA[i].get("name", "")))
+		if item_id == normalized_selected or item_name_id == normalized_selected:
 			return i
 	return 0
 
@@ -565,10 +689,25 @@ func _make_glass_style(selected: bool = false) -> StyleBoxFlat:
 	return style
 
 
-func _make_item_style(selected: bool, hover: bool) -> StyleBoxFlat:
+func _make_item_style(selected: bool, hover: bool, locked: bool = false) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.09, 0.16, 0.12, 0.98)
-	if selected:
+	if locked and selected:
+		style.bg_color = Color(0.045, 0.052, 0.045, 0.98)
+		style.border_color = Color(0.44, 0.36, 0.20, 0.86)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.28)
+		style.shadow_size = 6
+	elif locked and hover:
+		style.bg_color = Color(0.055, 0.066, 0.055, 0.98)
+		style.border_color = Color(0.38, 0.42, 0.32, 0.82)
+		style.shadow_color = Color(0.0, 0.0, 0.0, 0.24)
+		style.shadow_size = 5
+	elif locked:
+		style.bg_color = Color(0.035, 0.045, 0.038, 0.96)
+		style.border_color = Color(0.22, 0.28, 0.22, 0.72)
+		style.shadow_color = Color(0, 0, 0, 0.18)
+		style.shadow_size = 4
+	elif selected:
 		style.bg_color = Color(0.13, 0.23, 0.17, 1.0)
 		style.border_color = COLOR_GOLD
 		style.shadow_color = Color(0.95, 0.65, 0.18, 0.28)
