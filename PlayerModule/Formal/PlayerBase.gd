@@ -633,6 +633,9 @@ func _play_skill_release_sfx() -> void:
 func _play_charge_attack_sfx() -> void:
 	SFXManager.play_pitched(SFXManager.SFX.PLAYER_CHARGE_ATTACK, 0.95, 1.08)
 
+func _play_cyber_skill_sfx() -> void:
+	SFXManager.play_pitched(SFXManager.SFX.PLAYER_CYBER_SKILL, 0.95, 1.05)
+
 func _start_skill_charge_sfx() -> void:
 	SFXManager.start_skill_charge_loop()
 
