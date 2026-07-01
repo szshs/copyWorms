@@ -303,6 +303,7 @@ func _do_skill2_manual_stab() -> void:
 	if not _skill2_charging:
 		return
 	_stop_skill_charge_sfx()
+	_play_cyber_skill_sfx()
 	_skill2_charging = false
 	_skill2_timer = 0.0
 	_skill2_sequence_active = true
@@ -321,7 +322,7 @@ func _do_skill2_manual_stab() -> void:
 	_change_state(GlobalDefine.PlayerState.SKILL)
 	_skill2_manual_dash_visual = true
 	_play_skill2_pose(CYBER_SKILL2_STAB_TEXTURE)
-	_do_lightning_dash()
+	_do_lightning_dash(false)
 	await get_tree().create_timer(_dash_duration + 0.08).timeout
 	_clear_skill2_pose()
 	_finish_skill2_sequence(true)
@@ -346,6 +347,7 @@ func _trigger_skill2_counter(enemy: Node2D) -> void:
 	if _skill2_sequence_active:
 		return
 	_stop_skill_charge_sfx()
+	_play_cyber_skill_sfx()
 	_skill2_charging = false
 	_skill2_timer = 0.0
 	if not is_instance_valid(enemy):
@@ -645,8 +647,9 @@ func _start_dash_windup() -> void:
 
 # ---- 闪电突进 ----
 
-func _do_lightning_dash() -> void:
-	_play_charge_attack_sfx()
+func _do_lightning_dash(play_charge_sfx: bool = true) -> void:
+	if play_charge_sfx:
+		_play_charge_attack_sfx()
 	_is_lightning_dash = true
 	_dash_timer = _dash_duration
 	_dash_dir = 1.0 if is_facing_right else -1.0

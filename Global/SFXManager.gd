@@ -20,6 +20,7 @@ const SFX = {
 	PLAYER_ATTACK  = "player_attack",   # 玩家普攻
 	PLAYER_CHARGE_ATTACK = "player_charge_attack", # 长按普攻蓄力突进
 	PLAYER_SKILL   = "player_skill",    # 玩家技能（松开释放）
+	PLAYER_CYBER_SKILL = "player_cyber_skill", # 赛博技能二
 	PLAYER_HURT     = "player_hurt",    # 玩家受击
 	PLAYER_WALK     = "player_walk",    # 玩家行走
 	ENEMY_IDLE_WALK = "enemy_idle_walk",# 怪物待机/行走
@@ -32,6 +33,7 @@ const SFX = {
 const _PATHS := {
 	SFX.PLAYER_CHARGE_ATTACK : "res://Assets/Sound/sword skill sound.mp3",
 	SFX.PLAYER_SKILL    : "res://Assets/Sound/sword skill sound.mp3",
+	SFX.PLAYER_CYBER_SKILL : "res://Assets/Sound/cyber skill sound.mp3",
 	SFX.PLAYER_HURT     : "res://Assets/Sound/玩家受击.mp3",
 	SFX.PLAYER_WALK     : "res://Assets/Sound/玩家行走.mp3",
 	SFX.ENEMY_IDLE_WALK : "res://Assets/Sound/怪物待机、行走.wav",
