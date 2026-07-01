@@ -30,7 +30,7 @@ const SFX = {
 
 # ---- 资源路径 ----
 const _PATHS := {
-	SFX.PLAYER_CHARGE_ATTACK : "res://Assets/Sound/sword sound3.mp3",
+	SFX.PLAYER_CHARGE_ATTACK : "res://Assets/Sound/sword skill sound.mp3",
 	SFX.PLAYER_SKILL    : "res://Assets/Sound/sword skill sound.mp3",
 	SFX.PLAYER_HURT     : "res://Assets/Sound/玩家受击.mp3",
 	SFX.PLAYER_WALK     : "res://Assets/Sound/玩家行走.mp3",
