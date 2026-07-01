@@ -34,6 +34,7 @@ const CYBER_SKILL2_CD := 5.0
 const CYBER_SKILL2_FRONT_OFFSET := 64.0
 const CYBER_SKILL2_STAB_DISTANCE := 92.0
 const CYBER_SKILL2_POSE_TARGET_HEIGHT := 66.0
+const CYBER_SKILL2_COUNTER_CAMERA_ZOOM := 1.18
 const CYBER_SKILL2_STAB_TEXTURE := preload("res://Assets/Sprites/player_cyber Ani/技能二.png")
 const CYBER_SKILL2_SLASH_TEXTURE := preload("res://Assets/Sprites/player_cyber Ani/技能二1.png")
 const CYBER_SKILL2_EFFECT_A := preload("res://Assets/Effects/蓝色直线斩击特效 1.png")
@@ -47,6 +48,9 @@ var _skill2_saved_invincible: bool = false
 var _skill2_saved_super_armor: bool = false
 var _skill2_saved_facing_right: bool = true
 var _skill2_manual_dash_visual: bool = false
+var _skill2_camera_zoom_saved: Vector2 = Vector2.ONE
+var _skill2_camera_zoom_pushed: bool = false
+var _skill2_camera_tween: Tween = null
 
 func _on_ready():
 	super._on_ready()
@@ -359,6 +363,7 @@ func _trigger_skill2_counter(enemy: Node2D) -> void:
 	is_attacking = true
 	attack_timer = 1.1
 	_change_state(GlobalDefine.PlayerState.SKILL)
+	_push_skill2_counter_camera()
 	_run_skill2_counter_sequence(enemy)
 
 func _run_skill2_counter_sequence(enemy: Node2D) -> void:
@@ -424,6 +429,7 @@ func _finish_skill2_sequence(force_recover_state: bool = true) -> void:
 		is_invincible = false
 		_restore_visibility()
 	_is_super_armor = _skill2_saved_super_armor
+	_restore_skill2_counter_camera()
 	_clear_skill2_pose()
 	if _anim_sprite:
 		_anim_sprite.visible = true
@@ -455,6 +461,31 @@ func _recover_skill2_animation_state() -> void:
 		var target_anim := _get_anim_for_state()
 		if _anim_sprite.sprite_frames.has_animation(target_anim):
 			_anim_sprite.play(target_anim)
+
+func _push_skill2_counter_camera() -> void:
+	var cam = get_node_or_null("SmoothCamera") as Camera2D
+	if not cam:
+		return
+	if _skill2_camera_tween:
+		_skill2_camera_tween.kill()
+	if not _skill2_camera_zoom_pushed:
+		_skill2_camera_zoom_saved = cam.zoom
+	_skill2_camera_zoom_pushed = true
+	_skill2_camera_tween = create_tween()
+	_skill2_camera_tween.tween_property(cam, "zoom", _skill2_camera_zoom_saved * CYBER_SKILL2_COUNTER_CAMERA_ZOOM, 0.12).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func _restore_skill2_counter_camera() -> void:
+	if not _skill2_camera_zoom_pushed:
+		return
+	var cam = get_node_or_null("SmoothCamera") as Camera2D
+	if not cam:
+		_skill2_camera_zoom_pushed = false
+		return
+	if _skill2_camera_tween:
+		_skill2_camera_tween.kill()
+	_skill2_camera_tween = create_tween()
+	_skill2_camera_tween.tween_property(cam, "zoom", _skill2_camera_zoom_saved, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_skill2_camera_zoom_pushed = false
 
 # ---- 突进蓄力 ----
 
@@ -810,6 +841,7 @@ func _on_die() -> void:
 	_skill_charge_time = 0.0
 	_skill2_timer = 0.0
 	_attack_hold_time = 0.0
+	_restore_skill2_counter_camera()
 	_clear_skill2_pose()
 	if _anim_sprite:
 		_anim_sprite.modulate = Color.WHITE

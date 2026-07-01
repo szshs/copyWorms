@@ -119,6 +119,7 @@ var max_toughness: float = MAX_TOUGHNESS
 var _poise_broken: bool = false
 var _pending_poise_stun_on_land: bool = false
 var _lingnan_stun_immune_timer: float = 0.0
+var _huadan_stun_timer: float = 0.0
 
 func _on_ready() -> void:
 	super._on_ready()
@@ -137,7 +138,7 @@ func _on_ready() -> void:
 		_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
 		if _sprite.sprite_frames:
 			if _sprite.sprite_frames.has_animation("dizziness"):
-				_sprite.sprite_frames.set_animation_loop("dizziness", true)
+				_sprite.sprite_frames.set_animation_loop("dizziness", false)
 				_sprite.sprite_frames.set_animation_speed("dizziness", 6.0)
 			if _sprite.sprite_frames.has_animation("defeated"):
 				_sprite.sprite_frames.set_animation_loop("defeated", false)
@@ -177,7 +178,7 @@ func _build_sprite_frames() -> SpriteFrames:
 	_add_sliced_anim(sf, "walk", "res://Assets/Sprites/boss_huadan/boss行走.png", 4, 3, 128, 128, 10.0, true)
 	_add_sliced_anim(sf, "attack", "res://Assets/Sprites/boss_huadan/boss攻击.png", 4, 4, 256, 256, 12.0, false)
 	_add_single_anim(sf, "hang_in_air", "res://Assets/Sprites/boss_huadan/boss悬空.png", 1.0, true)
-	_add_sliced_anim(sf, "dizziness", "res://Assets/Sprites/boss_huadan/boss眩晕.png", 4, 3, 256, 256, 6.0, true)
+	_add_sliced_anim(sf, "dizziness", "res://Assets/Sprites/boss_huadan/boss眩晕.png", 4, 3, 256, 256, 6.0, false)
 	_add_sliced_anim(sf, "defeated", "res://Assets/Sprites/boss_huadan/boss眩晕.png", 4, 3, 256, 256, 6.0, false)
 	return sf
 
@@ -264,11 +265,13 @@ func _enter_huadan_stun(duration: float) -> void:
 	_pending_poise_stun_on_land = false
 	_current_action = BossAction.IDLE
 	_action_lock = 0.0
+	_huadan_stun_timer = maxf(_huadan_stun_timer, duration)
 	stun_timer = maxf(stun_timer, duration)
 	velocity.x = 0.0
 	if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation("dizziness"):
 		_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
 		_sprite.offset = Vector2(0, 10)
+		_sprite.frame = 0
 		_sprite.play("dizziness")
 
 func _cancel_attack() -> void:
@@ -393,14 +396,26 @@ func _physics_process(delta: float) -> void:
 		_lingnan_stun_immune_timer = maxf(0.0, _lingnan_stun_immune_timer - delta)
 	if _pending_poise_stun_on_land and is_on_floor():
 		_enter_huadan_stun(POISE_BREAK_STUN_TIME)
+	if _huadan_stun_timer > 0:
+		_huadan_stun_timer = maxf(0.0, _huadan_stun_timer - delta)
+		if _huadan_stun_timer > 0:
+			stun_timer = maxf(stun_timer, _huadan_stun_timer)
+		else:
+			stun_timer = 0.0
 
 	# STAGGER：受击硬直期间停止一切行为
+	if _huadan_stun_timer > 0:
+		velocity.x = move_toward(velocity.x, 0, 500 * delta)
+		var grav = config.gravity if config else 600.0
+		velocity.y += grav * delta
+		_hold_huadan_stun_animation()
+		move_and_slide()
+		return
 	if stun_timer > 0:
 		velocity.x = move_toward(velocity.x, 0, 500 * delta)
 		var grav = config.gravity if config else 600.0
 		velocity.y += grav * delta
-		if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation("dizziness") and _sprite.animation != "dizziness":
-			_sprite.play("dizziness")
+		_hold_huadan_stun_animation()
 		move_and_slide()
 		return
 
@@ -1070,11 +1085,8 @@ func _update_facing() -> void:
 
 func _update_anim() -> void:
 	if not _sprite or not _sprite.sprite_frames: return
-	if stun_timer > 0:
-		if _sprite.sprite_frames.has_animation("dizziness") and _sprite.animation != "dizziness":
-			_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
-			_sprite.offset = Vector2(0, 10)
-			_sprite.play("dizziness")
+	if _huadan_stun_timer > 0:
+		_hold_huadan_stun_animation()
 		return
 	var anim = "idle"
 	match _current_action:
@@ -1096,6 +1108,19 @@ func _update_anim() -> void:
 	if _sprite.animation != anim or (anim == "attack" and not _sprite.is_playing() and _melee_active):
 		_sprite.frame = 0
 		_sprite.play(anim)
+
+func _hold_huadan_stun_animation() -> void:
+	if not _sprite or not _sprite.sprite_frames or not _sprite.sprite_frames.has_animation("dizziness"):
+		return
+	_sprite.scale = Vector2(SPRITE_SCALE, SPRITE_SCALE)
+	_sprite.offset = Vector2(0, 10)
+	if _sprite.animation != "dizziness":
+		_sprite.frame = 0
+		_sprite.play("dizziness")
+	var last_frame := _sprite.sprite_frames.get_frame_count("dizziness") - 1
+	if last_frame >= 0 and _sprite.frame >= last_frame:
+		_sprite.frame = last_frame
+		_sprite.pause()
 
 func die() -> void:
 	if is_dead:
